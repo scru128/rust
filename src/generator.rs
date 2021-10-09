@@ -45,14 +45,15 @@ impl Generator {
         } else {
             self.counter += 1;
             if self.counter > MAX_COUNTER {
-                // wait a moment until clock goes forward when counter overflows
+                #[cfg(feature = "log")]
+                log::info!("counter limit reached; will wait until clock goes forward");
                 let mut n_trials = 0;
                 while ts_now >= self.ts_last_gen {
                     ts_now = get_msec_unixts();
                     n_trials += 1;
                     if n_trials > 1_000_000 {
                         #[cfg(feature = "log")]
-                        log::warn!("scru128: reset state as clock did not go forward");
+                        log::warn!("reset state as clock did not go forward");
                         self.ts_last_sec = 0;
                         break;
                     }
@@ -83,4 +84,49 @@ fn get_msec_unixts() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("clock may have gone backwards")
         .as_millis() as u64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Generator;
+
+    #[test]
+    fn basic_examples() {
+        let mut g = Generator::new();
+        for _ in 0..4 {
+            println!("{}", g.generate().to_string());
+        }
+    }
+
+    /// Describes how to use Generator globally and thread-locally.
+    #[test]
+    fn thread_examples() {
+        use std::sync::{Arc, Mutex};
+        use std::thread;
+
+        let g_shared = Arc::new(Mutex::new(Generator::new()));
+
+        let mut hs = Vec::new();
+        for i in 0..4 {
+            let g_shared = Arc::clone(&g_shared);
+            hs.push(thread::spawn(move || {
+                let mut g_local = Generator::new();
+                for _ in 0..4 {
+                    println!(
+                        "Shared generator: {}",
+                        g_shared.lock().unwrap().generate().to_string()
+                    );
+                    println!(
+                        "Thread-local generator {}: {}",
+                        i,
+                        g_local.generate().to_string(),
+                    );
+                }
+            }));
+        }
+
+        for h in hs {
+            let _ = h.join();
+        }
+    }
 }

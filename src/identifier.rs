@@ -15,6 +15,8 @@ const CHARSET: [char; 32] = [
 ];
 
 /// Represents a SCRU128 ID.
+///
+/// This type provides converters to/from String and u128.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Identifier(u128);
 
@@ -30,6 +32,10 @@ impl Identifier {
     }
 
     /// Creates an object from field values.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any argument exceeds the maximum value of the field.
     pub fn from_field_values(
         timestamp: u64,
         counter: u32,
@@ -73,7 +79,7 @@ impl Identifier {
 }
 
 impl FromStr for Identifier {
-    type Err = Error;
+    type Err = ParseError;
 
     /// Creates an object from a 26-digit string representation.
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
@@ -84,7 +90,7 @@ impl FromStr for Identifier {
         {
             Ok(Self(u128::from_str_radix(str_value, 32).unwrap()))
         } else {
-            Err(Error::InvalidStringRepresentation(str_value.into()))
+            Err(ParseError(str_value.into()))
         }
     }
 }
@@ -114,28 +120,33 @@ impl From<Identifier> for u128 {
     }
 }
 
-#[non_exhaustive]
+/// Error parsing an invalid string representation of SCRU128 ID.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub enum Error {
-    InvalidStringRepresentation(String),
-}
+pub struct ParseError(String);
 
-impl fmt::Display for Error {
+impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            Error::InvalidStringRepresentation(str_value) => {
-                write!(f, "invalid string representation: {}", str_value)
-            }
-        }
+        write!(f, "invalid string representation: {}", self.0)
     }
 }
 
-impl error::Error for Error {}
+impl error::Error for ParseError {}
 
 #[cfg(test)]
 mod tests {
     use super::Identifier;
     use crate::scru128;
+
+    #[test]
+    fn basic_examples() {
+        let x = "00Q1D9AB6DTJNLJ80SJ42SNJ4F"
+            .parse::<Identifier>()
+            .expect("invalid string representation");
+        assert_eq!(x.to_string(), "00Q1D9AB6DTJNLJ80SJ42SNJ4F");
+
+        let y = Identifier::from_u128(0x00d05a952ccdecef5aa01c9904e5a115);
+        assert_eq!(y.as_u128(), 0x00d05a952ccdecef5aa01c9904e5a115);
+    }
 
     /// Encodes and decodes prepared cases correctly
     #[test]

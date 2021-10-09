@@ -1,4 +1,26 @@
-//! SCRU128: Sortable, Clock and Random number-based Unique identifier
+//! # SCRU128: Sortable, Clock and Random number-based Unique identifier
+//!
+//! SCRU128 ID is yet another attempt to supersede [UUID] in the use cases that need
+//! decentralized, globally unique time-ordered identifiers. SCRU128 is inspired by
+//! [ULID] and [KSUID] and has the following features:
+//!
+//! - 128-bit unsigned integer type
+//! - Sortable by generation time (as integer and as text)
+//! - 26-character case-insensitive portable textual representation
+//! - 44-bit biased millisecond timestamp that ensures remaining life of 550 years
+//! - Up to 268 million time-ordered but unpredictable unique IDs per millisecond
+//! - 84-bit _layered_ randomness for collision resistance
+//!
+//! ```rust
+//! use scru128::scru128;
+//!
+//! println!("{}", scru128()); // e.g. "00POIIIQ3EU27VB0CO5T1KBR20"
+//! println!("{}", scru128()); // e.g. "00POIIIQ3EU27VD0CO5TB187QQ"
+//! ```
+//!
+//! [uuid]: https://en.wikipedia.org/wiki/Universally_unique_identifier
+//! [ulid]: https://github.com/ulid/spec
+//! [ksuid]: https://github.com/segmentio/ksuid
 
 use std::sync::Mutex;
 
@@ -10,11 +32,19 @@ use generator::Generator;
 
 static DEFAULT_GENERATOR: Lazy<Mutex<Generator>> = Lazy::new(|| Mutex::new(Generator::new()));
 
-/// Generates a new SCRU128 ID encoded in a string.
+/// Generates a new SCRU128 ID encoded in a 26-digit canonical string representation.
 ///
-/// # Returns
+/// This function is thread safe in that it generates monotonically ordered IDs using a shared
+/// state when called concurrently from multiple threads.
 ///
-/// 26-digit canonical string representation.
+/// # Examples
+///
+/// ```rust
+/// use scru128::scru128;
+/// let x = scru128(); // e.g. "00Q1BPRUE21T9VN8I9JR18TO9T"
+///
+/// assert!(regex::Regex::new(r"^[0-7][0-9A-V]{25}$").unwrap().is_match(&x));
+/// ```
 pub fn scru128() -> String {
     DEFAULT_GENERATOR.lock().unwrap().generate().to_string()
 }

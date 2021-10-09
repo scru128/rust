@@ -14,10 +14,8 @@ decentralized, globally unique time-ordered identifiers. SCRU128 is inspired by
 ```rust
 use scru128::scru128;
 
-fn main() {
-    println!("{}", scru128()); // e.g. "00POIIIQ3EU27VB0CO5T1KBR20"
-    println!("{}", scru128()); // e.g. "00POIIIQ3EU27VD0CO5TB187QQ"
-}
+println!("{}", scru128()); // e.g. "00POIIIQ3EU27VB0CO5T1KBR20"
+println!("{}", scru128()); // e.g. "00POIIIQ3EU27VD0CO5TB187QQ"
 ```
 
 [uuid]: https://en.wikipedia.org/wiki/Universally_unique_identifier
