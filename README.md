@@ -22,6 +22,11 @@ println!("{}", scru128()); // e.g. "00POIIIQ3EU27VD0CO5TB187QQ"
 [ulid]: https://github.com/ulid/spec
 [ksuid]: https://github.com/segmentio/ksuid
 
+## Optional features
+
+- `log` - Enables logging via the [log](https://crates.io/crates/log) crate.
+- `serde` - Enables serialization/deserialization via serde.
+
 ## License
 
 Copyright 2021 LiosK

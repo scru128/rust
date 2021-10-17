@@ -1,47 +1,103 @@
-use crate::identifier::{Identifier, MAX_COUNTER, MAX_PER_SEC_RANDOM};
+use crate::identifier::{Scru128Id, MAX_COUNTER, MAX_PER_SEC_RANDOM};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::prelude::*;
+use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 /// Unix time in milliseconds as at 2020-01-01 00:00:00+00:00.
 const TIMESTAMP_EPOCH: u64 = 1577836800000;
 
-/// Represents a SCRU128 ID generator.
+/// Represents a SCRU128 ID generator and provides an interface to do more than just generate a
+/// string representation.
+///
+/// # Examples
+///
+/// ```rust
+/// use scru128::Generator;
+///
+/// let mut g = Generator::new();
+/// println!("{}", g.generate());
+/// println!("{}", g.generate().as_u128());
+/// ```
+///
+/// Each generator instance generates monotonically ordered IDs, but multiple generators called
+/// concurrently may produce unordered results unless explicitly synchronized. Use Rust's
+/// synchronization mechanisms to control the scope of guaranteed monotonicity:
+///
+/// ```rust
+/// use scru128::Generator;
+/// use std::sync::{Arc, Mutex};
+///
+/// let g_shared = Arc::new(Mutex::new(Generator::new()));
+///
+/// let mut hs = Vec::new();
+/// for i in 0..4 {
+///     let g_shared = Arc::clone(&g_shared);
+///     hs.push(std::thread::spawn(move || {
+///         let mut g_local = Generator::new();
+///         for _ in 0..4 {
+///             println!("Shared generator: {}", g_shared.lock().unwrap().generate());
+///             println!("Thread-local generator {}: {}", i, g_local.generate());
+///         }
+///     }));
+/// }
+///
+/// for h in hs {
+///     let _ = h.join();
+/// }
+/// ```
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct Generator {
+pub struct Generator<R = StdRng> {
     ts_last_gen: u64,
     counter: u32,
     ts_last_sec: u64,
     per_sec_random: u32,
-    rng: StdRng,
+    rng: R,
 }
 
 impl Default for Generator {
     fn default() -> Self {
-        Self::new()
+        Self::with_rng(StdRng::from_entropy())
     }
 }
 
 impl Generator {
+    /// Creates a generator object with the default random number generator.
     pub fn new() -> Self {
+        Self::with_rng(StdRng::from_entropy())
+    }
+}
+
+impl<R: RngCore> Generator<R> {
+    /// Creates a generator object with a specified random number generator. The random number
+    /// generator should be cryptographically secure and securely seeded.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Generator;
+    ///
+    /// let mut g = Generator::with_rng(rand::thread_rng());
+    /// println!("{}", g.generate());
+    /// ```
+    pub fn with_rng(rng: R) -> Self {
         Self {
             ts_last_gen: 0,
             counter: 0,
             ts_last_sec: 0,
             per_sec_random: 0,
-            rng: StdRng::from_entropy(),
+            rng,
         }
     }
 
     /// Generates a new SCRU128 ID object.
-    pub fn generate(&mut self) -> Identifier {
+    pub fn generate(&mut self) -> Scru128Id {
         let mut ts_now = get_msec_unixts();
 
         // update timestamp and counter
         if ts_now > self.ts_last_gen {
             self.ts_last_gen = ts_now;
-            self.counter = self.rng.gen::<u32>() & MAX_COUNTER;
+            self.counter = self.rng.next_u32() & MAX_COUNTER;
         } else {
             self.counter += 1;
             if self.counter > MAX_COUNTER {
@@ -59,21 +115,21 @@ impl Generator {
                     }
                 }
                 self.ts_last_gen = ts_now;
-                self.counter = self.rng.gen::<u32>() & MAX_COUNTER;
+                self.counter = self.rng.next_u32() & MAX_COUNTER;
             }
         }
 
         // update per_sec_random
         if self.ts_last_gen - self.ts_last_sec > 1000 {
             self.ts_last_sec = self.ts_last_gen;
-            self.per_sec_random = self.rng.gen::<u32>() & MAX_PER_SEC_RANDOM;
+            self.per_sec_random = self.rng.next_u32() & MAX_PER_SEC_RANDOM;
         }
 
-        Identifier::from_field_values(
+        Scru128Id::from_fields(
             self.ts_last_gen - TIMESTAMP_EPOCH,
             self.counter,
             self.per_sec_random,
-            self.rng.gen(),
+            self.rng.next_u32(),
         )
     }
 }
@@ -84,49 +140,4 @@ fn get_msec_unixts() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("clock may have gone backwards")
         .as_millis() as u64
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Generator;
-
-    #[test]
-    fn basic_examples() {
-        let mut g = Generator::new();
-        for _ in 0..4 {
-            println!("{}", g.generate().to_string());
-        }
-    }
-
-    /// Describes how to use Generator globally and thread-locally.
-    #[test]
-    fn thread_examples() {
-        use std::sync::{Arc, Mutex};
-        use std::thread;
-
-        let g_shared = Arc::new(Mutex::new(Generator::new()));
-
-        let mut hs = Vec::new();
-        for i in 0..4 {
-            let g_shared = Arc::clone(&g_shared);
-            hs.push(thread::spawn(move || {
-                let mut g_local = Generator::new();
-                for _ in 0..4 {
-                    println!(
-                        "Shared generator: {}",
-                        g_shared.lock().unwrap().generate().to_string()
-                    );
-                    println!(
-                        "Thread-local generator {}: {}",
-                        i,
-                        g_local.generate().to_string(),
-                    );
-                }
-            }));
-        }
-
-        for h in hs {
-            let _ = h.join();
-        }
-    }
 }

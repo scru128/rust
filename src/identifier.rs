@@ -1,6 +1,7 @@
-use std::error;
+use std::convert::TryFrom;
+use std::error::Error;
 use std::fmt;
-use std::str::FromStr;
+use std::str::{from_utf8, FromStr};
 
 /// Maximum value of 28-bit counter field.
 pub const MAX_COUNTER: u32 = 0xFFF_FFFF;
@@ -9,18 +10,31 @@ pub const MAX_COUNTER: u32 = 0xFFF_FFFF;
 pub const MAX_PER_SEC_RANDOM: u32 = 0xFF_FFFF;
 
 /// Digit characters used in the base 32 notation.
-const CHARSET: [char; 32] = [
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
-    'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
-];
+const CHARSET: &[u8; 32] = b"0123456789ABCDEFGHIJKLMNOPQRSTUV";
 
-/// Represents a SCRU128 ID.
+/// Represents a SCRU128 ID and provides converters to/from [String] and [u128].
 ///
-/// This type provides converters to/from String and u128.
+/// # Examples
+///
+/// ```rust
+/// use scru128::Scru128Id;
+///
+/// let x = "00Q1D9AB6DTJNLJ80SJ42SNJ4F".parse::<Scru128Id>()?;
+/// assert_eq!(x.to_string(), "00Q1D9AB6DTJNLJ80SJ42SNJ4F");
+///
+/// let y = Scru128Id::from_u128(0x00d05a952ccdecef5aa01c9904e5a115);
+/// assert_eq!(y.as_u128(), 0x00d05a952ccdecef5aa01c9904e5a115);
+/// # Ok::<(), scru128::ParseError>(())
+/// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct Identifier(u128);
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(into = "String", try_from = "String")
+)]
+pub struct Scru128Id(u128);
 
-impl Identifier {
+impl Scru128Id {
     /// Creates an object from a 128-bit unsigned integer.
     pub const fn from_u128(int_value: u128) -> Self {
         Self(int_value)
@@ -36,7 +50,7 @@ impl Identifier {
     /// # Panics
     ///
     /// Panics if any argument exceeds the maximum value of the field.
-    pub fn from_field_values(
+    pub fn from_fields(
         timestamp: u64,
         counter: u32,
         per_sec_random: u32,
@@ -78,13 +92,13 @@ impl Identifier {
     }
 }
 
-impl FromStr for Identifier {
+impl FromStr for Scru128Id {
     type Err = ParseError;
 
     /// Creates an object from a 26-digit string representation.
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
         let mut cs = str_value.chars();
-        if str_value.chars().count() == 26
+        if str_value.len() == 26
             && cs.next().map_or(false, |c| c.is_digit(8))
             && cs.all(|c| c.is_digit(32))
         {
@@ -95,28 +109,42 @@ impl FromStr for Identifier {
     }
 }
 
-impl fmt::Display for Identifier {
+impl fmt::Display for Scru128Id {
     /// Returns the 26-digit canonical string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buffer = ['0'; 26];
+        let mut buffer = [b'0'; 26];
         let mut n = self.0;
         for i in 0..26 {
             buffer[25 - i] = CHARSET[(n & 31) as usize];
             n >>= 5;
         }
-        f.write_str(&(buffer.iter().collect::<String>()))
+        f.write_str(from_utf8(&buffer).unwrap())
     }
 }
 
-impl From<u128> for Identifier {
-    fn from(int_value: u128) -> Self {
-        Self::from_u128(int_value)
+impl From<u128> for Scru128Id {
+    fn from(value: u128) -> Self {
+        Self::from_u128(value)
     }
 }
 
-impl From<Identifier> for u128 {
-    fn from(object: Identifier) -> Self {
+impl From<Scru128Id> for u128 {
+    fn from(object: Scru128Id) -> Self {
         object.as_u128()
+    }
+}
+
+impl TryFrom<String> for Scru128Id {
+    type Error = ParseError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(&value)
+    }
+}
+
+impl From<Scru128Id> for String {
+    fn from(object: Scru128Id) -> Self {
+        object.to_string()
     }
 }
 
@@ -130,23 +158,12 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl error::Error for ParseError {}
+impl Error for ParseError {}
 
 #[cfg(test)]
 mod tests {
-    use super::Identifier;
-    use crate::scru128;
-
-    #[test]
-    fn basic_examples() {
-        let x = "00Q1D9AB6DTJNLJ80SJ42SNJ4F"
-            .parse::<Identifier>()
-            .expect("invalid string representation");
-        assert_eq!(x.to_string(), "00Q1D9AB6DTJNLJ80SJ42SNJ4F");
-
-        let y = Identifier::from_u128(0x00d05a952ccdecef5aa01c9904e5a115);
-        assert_eq!(y.as_u128(), 0x00d05a952ccdecef5aa01c9904e5a115);
-    }
+    use super::Scru128Id;
+    use crate::Generator;
 
     /// Encodes and decodes prepared cases correctly
     #[test]
@@ -169,8 +186,8 @@ mod tests {
         ];
 
         for e in cases {
-            let from_fields = Identifier::from_field_values(e.0 .0, e.0 .1, e.0 .2, e.0 .3);
-            let from_str = e.1.parse::<Identifier>().unwrap();
+            let from_fields = Scru128Id::from_fields(e.0 .0, e.0 .1, e.0 .2, e.0 .3);
+            let from_str = e.1.parse::<Scru128Id>().unwrap();
 
             assert_eq!(from_fields, from_str);
             assert_eq!(
@@ -208,9 +225,10 @@ mod tests {
     /// Has symmetric from_str() and to_string()
     #[test]
     fn it_has_symmetric_from_str_and_to_string() {
+        let mut g = Generator::new();
         for _ in 0..1000 {
-            let src = scru128();
-            assert_eq!(src.parse::<Identifier>().unwrap().to_string(), src);
+            let src = g.generate();
+            assert_eq!(src.to_string().parse::<Scru128Id>(), Ok(src));
         }
     }
 }

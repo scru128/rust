@@ -22,41 +22,23 @@
 //! [ulid]: https://github.com/ulid/spec
 //! [ksuid]: https://github.com/segmentio/ksuid
 
-use std::sync::Mutex;
-
-use once_cell::sync::Lazy;
-
+mod default_gen;
 mod generator;
 mod identifier;
-use generator::Generator;
-
-static DEFAULT_GENERATOR: Lazy<Mutex<Generator>> = Lazy::new(|| Mutex::new(Generator::new()));
-
-/// Generates a new SCRU128 ID encoded in a 26-digit canonical string representation.
-///
-/// This function is thread safe in that it generates monotonically ordered IDs using a shared
-/// state when called concurrently from multiple threads.
-///
-/// # Examples
-///
-/// ```rust
-/// use scru128::scru128;
-/// let x = scru128(); // e.g. "00Q1BPRUE21T9VN8I9JR18TO9T"
-///
-/// assert!(regex::Regex::new(r"^[0-7][0-9A-V]{25}$").unwrap().is_match(&x));
-/// ```
-pub fn scru128() -> String {
-    DEFAULT_GENERATOR.lock().unwrap().generate().to_string()
-}
+pub use default_gen::scru128;
+pub use generator::Generator;
+pub use identifier::{ParseError, Scru128Id};
 
 #[cfg(test)]
 mod tests {
+    use crate::{Generator, Scru128Id};
+
     use once_cell::sync::Lazy;
 
-    use crate::identifier::Identifier;
-    use crate::scru128;
-
-    static SAMPLES: Lazy<Vec<String>> = Lazy::new(|| (0..100_000).map(|_| scru128()).collect());
+    static SAMPLES: Lazy<Vec<String>> = Lazy::new(|| {
+        let mut g = Generator::new();
+        (0..100_000).map(|_| g.generate().into()).collect()
+    });
 
     /// Generates 26-digit canonical string
     #[test]
@@ -88,13 +70,14 @@ mod tests {
     #[test]
     fn it_encodes_up_to_date_timestamp() {
         use std::time::{SystemTime, UNIX_EPOCH};
+        let mut g = Generator::new();
         for _ in 0..10_000 {
             let ts_now = (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("clock may have gone backwards")
                 .as_millis()
                 - 1577836800000) as i64;
-            let timestamp = scru128().parse::<Identifier>().unwrap().timestamp() as i64;
+            let timestamp = g.generate().timestamp() as i64;
             assert!((ts_now - timestamp).abs() < 16);
         }
     }
@@ -102,42 +85,15 @@ mod tests {
     /// Encodes unique sortable pair of timestamp and counter
     #[test]
     fn it_encodes_unique_sortable_pair_of_timestamp_and_counter() {
-        let mut prev = SAMPLES[0].parse::<Identifier>().unwrap();
+        let mut prev = SAMPLES[0].parse::<Scru128Id>().unwrap();
 
         for i in 1..SAMPLES.len() {
-            let curr = SAMPLES[i].parse::<Identifier>().unwrap();
+            let curr = SAMPLES[i].parse::<Scru128Id>().unwrap();
             assert!(
                 prev.timestamp() < curr.timestamp()
                     || (prev.timestamp() == curr.timestamp() && prev.counter() < curr.counter())
             );
             prev = curr;
         }
-    }
-
-    /// Generates no IDs sharing same timestamp and counter under multithreading
-    #[test]
-    fn it_generates_no_ids_sharing_same_timestamp_and_counter_under_multithreading() {
-        use std::collections::HashSet;
-        use std::sync::mpsc::channel;
-        use std::thread;
-
-        let (tx, rx) = channel();
-        for _ in 0..4 {
-            let tx = tx.clone();
-            thread::spawn(move || {
-                for _ in 0..10000 {
-                    tx.send(scru128()).unwrap();
-                }
-            });
-        }
-        drop(tx);
-
-        let mut s = HashSet::new();
-        while let Ok(msg) = rx.recv() {
-            let e: Identifier = msg.parse().unwrap();
-            s.insert((e.timestamp(), e.counter()));
-        }
-
-        assert_eq!(s.len(), 4 * 10000);
     }
 }
