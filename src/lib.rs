@@ -26,7 +26,7 @@ mod default_gen;
 mod generator;
 mod identifier;
 pub use default_gen::scru128;
-pub use generator::Generator;
+pub use generator::{Generator, TIMESTAMP_BIAS};
 pub use identifier::{ParseError, Scru128Id};
 
 #[cfg(test)]

@@ -4,8 +4,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
-/// Unix time in milliseconds as at 2020-01-01 00:00:00+00:00.
-const TIMESTAMP_EPOCH: u64 = 1577836800000;
+/// Unix time in milliseconds at 2020-01-01 00:00:00+00:00.
+pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 
 /// Represents a SCRU128 ID generator and provides an interface to do more than just generate a
 /// string representation.
@@ -126,7 +126,7 @@ impl<R: RngCore> Generator<R> {
         }
 
         Scru128Id::from_fields(
-            self.ts_last_gen - TIMESTAMP_EPOCH,
+            self.ts_last_gen - TIMESTAMP_BIAS,
             self.counter,
             self.per_sec_random,
             self.rng.next_u32(),
