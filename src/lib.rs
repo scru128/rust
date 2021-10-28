@@ -6,7 +6,7 @@
 //!
 //! - 128-bit unsigned integer type
 //! - Sortable by generation time (as integer and as text)
-//! - 26-character case-insensitive portable textual representation
+//! - 26-digit case-insensitive portable textual representation
 //! - 44-bit biased millisecond timestamp that ensures remaining life of 550 years
 //! - Up to 268 million time-ordered but unpredictable unique IDs per millisecond
 //! - 84-bit _layered_ randomness for collision resistance
@@ -18,24 +18,25 @@
 //! println!("{}", scru128()); // e.g. "00POIIIQ3EU27VD0CO5TB187QQ"
 //! ```
 //!
+//! See [SCRU128 Specification] for details.
+//!
 //! [uuid]: https://en.wikipedia.org/wiki/Universally_unique_identifier
 //! [ulid]: https://github.com/ulid/spec
 //! [ksuid]: https://github.com/segmentio/ksuid
+//! [scru128 specification]: https://github.com/scru128/spec
 
 mod default_gen;
 mod generator;
 mod identifier;
 pub use default_gen::scru128;
-pub use generator::Generator;
+pub use generator::{Generator, TIMESTAMP_BIAS};
 pub use identifier::{ParseError, Scru128Id};
 
 #[cfg(test)]
 mod tests {
     use crate::{Generator, Scru128Id};
 
-    use once_cell::sync::Lazy;
-
-    static SAMPLES: Lazy<Vec<String>> = Lazy::new(|| {
+    thread_local!(static SAMPLES: Vec<String> = {
         let mut g = Generator::new();
         (0..100_000).map(|_| g.generate().into()).collect()
     });
@@ -45,25 +46,31 @@ mod tests {
     fn it_generates_26_digit_canonical_string() {
         use regex::Regex;
         let re = Regex::new(r"^[0-7][0-9A-V]{25}$").unwrap();
-        for e in SAMPLES.iter() {
-            assert!(re.is_match(e));
-        }
+        SAMPLES.with(|samples| {
+            for e in samples.iter() {
+                assert!(re.is_match(e));
+            }
+        });
     }
 
     /// Generates 100k identifiers without collision
     #[test]
     fn it_generates_100k_identifiers_without_collision() {
         use std::collections::HashSet;
-        let s: HashSet<String> = SAMPLES.iter().cloned().collect();
-        assert_eq!(s.len(), SAMPLES.len());
+        SAMPLES.with(|samples| {
+            let s: HashSet<String> = samples.iter().cloned().collect();
+            assert_eq!(s.len(), samples.len());
+        });
     }
 
     /// Generates sortable string representation by creation time
     #[test]
     fn it_generates_sortable_string_representation_by_creation_time() {
-        for i in 1..SAMPLES.len() {
-            assert!(SAMPLES[i - 1] < SAMPLES[i]);
-        }
+        SAMPLES.with(|samples| {
+            for i in 1..samples.len() {
+                assert!(samples[i - 1] < samples[i]);
+            }
+        });
     }
 
     /// Encodes up-to-date timestamp
@@ -85,15 +92,18 @@ mod tests {
     /// Encodes unique sortable pair of timestamp and counter
     #[test]
     fn it_encodes_unique_sortable_pair_of_timestamp_and_counter() {
-        let mut prev = SAMPLES[0].parse::<Scru128Id>().unwrap();
+        SAMPLES.with(|samples| {
+            let mut prev = samples[0].parse::<Scru128Id>().unwrap();
 
-        for i in 1..SAMPLES.len() {
-            let curr = SAMPLES[i].parse::<Scru128Id>().unwrap();
-            assert!(
-                prev.timestamp() < curr.timestamp()
-                    || (prev.timestamp() == curr.timestamp() && prev.counter() < curr.counter())
-            );
-            prev = curr;
-        }
+            for i in 1..samples.len() {
+                let curr = samples[i].parse::<Scru128Id>().unwrap();
+                assert!(
+                    prev.timestamp() < curr.timestamp()
+                        || (prev.timestamp() == curr.timestamp()
+                            && prev.counter() < curr.counter())
+                );
+                prev = curr;
+            }
+        });
     }
 }

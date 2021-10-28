@@ -49,7 +49,7 @@ impl Scru128Id {
     ///
     /// # Panics
     ///
-    /// Panics if any argument exceeds the maximum value of the field.
+    /// Panics if any argument is out of the range of each field.
     pub fn from_fields(
         timestamp: u64,
         counter: u32,
@@ -222,13 +222,56 @@ mod tests {
         }
     }
 
-    /// Has symmetric from_str() and to_string()
+    /// Has symmetric converters from/to String, u128, and fields
     #[test]
-    fn it_has_symmetric_from_str_and_to_string() {
+    fn it_has_symmetric_converters() {
         let mut g = Generator::new();
         for _ in 0..1000 {
-            let src = g.generate();
-            assert_eq!(src.to_string().parse::<Scru128Id>(), Ok(src));
+            let obj = g.generate();
+            assert_eq!(obj.to_string().parse::<Scru128Id>(), Ok(obj));
+            assert_eq!(Scru128Id::from_u128(obj.as_u128()), obj);
+            assert_eq!(
+                Scru128Id::from_fields(
+                    obj.timestamp(),
+                    obj.counter(),
+                    obj.per_sec_random(),
+                    obj.per_gen_random()
+                ),
+                obj
+            );
+        }
+    }
+
+    /// Supports comparison operators
+    #[test]
+    fn it_supports_comparison_operators() {
+        let mut ordered = vec![
+            Scru128Id::from_fields(0, 0, 0, 0),
+            Scru128Id::from_fields(0, 0, 0, 1),
+            Scru128Id::from_fields(0, 0, 1, 0),
+            Scru128Id::from_fields(0, 1, 0, 0),
+            Scru128Id::from_fields(1, 0, 0, 0),
+        ];
+
+        let mut g = Generator::new();
+        for _ in 0..1000 {
+            ordered.push(g.generate());
+        }
+
+        let mut prev = ordered.remove(0);
+        for curr in ordered {
+            assert_ne!(curr, prev);
+            assert_ne!(prev, curr);
+            assert!(curr > prev);
+            assert!(curr >= prev);
+            assert!(prev < curr);
+            assert!(prev <= curr);
+
+            let clone = curr.clone();
+            assert_eq!(curr, clone);
+            assert_eq!(clone, curr);
+
+            prev = curr;
         }
     }
 }

@@ -4,8 +4,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
-/// Unix time in milliseconds as at 2020-01-01 00:00:00+00:00.
-const TIMESTAMP_EPOCH: u64 = 1577836800000;
+/// Unix time in milliseconds at 2020-01-01 00:00:00+00:00.
+pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 
 /// Represents a SCRU128 ID generator and provides an interface to do more than just generate a
 /// string representation.
@@ -52,6 +52,7 @@ pub struct Generator<R = StdRng> {
     counter: u32,
     ts_last_sec: u64,
     per_sec_random: u32,
+    n_clock_check_max: usize,
     rng: R,
 }
 
@@ -69,8 +70,8 @@ impl Generator {
 }
 
 impl<R: RngCore> Generator<R> {
-    /// Creates a generator object with a specified random number generator. The random number
-    /// generator should be cryptographically secure and securely seeded.
+    /// Creates a generator object with a specified random number generator. The specified random
+    /// number generator should be cryptographically strong and securely seeded.
     ///
     /// # Examples
     ///
@@ -86,6 +87,7 @@ impl<R: RngCore> Generator<R> {
             counter: 0,
             ts_last_sec: 0,
             per_sec_random: 0,
+            n_clock_check_max: 1_000_000,
             rng,
         }
     }
@@ -103,11 +105,11 @@ impl<R: RngCore> Generator<R> {
             if self.counter > MAX_COUNTER {
                 #[cfg(feature = "log")]
                 log::info!("counter limit reached; will wait until clock goes forward");
-                let mut n_trials = 0;
+                let mut n_clock_check = 0;
                 while ts_now >= self.ts_last_gen {
                     ts_now = get_msec_unixts();
-                    n_trials += 1;
-                    if n_trials > 1_000_000 {
+                    n_clock_check += 1;
+                    if n_clock_check > self.n_clock_check_max {
                         #[cfg(feature = "log")]
                         log::warn!("reset state as clock did not go forward");
                         self.ts_last_sec = 0;
@@ -126,7 +128,7 @@ impl<R: RngCore> Generator<R> {
         }
 
         Scru128Id::from_fields(
-            self.ts_last_gen - TIMESTAMP_EPOCH,
+            self.ts_last_gen - TIMESTAMP_BIAS,
             self.counter,
             self.per_sec_random,
             self.rng.next_u32(),
