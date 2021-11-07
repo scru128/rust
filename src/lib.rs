@@ -29,15 +29,15 @@ mod default_gen;
 mod generator;
 mod identifier;
 pub use default_gen::scru128;
-pub use generator::{Generator, TIMESTAMP_BIAS};
+pub use generator::{Scru128Generator, TIMESTAMP_BIAS};
 pub use identifier::{ParseError, Scru128Id};
 
 #[cfg(test)]
 mod tests {
-    use crate::{Generator, Scru128Id};
+    use crate::{Scru128Generator, Scru128Id};
 
     thread_local!(static SAMPLES: Vec<String> = {
-        let mut g = Generator::new();
+        let mut g = Scru128Generator::new();
         (0..100_000).map(|_| g.generate().into()).collect()
     });
 
@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn it_encodes_up_to_date_timestamp() {
         use std::time::{SystemTime, UNIX_EPOCH};
-        let mut g = Generator::new();
+        let mut g = Scru128Generator::new();
         for _ in 0..10_000 {
             let ts_now = (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -94,7 +94,6 @@ mod tests {
     fn it_encodes_unique_sortable_pair_of_timestamp_and_counter() {
         SAMPLES.with(|samples| {
             let mut prev = samples[0].parse::<Scru128Id>().unwrap();
-
             for i in 1..samples.len() {
                 let curr = samples[i].parse::<Scru128Id>().unwrap();
                 assert!(

@@ -1,18 +1,19 @@
-use crate::Generator;
+use crate::Scru128Generator;
 
 use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 
-static DEFAULT_GENERATOR: Lazy<Mutex<Generator>> = Lazy::new(|| {
+static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> = Lazy::new(|| {
     #[cfg(feature = "log")]
-    log::debug!("initialize global generator");
-    Mutex::new(Generator::new())
+    log::debug!("initialized global generator");
+    Mutex::new(Scru128Generator::new())
 });
 
 /// Generates a new SCRU128 ID encoded in the 26-digit canonical string representation.
 ///
-/// Use this function to quickly get a new SCRU128 ID as a string. Use [Generator] to do more.
+/// Use this function to quickly get a new SCRU128 ID as a string. Use [Scru128Generator] to do
+/// more.
 ///
 /// This function is thread safe in that it generates monotonically ordered IDs using a shared
 /// state when called concurrently from multiple threads.

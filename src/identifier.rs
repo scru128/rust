@@ -71,22 +71,22 @@ impl Scru128Id {
         }
     }
 
-    /// Returns 44-bit millisecond timestamp field.
+    /// Returns the 44-bit millisecond timestamp field value.
     pub fn timestamp(&self) -> u64 {
         (self.0 >> 84) as u64
     }
 
-    /// Returns 28-bit per-millisecond counter field.
+    /// Returns the 28-bit per-timestamp monotonic counter field value.
     pub fn counter(&self) -> u32 {
         (self.0 >> 56) as u32 & MAX_COUNTER
     }
 
-    /// Returns 24-bit per-second randomness field.
+    /// Returns the 24-bit per-second randomness field value.
     pub fn per_sec_random(&self) -> u32 {
         (self.0 >> 32) as u32 & MAX_PER_SEC_RANDOM
     }
 
-    /// Returns 32-bit per-generation randomness field.
+    /// Returns the 32-bit per-generation randomness field value.
     pub fn per_gen_random(&self) -> u32 {
         self.0 as u32 & u32::MAX
     }
@@ -163,7 +163,7 @@ impl Error for ParseError {}
 #[cfg(test)]
 mod tests {
     use super::Scru128Id;
-    use crate::Generator;
+    use crate::Scru128Generator;
 
     /// Encodes and decodes prepared cases correctly
     #[test]
@@ -225,7 +225,7 @@ mod tests {
     /// Has symmetric converters from/to String, u128, and fields
     #[test]
     fn it_has_symmetric_converters() {
-        let mut g = Generator::new();
+        let mut g = Scru128Generator::new();
         for _ in 0..1000 {
             let obj = g.generate();
             assert_eq!(obj.to_string().parse::<Scru128Id>(), Ok(obj));
@@ -253,7 +253,7 @@ mod tests {
             Scru128Id::from_fields(1, 0, 0, 0),
         ];
 
-        let mut g = Generator::new();
+        let mut g = Scru128Generator::new();
         for _ in 0..1000 {
             ordered.push(g.generate());
         }

@@ -13,9 +13,9 @@ pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 /// # Examples
 ///
 /// ```rust
-/// use scru128::Generator;
+/// use scru128::Scru128Generator;
 ///
-/// let mut g = Generator::new();
+/// let mut g = Scru128Generator::new();
 /// println!("{}", g.generate());
 /// println!("{}", g.generate().as_u128());
 /// ```
@@ -25,16 +25,16 @@ pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 /// synchronization mechanisms to control the scope of guaranteed monotonicity:
 ///
 /// ```rust
-/// use scru128::Generator;
+/// use scru128::Scru128Generator;
 /// use std::sync::{Arc, Mutex};
 ///
-/// let g_shared = Arc::new(Mutex::new(Generator::new()));
+/// let g_shared = Arc::new(Mutex::new(Scru128Generator::new()));
 ///
 /// let mut hs = Vec::new();
 /// for i in 0..4 {
 ///     let g_shared = Arc::clone(&g_shared);
 ///     hs.push(std::thread::spawn(move || {
-///         let mut g_local = Generator::new();
+///         let mut g_local = Scru128Generator::new();
 ///         for _ in 0..4 {
 ///             println!("Shared generator: {}", g_shared.lock().unwrap().generate());
 ///             println!("Thread-local generator {}: {}", i, g_local.generate());
@@ -47,7 +47,7 @@ pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 /// }
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct Generator<R = StdRng> {
+pub struct Scru128Generator<R = StdRng> {
     ts_last_gen: u64,
     counter: u32,
     ts_last_sec: u64,
@@ -56,29 +56,29 @@ pub struct Generator<R = StdRng> {
     rng: R,
 }
 
-impl Default for Generator {
+impl Default for Scru128Generator {
     fn default() -> Self {
         Self::with_rng(StdRng::from_entropy())
     }
 }
 
-impl Generator {
+impl Scru128Generator {
     /// Creates a generator object with the default random number generator.
     pub fn new() -> Self {
         Self::with_rng(StdRng::from_entropy())
     }
 }
 
-impl<R: RngCore> Generator<R> {
+impl<R: RngCore> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// use scru128::Generator;
+    /// use scru128::Scru128Generator;
     ///
-    /// let mut g = Generator::with_rng(rand::thread_rng());
+    /// let mut g = Scru128Generator::with_rng(rand::thread_rng());
     /// println!("{}", g.generate());
     /// ```
     pub fn with_rng(rng: R) -> Self {
