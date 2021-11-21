@@ -245,6 +245,13 @@ mod tests {
     /// Supports comparison operators
     #[test]
     fn it_supports_comparison_operators() {
+        fn hash(v: impl std::hash::Hash) -> u64 {
+            use std::{collections::hash_map::DefaultHasher, hash::Hasher};
+            let mut hasher = DefaultHasher::new();
+            v.hash(&mut hasher);
+            hasher.finish()
+        }
+
         let mut ordered = vec![
             Scru128Id::from_fields(0, 0, 0, 0),
             Scru128Id::from_fields(0, 0, 0, 1),
@@ -262,6 +269,7 @@ mod tests {
         for curr in ordered {
             assert_ne!(curr, prev);
             assert_ne!(prev, curr);
+            assert_ne!(hash(curr), hash(prev));
             assert!(curr > prev);
             assert!(curr >= prev);
             assert!(prev < curr);
@@ -270,6 +278,7 @@ mod tests {
             let clone = curr.clone();
             assert_eq!(curr, clone);
             assert_eq!(clone, curr);
+            assert_eq!(hash(curr), hash(clone));
 
             prev = curr;
         }
