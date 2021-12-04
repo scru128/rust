@@ -12,10 +12,15 @@ decentralized, globally unique time-ordered identifiers. SCRU128 is inspired by
 - 84-bit _layered_ randomness for collision resistance
 
 ```rust
-use scru128::scru128;
+use scru128::{scru128, scru128_string};
 
-println!("{}", scru128()); // e.g. "00POIIIQ3EU27VB0CO5T1KBR20"
-println!("{}", scru128()); // e.g. "00POIIIQ3EU27VD0CO5TB187QQ"
+// generate a new identifier object
+let x = scru128();
+println!("{}", x); // e.g. "00S6GVKR1MH58KE72EJD87SDOO"
+println!("{}", x.as_u128()); // as a 128-bit unsigned integer
+
+// generate a textual representation directly
+println!("{}", scru128_string()); // e.g. "00S6GVKR3F7R79I72EJF0J4RGC"
 ```
 
 See [SCRU128 Specification] for details.

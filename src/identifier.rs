@@ -10,7 +10,7 @@ pub const MAX_COUNTER: u32 = 0xFFF_FFFF;
 pub const MAX_PER_SEC_RANDOM: u32 = 0xFF_FFFF;
 
 /// Digit characters used in the base 32 notation.
-const CHARSET: &[u8; 32] = b"0123456789ABCDEFGHIJKLMNOPQRSTUV";
+const DIGITS: &[u8; 32] = b"0123456789ABCDEFGHIJKLMNOPQRSTUV";
 
 /// Represents a SCRU128 ID and provides converters to/from [String] and [u128].
 ///
@@ -49,7 +49,7 @@ impl Scru128Id {
     ///
     /// # Panics
     ///
-    /// Panics if any argument is out of the range of each field.
+    /// Panics if any argument is out of the value range of the field.
     pub fn from_fields(
         timestamp: u64,
         counter: u32,
@@ -115,7 +115,7 @@ impl fmt::Display for Scru128Id {
         let mut buffer = [b'0'; 26];
         let mut n = self.0;
         for i in 0..26 {
-            buffer[25 - i] = CHARSET[(n & 31) as usize];
+            buffer[25 - i] = DIGITS[(n & 31) as usize];
             n >>= 5;
         }
         f.write_str(from_utf8(&buffer).unwrap())
@@ -255,9 +255,13 @@ mod tests {
         let mut ordered = vec![
             Scru128Id::from_fields(0, 0, 0, 0),
             Scru128Id::from_fields(0, 0, 0, 1),
+            Scru128Id::from_fields(0, 0, 0, 0xFFFF_FFFF),
             Scru128Id::from_fields(0, 0, 1, 0),
+            Scru128Id::from_fields(0, 0, 0xFF_FFFF, 0),
             Scru128Id::from_fields(0, 1, 0, 0),
+            Scru128Id::from_fields(0, 0xFFF_FFFF, 0, 0),
             Scru128Id::from_fields(1, 0, 0, 0),
+            Scru128Id::from_fields(2, 0, 0, 0),
         ];
 
         let mut g = Scru128Generator::new();
@@ -279,8 +283,35 @@ mod tests {
             assert_eq!(curr, clone);
             assert_eq!(clone, curr);
             assert_eq!(hash(curr), hash(clone));
+            assert!(curr >= clone);
+            assert!(clone >= curr);
+            assert!(curr <= clone);
+            assert!(clone <= curr);
 
             prev = curr;
+        }
+    }
+
+    /// Serializes and deserializes an object using the canonical string representation
+    #[cfg(feature = "serde")]
+    #[test]
+    fn it_serializes_and_deserializes_an_object_using_the_canonical_string_representation() {
+        use serde_test::{assert_tokens, Token};
+
+        let cases = [
+            "00RR040G0H5T4K50QM4KBD772B",
+            "00RR040G0H5T4K70QM4LDAO4GF",
+            "00RR040G0H5T4K90QM4MHJITIJ",
+            "00RR040G0H5T4KB0QM4MTNQHPN",
+            "00RR040G0H5T4KD0QM4L2FONUL",
+            "00RR040G0H5T4KF0QM4LUGFEM5",
+            "00RR040G0H5T4KH0QM4MDCVGPG",
+            "00RR040G0H5T4KJ0QM4MFJ3GRS",
+        ];
+
+        for e in cases {
+            let obj = e.parse::<Scru128Id>().unwrap();
+            assert_tokens(&obj, &[Token::String(e)]);
         }
     }
 }

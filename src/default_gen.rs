@@ -1,4 +1,4 @@
-use crate::Scru128Generator;
+use crate::{Scru128Generator, Scru128Id};
 
 use std::sync::Mutex;
 
@@ -10,30 +10,32 @@ static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> = Lazy::new(|| {
     Mutex::new(Scru128Generator::new())
 });
 
+/// Generates a new SCRU128 ID object.
+///
+/// This function is thread safe; multiple threads can call it concurrently.
+pub fn scru128() -> Scru128Id {
+    DEFAULT_GENERATOR.lock().unwrap().generate()
+}
+
 /// Generates a new SCRU128 ID encoded in the 26-digit canonical string representation.
 ///
-/// Use this function to quickly get a new SCRU128 ID as a string. Use [Scru128Generator] to do
-/// more.
-///
-/// This function is thread safe in that it generates monotonically ordered IDs using a shared
-/// state when called concurrently from multiple threads.
+/// This function is thread safe. Use this to quickly get a new SCRU128 ID as a string.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use scru128::scru128;
-/// let x = scru128(); // e.g. "00Q1BPRUE21T9VN8I9JR18TO9T"
+/// use scru128::scru128_string;
+/// let x = scru128_string(); // e.g. "00Q1BPRUE21T9VN8I9JR18TO9T"
 ///
 /// assert!(regex::Regex::new(r"^[0-7][0-9A-V]{25}$").unwrap().is_match(&x));
 /// ```
-pub fn scru128() -> String {
-    DEFAULT_GENERATOR.lock().unwrap().generate().into()
+pub fn scru128_string() -> String {
+    scru128().into()
 }
 
 #[cfg(test)]
 mod tests {
     use super::scru128;
-    use crate::Scru128Id;
 
     /// Generates no IDs sharing same timestamp and counter under multithreading
     #[test]
@@ -54,8 +56,7 @@ mod tests {
         drop(tx);
 
         let mut s = HashSet::new();
-        while let Ok(msg) = rx.recv() {
-            let e: Scru128Id = msg.parse().unwrap();
+        while let Ok(e) = rx.recv() {
             s.insert((e.timestamp(), e.counter()));
         }
 

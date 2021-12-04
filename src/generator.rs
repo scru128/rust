@@ -7,8 +7,8 @@ use rand::{rngs::StdRng, RngCore, SeedableRng};
 /// Unix time in milliseconds at 2020-01-01 00:00:00+00:00.
 pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 
-/// Represents a SCRU128 ID generator and provides an interface to do more than just generate a
-/// string representation.
+/// Represents a SCRU128 ID generator that encapsulates the monotonic counter and other internal
+/// states.
 ///
 /// # Examples
 ///
@@ -94,9 +94,8 @@ impl<R: RngCore> Scru128Generator<R> {
 
     /// Generates a new SCRU128 ID object.
     pub fn generate(&mut self) -> Scru128Id {
-        let mut ts_now = get_msec_unixts();
-
         // update timestamp and counter
+        let mut ts_now = get_msec_unixts();
         if ts_now > self.ts_last_gen {
             self.ts_last_gen = ts_now;
             self.counter = self.rng.next_u32() & MAX_COUNTER;
