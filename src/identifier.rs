@@ -12,7 +12,7 @@ pub const MAX_PER_SEC_RANDOM: u32 = 0xFF_FFFF;
 /// Digit characters used in the base 32 notation.
 const DIGITS: &[u8; 32] = b"0123456789ABCDEFGHIJKLMNOPQRSTUV";
 
-/// Represents a SCRU128 ID and provides converters to/from [String] and [u128].
+/// Represents a SCRU128 ID and provides various converters and comparison operators.
 ///
 /// # Examples
 ///
@@ -171,9 +171,13 @@ mod tests {
         let cases: Vec<((u64, u32, u32, u32), &str)> = vec![
             ((0, 0, 0, 0), "00000000000000000000000000"),
             ((2u64.pow(44) - 1, 0, 0, 0), "7VVVVVVVVG0000000000000000"),
+            ((2u64.pow(44) - 1, 0, 0, 0), "7vvvvvvvvg0000000000000000"),
             ((0, 2u32.pow(28) - 1, 0, 0), "000000000FVVVVU00000000000"),
+            ((0, 2u32.pow(28) - 1, 0, 0), "000000000fvvvvu00000000000"),
             ((0, 0, 2u32.pow(24) - 1, 0), "000000000000001VVVVS000000"),
+            ((0, 0, 2u32.pow(24) - 1, 0), "000000000000001vvvvs000000"),
             ((0, 0, 0, u32::MAX), "00000000000000000003VVVVVV"),
+            ((0, 0, 0, u32::MAX), "00000000000000000003vvvvvv"),
             (
                 (
                     2u64.pow(44) - 1,
@@ -183,18 +187,30 @@ mod tests {
                 ),
                 "7VVVVVVVVVVVVVVVVVVVVVVVVV",
             ),
+            (
+                (
+                    2u64.pow(44) - 1,
+                    2u32.pow(28) - 1,
+                    2u32.pow(24) - 1,
+                    u32::MAX,
+                ),
+                "7vvvvvvvvvvvvvvvvvvvvvvvvv",
+            ),
         ];
 
         for e in cases {
             let from_fields = Scru128Id::from_fields(e.0 .0, e.0 .1, e.0 .2, e.0 .3);
-            let from_str = e.1.parse::<Scru128Id>().unwrap();
+            let from_string = e.1.parse::<Scru128Id>().unwrap();
 
-            assert_eq!(from_fields, from_str);
+            assert_eq!(from_fields, from_string);
             assert_eq!(
                 from_fields.as_u128(),
                 u128::from_str_radix(e.1, 32).unwrap()
             );
-            assert_eq!(from_str.as_u128(), u128::from_str_radix(e.1, 32).unwrap());
+            assert_eq!(
+                from_string.as_u128(),
+                u128::from_str_radix(e.1, 32).unwrap()
+            );
             assert_eq!(
                 (
                     (
@@ -203,22 +219,47 @@ mod tests {
                         from_fields.per_sec_random(),
                         from_fields.per_gen_random(),
                     ),
-                    from_fields.to_string().as_str(),
+                    from_fields.to_string(),
                 ),
-                e,
+                (e.0, e.1.to_uppercase()),
             );
             assert_eq!(
                 (
                     (
-                        from_str.timestamp(),
-                        from_str.counter(),
-                        from_str.per_sec_random(),
-                        from_str.per_gen_random(),
+                        from_string.timestamp(),
+                        from_string.counter(),
+                        from_string.per_sec_random(),
+                        from_string.per_gen_random(),
                     ),
-                    from_str.to_string().as_str(),
+                    from_string.to_string(),
                 ),
-                e,
+                (e.0, e.1.to_uppercase()),
             );
+        }
+    }
+
+    /// Returns error if an invalid string representation is supplied
+    #[test]
+    fn it_returns_error_if_an_invalid_string_representation_is_supplied() {
+        let cases = [
+            "",
+            " 00SCT4FL89GQPRHN44C4LFM0OV",
+            "00SCT4FL89GQPRJN44C7SQO381 ",
+            " 00SCT4FL89GQPRLN44C4BGCIIO ",
+            "+00SCT4FL89GQPRNN44C4F3QD24",
+            "-00SCT4FL89GQPRPN44C7H4E5RC",
+            "+0SCT4FL89GQPRRN44C55Q7RVC",
+            "-0SCT4FL89GQPRTN44C6PN0A2R",
+            "00SCT4FL89WQPRVN44C41RGVMM",
+            "00SCT4FL89GQPS1N4_C54QDC5O",
+            "00SCT4-L89GQPS3N44C602O0K8",
+            "00SCT4FL89GQPS N44C7VHS5QJ",
+            "80000000000000000000000000",
+            "VVVVVVVVVVVVVVVVVVVVVVVVVV",
+        ];
+
+        for e in cases {
+            assert!(e.parse::<Scru128Id>().is_err());
         }
     }
 

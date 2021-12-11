@@ -4,11 +4,8 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 
-static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> = Lazy::new(|| {
-    #[cfg(feature = "log")]
-    log::debug!("initialized global generator");
-    Mutex::new(Scru128Generator::new())
-});
+static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> =
+    Lazy::new(|| Mutex::new(Scru128Generator::new()));
 
 /// Generates a new SCRU128 ID object.
 ///

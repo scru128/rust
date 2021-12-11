@@ -53,3 +53,4 @@ specific language governing permissions and limitations under the License.
 ## See also
 
 - [scru128 - crates.io](https://crates.io/crates/scru128)
+- [docs.rs/scru128](https://docs.rs/scru128)

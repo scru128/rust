@@ -83,11 +83,21 @@ impl<R: RngCore> Scru128Generator<R> {
     /// ```
     pub fn with_rng(rng: R) -> Self {
         Self {
+            /// Timestamp at last generation.
             ts_last_gen: 0,
+
+            /// Counter at last generation.
             counter: 0,
+
+            /// Timestamp at last renewal of per_sec_random.
             ts_last_sec: 0,
+
+            /// Per-second random value at last generation.
             per_sec_random: 0,
+
+            /// Maximum number of checking the system clock until it goes forward.
             n_clock_check_max: 1_000_000,
+
             rng,
         }
     }
