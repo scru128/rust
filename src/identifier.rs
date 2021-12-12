@@ -165,35 +165,30 @@ mod tests {
     use super::Scru128Id;
     use crate::Scru128Generator;
 
+    const MAX_UINT44: u64 = (1 << 44) - 1;
+    const MAX_UINT28: u32 = (1 << 28) - 1;
+    const MAX_UINT24: u32 = (1 << 24) - 1;
+    const MAX_UINT32: u32 = u32::MAX;
+
     /// Encodes and decodes prepared cases correctly
     #[test]
     fn it_encodes_and_decodes_prepared_cases_correctly() {
         let cases: Vec<((u64, u32, u32, u32), &str)> = vec![
             ((0, 0, 0, 0), "00000000000000000000000000"),
-            ((2u64.pow(44) - 1, 0, 0, 0), "7VVVVVVVVG0000000000000000"),
-            ((2u64.pow(44) - 1, 0, 0, 0), "7vvvvvvvvg0000000000000000"),
-            ((0, 2u32.pow(28) - 1, 0, 0), "000000000FVVVVU00000000000"),
-            ((0, 2u32.pow(28) - 1, 0, 0), "000000000fvvvvu00000000000"),
-            ((0, 0, 2u32.pow(24) - 1, 0), "000000000000001VVVVS000000"),
-            ((0, 0, 2u32.pow(24) - 1, 0), "000000000000001vvvvs000000"),
-            ((0, 0, 0, u32::MAX), "00000000000000000003VVVVVV"),
-            ((0, 0, 0, u32::MAX), "00000000000000000003vvvvvv"),
+            ((MAX_UINT44, 0, 0, 0), "7VVVVVVVVG0000000000000000"),
+            ((MAX_UINT44, 0, 0, 0), "7vvvvvvvvg0000000000000000"),
+            ((0, MAX_UINT28, 0, 0), "000000000FVVVVU00000000000"),
+            ((0, MAX_UINT28, 0, 0), "000000000fvvvvu00000000000"),
+            ((0, 0, MAX_UINT24, 0), "000000000000001VVVVS000000"),
+            ((0, 0, MAX_UINT24, 0), "000000000000001vvvvs000000"),
+            ((0, 0, 0, MAX_UINT32), "00000000000000000003VVVVVV"),
+            ((0, 0, 0, MAX_UINT32), "00000000000000000003vvvvvv"),
             (
-                (
-                    2u64.pow(44) - 1,
-                    2u32.pow(28) - 1,
-                    2u32.pow(24) - 1,
-                    u32::MAX,
-                ),
+                (MAX_UINT44, MAX_UINT28, MAX_UINT24, MAX_UINT32),
                 "7VVVVVVVVVVVVVVVVVVVVVVVVV",
             ),
             (
-                (
-                    2u64.pow(44) - 1,
-                    2u32.pow(28) - 1,
-                    2u32.pow(24) - 1,
-                    u32::MAX,
-                ),
+                (MAX_UINT44, MAX_UINT28, MAX_UINT24, MAX_UINT32),
                 "7vvvvvvvvvvvvvvvvvvvvvvvvv",
             ),
         ];
@@ -241,7 +236,7 @@ mod tests {
     /// Returns error if an invalid string representation is supplied
     #[test]
     fn it_returns_error_if_an_invalid_string_representation_is_supplied() {
-        let cases = [
+        let cases = vec![
             "",
             " 00SCT4FL89GQPRHN44C4LFM0OV",
             "00SCT4FL89GQPRJN44C7SQO381 ",
@@ -263,22 +258,34 @@ mod tests {
         }
     }
 
-    /// Has symmetric converters from/to String, u128, and fields
+    /// Has symmetric converters from/to various values
     #[test]
     fn it_has_symmetric_converters() {
+        let mut cases = vec![
+            Scru128Id::from_fields(0, 0, 0, 0),
+            Scru128Id::from_fields(MAX_UINT44, 0, 0, 0),
+            Scru128Id::from_fields(0, MAX_UINT28, 0, 0),
+            Scru128Id::from_fields(0, 0, MAX_UINT24, 0),
+            Scru128Id::from_fields(0, 0, 0, MAX_UINT32),
+            Scru128Id::from_fields(MAX_UINT44, MAX_UINT28, MAX_UINT24, MAX_UINT32),
+        ];
+
         let mut g = Scru128Generator::new();
         for _ in 0..1000 {
-            let obj = g.generate();
-            assert_eq!(obj.to_string().parse::<Scru128Id>(), Ok(obj));
-            assert_eq!(Scru128Id::from_u128(obj.as_u128()), obj);
+            cases.push(g.generate());
+        }
+
+        for e in cases {
+            assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
+            assert_eq!(Scru128Id::from_u128(e.as_u128()), e);
             assert_eq!(
                 Scru128Id::from_fields(
-                    obj.timestamp(),
-                    obj.counter(),
-                    obj.per_sec_random(),
-                    obj.per_gen_random()
+                    e.timestamp(),
+                    e.counter(),
+                    e.per_sec_random(),
+                    e.per_gen_random()
                 ),
-                obj
+                e
             );
         }
     }
@@ -296,11 +303,11 @@ mod tests {
         let mut ordered = vec![
             Scru128Id::from_fields(0, 0, 0, 0),
             Scru128Id::from_fields(0, 0, 0, 1),
-            Scru128Id::from_fields(0, 0, 0, 0xFFFF_FFFF),
+            Scru128Id::from_fields(0, 0, 0, MAX_UINT32),
             Scru128Id::from_fields(0, 0, 1, 0),
-            Scru128Id::from_fields(0, 0, 0xFF_FFFF, 0),
+            Scru128Id::from_fields(0, 0, MAX_UINT24, 0),
             Scru128Id::from_fields(0, 1, 0, 0),
-            Scru128Id::from_fields(0, 0xFFF_FFFF, 0, 0),
+            Scru128Id::from_fields(0, MAX_UINT28, 0, 0),
             Scru128Id::from_fields(1, 0, 0, 0),
             Scru128Id::from_fields(2, 0, 0, 0),
         ];
