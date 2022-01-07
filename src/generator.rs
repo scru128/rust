@@ -48,11 +48,21 @@ pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Scru128Generator<R = StdRng> {
+    /// Timestamp at last generation.
     ts_last_gen: u64,
+
+    /// Counter at last generation.
     counter: u32,
+
+    /// Timestamp at last renewal of per_sec_random.
     ts_last_sec: u64,
+
+    /// Per-second random value at last generation.
     per_sec_random: u32,
+
+    /// Maximum number of checking the system clock until it goes forward.
     n_clock_check_max: usize,
+
     rng: R,
 }
 
@@ -83,21 +93,11 @@ impl<R: RngCore> Scru128Generator<R> {
     /// ```
     pub fn with_rng(rng: R) -> Self {
         Self {
-            /// Timestamp at last generation.
             ts_last_gen: 0,
-
-            /// Counter at last generation.
             counter: 0,
-
-            /// Timestamp at last renewal of per_sec_random.
             ts_last_sec: 0,
-
-            /// Per-second random value at last generation.
             per_sec_random: 0,
-
-            /// Maximum number of checking the system clock until it goes forward.
             n_clock_check_max: 1_000_000,
-
             rng,
         }
     }
