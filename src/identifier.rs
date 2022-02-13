@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt;
 use std::str::{from_utf8, FromStr};
