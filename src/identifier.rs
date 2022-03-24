@@ -2,25 +2,25 @@ use std::error::Error;
 use std::fmt;
 use std::str::{from_utf8, FromStr};
 
-/// Maximum value of 28-bit counter field.
-pub const MAX_COUNTER: u32 = 0xFFF_FFFF;
+/// Maximum value of 24-bit `counter_hi` field.
+pub const MAX_COUNTER_HI: u32 = 0xff_ffff;
 
-/// Maximum value of 24-bit per_sec_random field.
-pub const MAX_PER_SEC_RANDOM: u32 = 0xFF_FFFF;
+/// Maximum value of 24-bit `counter_lo` field.
+pub const MAX_COUNTER_LO: u32 = 0xff_ffff;
 
-/// Digit characters used in the base 32 notation.
-const DIGITS: &[u8; 32] = b"0123456789ABCDEFGHIJKLMNOPQRSTUV";
+/// Digit characters used in the Base36 notation.
+const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-/// O(1) map from ASCII code points to base 32 digit values.
+/// O(1) map from ASCII code points to Base36 digit values.
 const DECODE_MAP: [u8; 256] = [
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
-    0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
-    0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -31,18 +31,18 @@ const DECODE_MAP: [u8; 256] = [
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 ];
 
-/// Represents a SCRU128 ID and provides various converters and comparison operators.
+/// Represents a SCRU128 ID and provides converters and comparison operators.
 ///
 /// # Examples
 ///
 /// ```rust
 /// use scru128::Scru128Id;
 ///
-/// let x = "00Q1D9AB6DTJNLJ80SJ42SNJ4F".parse::<Scru128Id>()?;
-/// assert_eq!(x.to_string(), "00Q1D9AB6DTJNLJ80SJ42SNJ4F");
+/// let x = "036Z968FU2TUGY7SVKFZNEWKK".parse::<Scru128Id>()?;
+/// assert_eq!(x.to_string(), "036Z968FU2TUGY7SVKFZNEWKK");
 ///
-/// let y = Scru128Id::from_u128(0x00d05a952ccdecef5aa01c9904e5a115);
-/// assert_eq!(y.as_u128(), 0x00d05a952ccdecef5aa01c9904e5a115);
+/// let y = Scru128Id::from_u128(0x017fa1de51a80fd992f9e8cc2d5eb88e);
+/// assert_eq!(y.as_u128(), 0x017fa1de51a80fd992f9e8cc2d5eb88e);
 /// # Ok::<(), scru128::ParseError>(())
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -69,44 +69,39 @@ impl Scru128Id {
     /// # Panics
     ///
     /// Panics if any argument is out of the value range of the field.
-    pub fn from_fields(
-        timestamp: u64,
-        counter: u32,
-        per_sec_random: u32,
-        per_gen_random: u32,
-    ) -> Self {
-        if timestamp > 0xFFF_FFFF_FFFF
-            || counter > MAX_COUNTER
-            || per_sec_random > MAX_PER_SEC_RANDOM
+    pub fn from_fields(timestamp: u64, counter_hi: u32, counter_lo: u32, entropy: u32) -> Self {
+        if timestamp > 0xffff_ffff_ffff
+            || counter_hi > MAX_COUNTER_HI
+            || counter_lo > MAX_COUNTER_LO
         {
             panic!("invalid field value");
         } else {
             Self(
-                ((timestamp as u128) << 84)
-                    | ((counter as u128) << 56)
-                    | ((per_sec_random as u128) << 32)
-                    | (per_gen_random as u128),
+                ((timestamp as u128) << 80)
+                    | ((counter_hi as u128) << 56)
+                    | ((counter_lo as u128) << 32)
+                    | (entropy as u128),
             )
         }
     }
 
-    /// Returns the 44-bit millisecond timestamp field value.
+    /// Returns the 48-bit `timestamp` field value.
     pub fn timestamp(&self) -> u64 {
-        (self.0 >> 84) as u64
+        (self.0 >> 80) as u64
     }
 
-    /// Returns the 28-bit per-timestamp monotonic counter field value.
-    pub fn counter(&self) -> u32 {
-        (self.0 >> 56) as u32 & MAX_COUNTER
+    /// Returns the 24-bit `counter_hi` field value.
+    pub fn counter_hi(&self) -> u32 {
+        (self.0 >> 56) as u32 & MAX_COUNTER_HI
     }
 
-    /// Returns the 24-bit per-second randomness field value.
-    pub fn per_sec_random(&self) -> u32 {
-        (self.0 >> 32) as u32 & MAX_PER_SEC_RANDOM
+    /// Returns the 24-bit `counter_lo` field value.
+    pub fn counter_lo(&self) -> u32 {
+        (self.0 >> 32) as u32 & MAX_COUNTER_LO
     }
 
-    /// Returns the 32-bit per-generation randomness field value.
-    pub fn per_gen_random(&self) -> u32 {
+    /// Returns the 32-bit `entropy` field value.
+    pub fn entropy(&self) -> u32 {
         self.0 as u32 & u32::MAX
     }
 }
@@ -114,37 +109,51 @@ impl Scru128Id {
 impl FromStr for Scru128Id {
     type Err = ParseError;
 
-    /// Creates an object from a 26-digit string representation.
+    /// Creates an object from a 25-digit string representation.
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
-        if str_value.len() != 26 {
-            return Err(ParseError {});
+        if str_value.len() != 25 {
+            return Err(ParseError {}); // invalid length
         }
-        let bs = str_value.as_bytes();
-        let mut int_value = DECODE_MAP[bs[0] as usize] as u128;
-        if int_value > 7 {
-            return Err(ParseError {});
-        }
-        for i in 1..26 {
-            let n = DECODE_MAP[bs[i] as usize] as u128;
+
+        let mut int_value = 0u128;
+        for b in str_value.as_bytes() {
+            let n = DECODE_MAP[*b as usize];
             if n == 0xff {
-                return Err(ParseError {});
+                return Err(ParseError {}); // invalid digit
             }
-            int_value = (int_value << 5) | n;
+            int_value = int_value
+                .checked_mul(36)
+                .ok_or(ParseError {})?
+                .checked_add(n as u128)
+                .ok_or(ParseError {})?; // out of 128-bit value range
         }
         Ok(Self(int_value))
     }
 }
 
 impl fmt::Display for Scru128Id {
-    /// Returns the 26-digit canonical string representation.
+    /// Returns the 25-digit canonical string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buffer = [b'0'; 26];
-        let mut n = self.0;
-        for i in 0..26 {
-            buffer[25 - i] = DIGITS[(n & 31) as usize];
-            n >>= 5;
+        // implement Base36 using 48-bit words because Div<u128> is slow
+        let mut dst = [0u8; 25];
+        let mut min_index: isize = 99; // any number greater than size of output array
+        for shift in (0..128).step_by(48).rev() {
+            let mut carry = (self.0 >> shift) as u64 & 0xffff_ffff_ffff;
+
+            // iterate over output array from right to left while carry != 0 but at least up to
+            // place already filled
+            let mut i = dst.len() as isize - 1;
+            while carry > 0 || i > min_index {
+                carry += (dst[i as usize] as u64) << 48;
+                dst[i as usize] = (carry % 36) as u8;
+                carry /= 36;
+                i -= 1;
+            }
+            min_index = i;
         }
-        f.write_str(from_utf8(&buffer).unwrap())
+
+        dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
+        f.write_str(from_utf8(&dst).unwrap())
     }
 }
 
@@ -191,8 +200,7 @@ mod tests {
     use super::Scru128Id;
     use crate::Scru128Generator;
 
-    const MAX_UINT44: u64 = (1 << 44) - 1;
-    const MAX_UINT28: u32 = (1 << 28) - 1;
+    const MAX_UINT48: u64 = (1 << 48) - 1;
     const MAX_UINT24: u32 = (1 << 24) - 1;
     const MAX_UINT32: u32 = u32::MAX;
 
@@ -200,22 +208,22 @@ mod tests {
     #[test]
     fn it_encodes_and_decodes_prepared_cases_correctly() {
         let cases: Vec<((u64, u32, u32, u32), &str)> = vec![
-            ((0, 0, 0, 0), "00000000000000000000000000"),
-            ((MAX_UINT44, 0, 0, 0), "7VVVVVVVVG0000000000000000"),
-            ((MAX_UINT44, 0, 0, 0), "7vvvvvvvvg0000000000000000"),
-            ((0, MAX_UINT28, 0, 0), "000000000FVVVVU00000000000"),
-            ((0, MAX_UINT28, 0, 0), "000000000fvvvvu00000000000"),
-            ((0, 0, MAX_UINT24, 0), "000000000000001VVVVS000000"),
-            ((0, 0, MAX_UINT24, 0), "000000000000001vvvvs000000"),
-            ((0, 0, 0, MAX_UINT32), "00000000000000000003VVVVVV"),
-            ((0, 0, 0, MAX_UINT32), "00000000000000000003vvvvvv"),
+            ((0, 0, 0, 0), "0000000000000000000000000"),
+            ((MAX_UINT48, 0, 0, 0), "F5LXX1ZZ5K6TP71GEEH2DB7K0"),
+            ((MAX_UINT48, 0, 0, 0), "f5lxx1zz5k6tp71geeh2db7k0"),
+            ((0, MAX_UINT24, 0, 0), "0000000005GV2R2KJWR7N8XS0"),
+            ((0, MAX_UINT24, 0, 0), "0000000005gv2r2kjwr7n8xs0"),
+            ((0, 0, MAX_UINT24, 0), "00000000000000JPIA7QL4HS0"),
+            ((0, 0, MAX_UINT24, 0), "00000000000000jpia7ql4hs0"),
+            ((0, 0, 0, MAX_UINT32), "0000000000000000001Z141Z3"),
+            ((0, 0, 0, MAX_UINT32), "0000000000000000001z141z3"),
             (
-                (MAX_UINT44, MAX_UINT28, MAX_UINT24, MAX_UINT32),
-                "7VVVVVVVVVVVVVVVVVVVVVVVVV",
+                (MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32),
+                "F5LXX1ZZ5PNORYNQGLHZMSP33",
             ),
             (
-                (MAX_UINT44, MAX_UINT28, MAX_UINT24, MAX_UINT32),
-                "7vvvvvvvvvvvvvvvvvvvvvvvvv",
+                (MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32),
+                "f5lxx1zz5pnorynqglhzmsp33",
             ),
         ];
 
@@ -226,19 +234,19 @@ mod tests {
             assert_eq!(from_fields, from_string);
             assert_eq!(
                 from_fields.as_u128(),
-                u128::from_str_radix(e.1, 32).unwrap()
+                u128::from_str_radix(e.1, 36).unwrap()
             );
             assert_eq!(
                 from_string.as_u128(),
-                u128::from_str_radix(e.1, 32).unwrap()
+                u128::from_str_radix(e.1, 36).unwrap()
             );
             assert_eq!(
                 (
                     (
                         from_fields.timestamp(),
-                        from_fields.counter(),
-                        from_fields.per_sec_random(),
-                        from_fields.per_gen_random(),
+                        from_fields.counter_hi(),
+                        from_fields.counter_lo(),
+                        from_fields.entropy(),
                     ),
                     from_fields.to_string(),
                 ),
@@ -248,9 +256,9 @@ mod tests {
                 (
                     (
                         from_string.timestamp(),
-                        from_string.counter(),
-                        from_string.per_sec_random(),
-                        from_string.per_gen_random(),
+                        from_string.counter_hi(),
+                        from_string.counter_lo(),
+                        from_string.entropy(),
                     ),
                     from_string.to_string(),
                 ),
@@ -264,19 +272,18 @@ mod tests {
     fn it_returns_error_if_an_invalid_string_representation_is_supplied() {
         let cases = vec![
             "",
-            " 00SCT4FL89GQPRHN44C4LFM0OV",
-            "00SCT4FL89GQPRJN44C7SQO381 ",
-            " 00SCT4FL89GQPRLN44C4BGCIIO ",
-            "+00SCT4FL89GQPRNN44C4F3QD24",
-            "-00SCT4FL89GQPRPN44C7H4E5RC",
-            "+0SCT4FL89GQPRRN44C55Q7RVC",
-            "-0SCT4FL89GQPRTN44C6PN0A2R",
-            "00SCT4FL89WQPRVN44C41RGVMM",
-            "00SCT4FL89GQPS1N4_C54QDC5O",
-            "00SCT4-L89GQPS3N44C602O0K8",
-            "00SCT4FL89GQPS N44C7VHS5QJ",
-            "80000000000000000000000000",
-            "VVVVVVVVVVVVVVVVVVVVVVVVVV",
+            " 036Z8PUQ4TSXSIGK6O19Y164Q",
+            "036Z8PUQ54QNY1VQ3HCBRKWEB ",
+            " 036Z8PUQ54QNY1VQ3HELIVWAX ",
+            "+036Z8PUQ54QNY1VQ3HFCV3SS0",
+            "-036Z8PUQ54QNY1VQ3HHY8U1CH",
+            "+36Z8PUQ54QNY1VQ3HJQ48D9P",
+            "-36Z8PUQ5A7J0TI08OZ6ZDRDY",
+            "036Z8PUQ5A7J0T_08P2CDZ28V",
+            "036Z8PU-5A7J0TI08P3OL8OOL",
+            "036Z8PUQ5A7J0TI08P4J 6CYA",
+            "F5LXX1ZZ5PNORYNQGLHZMSP34",
+            "ZZZZZZZZZZZZZZZZZZZZZZZZZ",
         ];
 
         for e in cases {
@@ -289,11 +296,11 @@ mod tests {
     fn it_has_symmetric_converters() {
         let mut cases = vec![
             Scru128Id::from_fields(0, 0, 0, 0),
-            Scru128Id::from_fields(MAX_UINT44, 0, 0, 0),
-            Scru128Id::from_fields(0, MAX_UINT28, 0, 0),
+            Scru128Id::from_fields(MAX_UINT48, 0, 0, 0),
+            Scru128Id::from_fields(0, MAX_UINT24, 0, 0),
             Scru128Id::from_fields(0, 0, MAX_UINT24, 0),
             Scru128Id::from_fields(0, 0, 0, MAX_UINT32),
-            Scru128Id::from_fields(MAX_UINT44, MAX_UINT28, MAX_UINT24, MAX_UINT32),
+            Scru128Id::from_fields(MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32),
         ];
 
         let mut g = Scru128Generator::new();
@@ -305,12 +312,7 @@ mod tests {
             assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
             assert_eq!(Scru128Id::from_u128(e.as_u128()), e);
             assert_eq!(
-                Scru128Id::from_fields(
-                    e.timestamp(),
-                    e.counter(),
-                    e.per_sec_random(),
-                    e.per_gen_random()
-                ),
+                Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
                 e
             );
         }
@@ -333,7 +335,7 @@ mod tests {
             Scru128Id::from_fields(0, 0, 1, 0),
             Scru128Id::from_fields(0, 0, MAX_UINT24, 0),
             Scru128Id::from_fields(0, 1, 0, 0),
-            Scru128Id::from_fields(0, MAX_UINT28, 0, 0),
+            Scru128Id::from_fields(0, MAX_UINT24, 0, 0),
             Scru128Id::from_fields(1, 0, 0, 0),
             Scru128Id::from_fields(2, 0, 0, 0),
         ];
@@ -373,14 +375,14 @@ mod tests {
         use serde_test::{assert_tokens, Token};
 
         let cases = [
-            "00RR040G0H5T4K50QM4KBD772B",
-            "00RR040G0H5T4K70QM4LDAO4GF",
-            "00RR040G0H5T4K90QM4MHJITIJ",
-            "00RR040G0H5T4KB0QM4MTNQHPN",
-            "00RR040G0H5T4KD0QM4L2FONUL",
-            "00RR040G0H5T4KF0QM4LUGFEM5",
-            "00RR040G0H5T4KH0QM4MDCVGPG",
-            "00RR040G0H5T4KJ0QM4MFJ3GRS",
+            "036ZDXWI5X3EF45FNMP6V9N2D",
+            "036ZDXWI5X3EF45FNMPVK7D84",
+            "036ZDXWI5X3EF45FNMT5XUHBY",
+            "036ZDXWI5X3EF45FNMV4RAA2T",
+            "036ZDXWI5X3EF45FNMWWF2E75",
+            "036ZDXWI5X3EF45FNMXJHYH9V",
+            "036ZDXWI5X3EF45FNMZXIYEOP",
+            "036ZDXWI5X3EF45FNN1IDRAV9",
         ];
 
         for e in cases {

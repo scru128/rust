@@ -19,11 +19,11 @@ use scru128::{scru128, scru128_string};
 
 // generate a new identifier object
 let x = scru128();
-println!("{}", x); // e.g. "00S6GVKR1MH58KE72EJD87SDOO"
+println!("{}", x); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 println!("{}", x.as_u128()); // as a 128-bit unsigned integer
 
 // generate a textual representation directly
-println!("{}", scru128_string()); // e.g. "00S6GVKR3F7R79I72EJF0J4RGC"
+println!("{}", scru128_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
 ```
 
 See [SCRU128 Specification] for details.

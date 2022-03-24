@@ -1,14 +1,11 @@
-use crate::identifier::{Scru128Id, MAX_COUNTER, MAX_PER_SEC_RANDOM};
+use crate::identifier::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO};
 
 use std::thread::sleep;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
-/// Unix time in milliseconds at 2020-01-01 00:00:00+00:00.
-pub const TIMESTAMP_BIAS: u64 = 1577836800000;
-
-/// Represents a SCRU128 ID generator that encapsulates the monotonic counter and other internal
+/// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
 ///
 /// # Examples
@@ -49,21 +46,14 @@ pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Scru128Generator<R = StdRng> {
-    /// Timestamp at last generation.
-    ts_last_gen: u64,
+    timestamp: u64,
+    counter_hi: u32,
+    counter_lo: u32,
 
-    /// Counter at last generation.
-    counter: u32,
+    /// Timestamp at the last renewal of `counter_hi` field.
+    ts_counter_hi: u64,
 
-    /// Timestamp at last renewal of per_sec_random.
-    ts_last_sec: u64,
-
-    /// Per-second random value at last generation.
-    per_sec_random: u32,
-
-    /// Maximum number of checking the system clock until it goes forward.
-    n_clock_check_max: usize,
-
+    /// Random number generator used by the generator.
     rng: R,
 }
 
@@ -94,56 +84,62 @@ impl<R: RngCore> Scru128Generator<R> {
     /// ```
     pub fn with_rng(rng: R) -> Self {
         Self {
-            ts_last_gen: 0,
-            counter: 0,
-            ts_last_sec: 0,
-            per_sec_random: 0,
-            n_clock_check_max: 10_000,
+            timestamp: 0,
+            counter_hi: 0,
+            counter_lo: 0,
+            ts_counter_hi: 0,
             rng,
         }
     }
 
     /// Generates a new SCRU128 ID object.
     pub fn generate(&mut self) -> Scru128Id {
-        // update timestamp and counter
-        let mut ts_now = get_msec_unixts();
-        if ts_now > self.ts_last_gen {
-            self.ts_last_gen = ts_now;
-            self.counter = self.rng.next_u32() & MAX_COUNTER;
+        let ts = get_msec_unixts();
+        if ts > self.timestamp {
+            self.timestamp = ts;
+            self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
+            if ts - self.ts_counter_hi >= 1000 {
+                self.ts_counter_hi = ts;
+                self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
+            }
         } else {
-            self.counter += 1;
-            if self.counter > MAX_COUNTER {
-                #[cfg(feature = "log")]
-                log::info!("counter limit reached; will wait until clock goes forward");
-                let mut n_clock_check = 0;
-                while ts_now <= self.ts_last_gen {
-                    sleep(Duration::from_micros(100));
-                    ts_now = get_msec_unixts();
-                    n_clock_check += 1;
-                    if n_clock_check > self.n_clock_check_max {
-                        #[cfg(feature = "log")]
-                        log::warn!("reset state as clock did not go forward");
-                        self.ts_last_sec = 0;
-                        break;
-                    }
+            self.counter_lo += 1;
+            if self.counter_lo > MAX_COUNTER_LO {
+                self.counter_lo = 0;
+                self.counter_hi += 1;
+                if self.counter_hi > MAX_COUNTER_HI {
+                    self.counter_hi = 0;
+                    self.handle_counter_overflow();
+                    return self.generate();
                 }
-                self.ts_last_gen = ts_now;
-                self.counter = self.rng.next_u32() & MAX_COUNTER;
             }
         }
 
-        // update per_sec_random
-        if self.ts_last_gen - self.ts_last_sec > 1000 {
-            self.ts_last_sec = self.ts_last_gen;
-            self.per_sec_random = self.rng.next_u32() & MAX_PER_SEC_RANDOM;
-        }
-
         Scru128Id::from_fields(
-            self.ts_last_gen - TIMESTAMP_BIAS,
-            self.counter,
-            self.per_sec_random,
+            self.timestamp,
+            self.counter_hi,
+            self.counter_lo,
             self.rng.next_u32(),
         )
+    }
+
+    /// Defines the behavior on counter overflow.
+    ///
+    /// Currently, this method waits for the next clock tick and, if the clock does not move
+    /// forward for a while, reinitializes the generator state.
+    fn handle_counter_overflow(&mut self) {
+        #[cfg(feature = "log")]
+        log::warn!("counter overflowing; will wait for next clock tick");
+        self.ts_counter_hi = 0;
+        for _ in 0..10_000 {
+            sleep(Duration::from_micros(100));
+            if get_msec_unixts() > self.timestamp {
+                return;
+            }
+        }
+        #[cfg(feature = "log")]
+        log::warn!("reset state as clock did not move for a while");
+        self.timestamp = 0;
     }
 }
 

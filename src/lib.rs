@@ -16,11 +16,11 @@
 //!
 //! // generate a new identifier object
 //! let x = scru128();
-//! println!("{}", x); // e.g. "00S6GVKR1MH58KE72EJD87SDOO"
+//! println!("{}", x); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 //! println!("{}", x.as_u128()); // as a 128-bit unsigned integer
 //!
 //! // generate a textual representation directly
-//! println!("{}", scru128_string()); // e.g. "00S6GVKR3F7R79I72EJF0J4RGC"
+//! println!("{}", scru128_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
 //! ```
 //!
 //! See [SCRU128 Specification] for details.
@@ -34,7 +34,7 @@ mod default_gen;
 mod generator;
 mod identifier;
 pub use default_gen::{scru128, scru128_string};
-pub use generator::{Scru128Generator, TIMESTAMP_BIAS};
+pub use generator::Scru128Generator;
 pub use identifier::{ParseError, Scru128Id};
 
 #[cfg(test)]
@@ -46,11 +46,11 @@ mod tests {
         (0..100_000).map(|_| g.generate().into()).collect()
     });
 
-    /// Generates 26-digit canonical string
+    /// Generates 25-digit canonical string
     #[test]
-    fn it_generates_26_digit_canonical_string() {
+    fn it_generates_25_digit_canonical_string() {
         use regex::Regex;
-        let re = Regex::new(r"^[0-7][0-9A-V]{25}$").unwrap();
+        let re = Regex::new(r"^[0-9A-Z]{25}$").unwrap();
         SAMPLES.with(|samples| {
             for e in samples.iter() {
                 assert!(re.is_match(e));
@@ -87,16 +87,15 @@ mod tests {
             let ts_now = (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("clock may have gone backwards")
-                .as_millis()
-                - 1577836800000) as i64;
+                .as_millis()) as i64;
             let timestamp = g.generate().timestamp() as i64;
             assert!((ts_now - timestamp).abs() < 16);
         }
     }
 
-    /// Encodes unique sortable pair of timestamp and counter
+    /// Encodes unique sortable tuple of timestamp and counters
     #[test]
-    fn it_encodes_unique_sortable_pair_of_timestamp_and_counter() {
+    fn it_encodes_unique_sortable_tuple_of_timestamp_and_counters() {
         SAMPLES.with(|samples| {
             let mut prev = samples[0].parse::<Scru128Id>().unwrap();
             for i in 1..samples.len() {
@@ -104,7 +103,10 @@ mod tests {
                 assert!(
                     prev.timestamp() < curr.timestamp()
                         || (prev.timestamp() == curr.timestamp()
-                            && prev.counter() < curr.counter())
+                            && prev.counter_hi() < curr.counter_hi())
+                        || (prev.timestamp() == curr.timestamp()
+                            && prev.counter_hi() == curr.counter_hi()
+                            && prev.counter_lo() < curr.counter_lo())
                 );
                 prev = curr;
             }

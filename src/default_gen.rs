@@ -14,7 +14,7 @@ pub fn scru128() -> Scru128Id {
     DEFAULT_GENERATOR.lock().unwrap().generate()
 }
 
-/// Generates a new SCRU128 ID encoded in the 26-digit canonical string representation.
+/// Generates a new SCRU128 ID encoded in the 25-digit canonical string representation.
 ///
 /// This function is thread safe. Use this to quickly get a new SCRU128 ID as a string.
 ///
@@ -22,9 +22,9 @@ pub fn scru128() -> Scru128Id {
 ///
 /// ```rust
 /// use scru128::scru128_string;
-/// let x = scru128_string(); // e.g. "00Q1BPRUE21T9VN8I9JR18TO9T"
+/// let x = scru128_string(); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 ///
-/// assert!(regex::Regex::new(r"^[0-7][0-9A-V]{25}$").unwrap().is_match(&x));
+/// assert!(regex::Regex::new(r"^[0-9A-Z]{25}$").unwrap().is_match(&x));
 /// ```
 pub fn scru128_string() -> String {
     scru128().into()
@@ -34,9 +34,9 @@ pub fn scru128_string() -> String {
 mod tests {
     use super::scru128;
 
-    /// Generates no IDs sharing same timestamp and counter under multithreading
+    /// Generates no IDs sharing same timestamp and counters under multithreading
     #[test]
-    fn it_generates_no_ids_sharing_same_timestamp_and_counter_under_multithreading() {
+    fn it_generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading() {
         use std::collections::HashSet;
         use std::sync::mpsc::channel;
         use std::thread;
@@ -54,7 +54,7 @@ mod tests {
 
         let mut s = HashSet::new();
         while let Ok(e) = rx.recv() {
-            s.insert((e.timestamp(), e.counter()));
+            s.insert((e.timestamp(), e.counter_hi(), e.counter_lo()));
         }
 
         assert_eq!(s.len(), 4 * 10000);
