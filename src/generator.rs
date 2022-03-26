@@ -1,6 +1,7 @@
 use crate::identifier::{Scru128Id, MAX_COUNTER, MAX_PER_SEC_RANDOM};
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread::sleep;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
@@ -97,7 +98,7 @@ impl<R: RngCore> Scru128Generator<R> {
             counter: 0,
             ts_last_sec: 0,
             per_sec_random: 0,
-            n_clock_check_max: 1_000_000,
+            n_clock_check_max: 10_000,
             rng,
         }
     }
@@ -116,6 +117,7 @@ impl<R: RngCore> Scru128Generator<R> {
                 log::info!("counter limit reached; will wait until clock goes forward");
                 let mut n_clock_check = 0;
                 while ts_now <= self.ts_last_gen {
+                    sleep(Duration::from_micros(100));
                     ts_now = get_msec_unixts();
                     n_clock_check += 1;
                     if n_clock_check > self.n_clock_check_max {
