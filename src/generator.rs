@@ -94,6 +94,17 @@ impl<R: RngCore> Scru128Generator<R> {
 
     /// Generates a new SCRU128 ID object.
     pub fn generate(&mut self) -> Scru128Id {
+        let mut result = self.generate_core();
+        while result.is_err() {
+            self.handle_counter_overflow();
+            result = self.generate_core();
+        }
+        result.unwrap()
+    }
+
+    /// Generates a new SCRU128 ID object, while delegating the caller to take care of counter
+    /// overflows.
+    fn generate_core(&mut self) -> Result<Scru128Id, CounterOverflowError> {
         let ts = get_msec_unixts();
         if ts > self.timestamp {
             self.timestamp = ts;
@@ -109,18 +120,17 @@ impl<R: RngCore> Scru128Generator<R> {
                 self.counter_hi += 1;
                 if self.counter_hi > MAX_COUNTER_HI {
                     self.counter_hi = 0;
-                    self.handle_counter_overflow();
-                    return self.generate();
+                    return Err(CounterOverflowError {});
                 }
             }
         }
 
-        Scru128Id::from_fields(
+        Ok(Scru128Id::from_fields(
             self.timestamp,
             self.counter_hi,
             self.counter_lo,
             self.rng.next_u32(),
-        )
+        ))
     }
 
     /// Defines the behavior on counter overflow.
@@ -150,3 +160,7 @@ fn get_msec_unixts() -> u64 {
         .expect("clock may have gone backwards")
         .as_millis() as u64
 }
+
+/// Error thrown when the monotonic counters can no more be incremented.
+#[derive(Debug)]
+struct CounterOverflowError {}
