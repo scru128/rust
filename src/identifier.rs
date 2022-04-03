@@ -134,17 +134,17 @@ impl FromStr for Scru128Id {
 impl fmt::Display for Scru128Id {
     /// Returns the 25-digit canonical string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // implement Base36 using 48-bit words because Div<u128> is slow
+        // implement Base36 using 56-bit words because Div<u128> is slow
         let mut dst = [0u8; 25];
         let mut min_index: isize = 99; // any number greater than size of output array
-        for shift in (0..128).step_by(48).rev() {
-            let mut carry = (self.0 >> shift) as u64 & 0xffff_ffff_ffff;
+        for shift in (0..128).step_by(56).rev() {
+            let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
 
             // iterate over output array from right to left while carry != 0 but at least up to
             // place already filled
             let mut i = dst.len() as isize - 1;
             while carry > 0 || i > min_index {
-                carry += (dst[i as usize] as u64) << 48;
+                carry += (dst[i as usize] as u64) << 56;
                 dst[i as usize] = (carry % 36) as u8;
                 carry /= 36;
                 i -= 1;
