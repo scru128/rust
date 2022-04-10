@@ -35,7 +35,6 @@ See [SCRU128 Specification] for details.
 
 ## Optional features
 
-- `log` - Enables logging via the [log](https://crates.io/crates/log) crate.
 - `serde` - Enables serialization/deserialization via serde.
 
 ## License

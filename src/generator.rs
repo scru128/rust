@@ -1,7 +1,6 @@
 use crate::identifier::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO};
 
-use std::thread::sleep;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
@@ -94,62 +93,40 @@ impl<R: RngCore> Scru128Generator<R> {
 
     /// Generates a new SCRU128 ID object.
     pub fn generate(&mut self) -> Scru128Id {
-        let mut result = self.generate_core();
-        while result.is_err() {
-            self.handle_counter_overflow();
-            result = self.generate_core();
-        }
-        result.unwrap()
-    }
-
-    /// Generates a new SCRU128 ID object, while delegating the caller to take care of counter
-    /// overflows.
-    fn generate_core(&mut self) -> Result<Scru128Id, CounterOverflowError> {
         let ts = get_msec_unixts();
         if ts > self.timestamp {
             self.timestamp = ts;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
-            if ts - self.ts_counter_hi >= 1000 {
-                self.ts_counter_hi = ts;
-                self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
-            }
-        } else {
+        } else if ts + 10_000 > self.timestamp {
             self.counter_lo += 1;
             if self.counter_lo > MAX_COUNTER_LO {
                 self.counter_lo = 0;
                 self.counter_hi += 1;
                 if self.counter_hi > MAX_COUNTER_HI {
                     self.counter_hi = 0;
-                    return Err(CounterOverflowError {});
+                    // increment timestamp at counter overflow
+                    self.timestamp += 1;
+                    self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
                 }
             }
+        } else {
+            // reset state if clock moves back more than ten seconds
+            self.ts_counter_hi = 0;
+            self.timestamp = ts;
+            self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
         }
 
-        Ok(Scru128Id::from_fields(
+        if self.timestamp - self.ts_counter_hi >= 1_000 {
+            self.ts_counter_hi = self.timestamp;
+            self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
+        }
+
+        Scru128Id::from_fields(
             self.timestamp,
             self.counter_hi,
             self.counter_lo,
             self.rng.next_u32(),
-        ))
-    }
-
-    /// Defines the behavior on counter overflow.
-    ///
-    /// Currently, this method waits for the next clock tick and, if the clock does not move
-    /// forward for a while, reinitializes the generator state.
-    fn handle_counter_overflow(&mut self) {
-        #[cfg(feature = "log")]
-        log::warn!("counter overflowing; will wait for next clock tick");
-        self.ts_counter_hi = 0;
-        for _ in 0..10_000 {
-            sleep(Duration::from_micros(100));
-            if get_msec_unixts() > self.timestamp {
-                return;
-            }
-        }
-        #[cfg(feature = "log")]
-        log::warn!("reset state as clock did not move for a while");
-        self.timestamp = 0;
+        )
     }
 }
 
@@ -160,7 +137,3 @@ fn get_msec_unixts() -> u64 {
         .expect("clock may have gone backwards")
         .as_millis() as u64
 }
-
-/// Error thrown when the monotonic counters can no more be incremented.
-#[derive(Debug)]
-struct CounterOverflowError {}
