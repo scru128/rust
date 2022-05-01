@@ -1,13 +1,10 @@
-use crate::identifier::{Scru128Id, MAX_COUNTER, MAX_PER_SEC_RANDOM};
+use crate::identifier::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 
-/// Unix time in milliseconds at 2020-01-01 00:00:00+00:00.
-pub const TIMESTAMP_BIAS: u64 = 1577836800000;
-
-/// Represents a SCRU128 ID generator that encapsulates the monotonic counter and other internal
+/// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
 ///
 /// # Examples
@@ -48,11 +45,14 @@ pub const TIMESTAMP_BIAS: u64 = 1577836800000;
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Scru128Generator<R = StdRng> {
-    ts_last_gen: u64,
-    counter: u32,
-    ts_last_sec: u64,
-    per_sec_random: u32,
-    n_clock_check_max: usize,
+    timestamp: u64,
+    counter_hi: u32,
+    counter_lo: u32,
+
+    /// Timestamp at the last renewal of `counter_hi` field.
+    ts_counter_hi: u64,
+
+    /// Random number generator used by the generator.
     rng: R,
 }
 
@@ -83,63 +83,48 @@ impl<R: RngCore> Scru128Generator<R> {
     /// ```
     pub fn with_rng(rng: R) -> Self {
         Self {
-            /// Timestamp at last generation.
-            ts_last_gen: 0,
-
-            /// Counter at last generation.
-            counter: 0,
-
-            /// Timestamp at last renewal of per_sec_random.
-            ts_last_sec: 0,
-
-            /// Per-second random value at last generation.
-            per_sec_random: 0,
-
-            /// Maximum number of checking the system clock until it goes forward.
-            n_clock_check_max: 1_000_000,
-
+            timestamp: 0,
+            counter_hi: 0,
+            counter_lo: 0,
+            ts_counter_hi: 0,
             rng,
         }
     }
 
     /// Generates a new SCRU128 ID object.
     pub fn generate(&mut self) -> Scru128Id {
-        // update timestamp and counter
-        let mut ts_now = get_msec_unixts();
-        if ts_now > self.ts_last_gen {
-            self.ts_last_gen = ts_now;
-            self.counter = self.rng.next_u32() & MAX_COUNTER;
-        } else {
-            self.counter += 1;
-            if self.counter > MAX_COUNTER {
-                #[cfg(feature = "log")]
-                log::info!("counter limit reached; will wait until clock goes forward");
-                let mut n_clock_check = 0;
-                while ts_now <= self.ts_last_gen {
-                    ts_now = get_msec_unixts();
-                    n_clock_check += 1;
-                    if n_clock_check > self.n_clock_check_max {
-                        #[cfg(feature = "log")]
-                        log::warn!("reset state as clock did not go forward");
-                        self.ts_last_sec = 0;
-                        break;
-                    }
+        let ts = get_msec_unixts();
+        if ts > self.timestamp {
+            self.timestamp = ts;
+            self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
+        } else if ts + 10_000 > self.timestamp {
+            self.counter_lo += 1;
+            if self.counter_lo > MAX_COUNTER_LO {
+                self.counter_lo = 0;
+                self.counter_hi += 1;
+                if self.counter_hi > MAX_COUNTER_HI {
+                    self.counter_hi = 0;
+                    // increment timestamp at counter overflow
+                    self.timestamp += 1;
+                    self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
                 }
-                self.ts_last_gen = ts_now;
-                self.counter = self.rng.next_u32() & MAX_COUNTER;
             }
+        } else {
+            // reset state if clock moves back more than ten seconds
+            self.ts_counter_hi = 0;
+            self.timestamp = ts;
+            self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
         }
 
-        // update per_sec_random
-        if self.ts_last_gen - self.ts_last_sec > 1000 {
-            self.ts_last_sec = self.ts_last_gen;
-            self.per_sec_random = self.rng.next_u32() & MAX_PER_SEC_RANDOM;
+        if self.timestamp - self.ts_counter_hi >= 1_000 {
+            self.ts_counter_hi = self.timestamp;
+            self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
         }
 
         Scru128Id::from_fields(
-            self.ts_last_gen - TIMESTAMP_BIAS,
-            self.counter,
-            self.per_sec_random,
+            self.timestamp,
+            self.counter_hi,
+            self.counter_lo,
             self.rng.next_u32(),
         )
     }
