@@ -3,16 +3,16 @@
 [![Crates.io](https://img.shields.io/crates/v/scru128)](https://crates.io/crates/scru128)
 [![License](https://img.shields.io/crates/l/scru128)](https://github.com/scru128/rust/blob/main/LICENSE)
 
-SCRU128 ID is yet another attempt to supersede [UUID] in the use cases that need
+SCRU128 ID is yet another attempt to supersede [UUID] for the users who need
 decentralized, globally unique time-ordered identifiers. SCRU128 is inspired by
 [ULID] and [KSUID] and has the following features:
 
 - 128-bit unsigned integer type
 - Sortable by generation time (as integer and as text)
-- 26-digit case-insensitive portable textual representation
-- 44-bit biased millisecond timestamp that ensures remaining life of 550 years
-- Up to 268 million time-ordered but unpredictable unique IDs per millisecond
-- 84-bit _layered_ randomness for collision resistance
+- 25-digit case-insensitive textual representation (Base36)
+- 48-bit millisecond Unix timestamp that ensures useful life until year 10889
+- Up to 281 trillion time-ordered but unpredictable unique IDs per millisecond
+- 80-bit three-layer randomness for global uniqueness
 
 ```rust
 use scru128::{scru128, scru128_string};
