@@ -1,8 +1,6 @@
 use crate::{Scru128Generator, Scru128Id};
-
-use std::sync::Mutex;
-
 use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> =
     Lazy::new(|| Mutex::new(Scru128Generator::new()));

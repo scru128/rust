@@ -31,11 +31,20 @@
 //! [scru128 specification]: https://github.com/scru128/spec
 
 mod default_gen;
-mod generator;
-mod identifier;
 pub use default_gen::{scru128, scru128_string};
-pub use generator::{default_rng::DefaultRng, Scru128Generator};
+
+mod identifier;
 pub use identifier::{ParseError, Scru128Id};
+
+pub mod generator;
+#[doc(inline)]
+pub use generator::Scru128Generator;
+
+/// Maximum value of 24-bit `counter_hi` field.
+const MAX_COUNTER_HI: u32 = 0xff_ffff;
+
+/// Maximum value of 24-bit `counter_lo` field.
+const MAX_COUNTER_LO: u32 = 0xff_ffff;
 
 #[cfg(test)]
 mod tests {

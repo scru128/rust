@@ -1,12 +1,7 @@
+use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO};
 use std::error::Error;
 use std::fmt;
 use std::str::{from_utf8, FromStr};
-
-/// Maximum value of 24-bit `counter_hi` field.
-pub const MAX_COUNTER_HI: u32 = 0xff_ffff;
-
-/// Maximum value of 24-bit `counter_lo` field.
-pub const MAX_COUNTER_LO: u32 = 0xff_ffff;
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

@@ -1,8 +1,10 @@
-use crate::identifier::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO};
+//! SCRU128 generator and related items.
 
+use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO};
+use rand::RngCore;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::RngCore;
+pub use default_rng::DefaultRng;
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
@@ -44,7 +46,7 @@ use rand::RngCore;
 /// }
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct Scru128Generator<R = default_rng::DefaultRng> {
+pub struct Scru128Generator<R = DefaultRng> {
     timestamp: u64,
     counter_hi: u32,
     counter_lo: u32,
@@ -87,7 +89,10 @@ impl<R: RngCore> Scru128Generator<R> {
 
     /// Generates a new SCRU128 ID object.
     pub fn generate(&mut self) -> Scru128Id {
-        let ts = get_msec_unixts();
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock may have gone backwards")
+            .as_millis() as u64;
         if ts > self.timestamp {
             self.timestamp = ts;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
@@ -124,15 +129,7 @@ impl<R: RngCore> Scru128Generator<R> {
     }
 }
 
-/// Returns the current unix time in milliseconds.
-fn get_msec_unixts() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("clock may have gone backwards")
-        .as_millis() as u64
-}
-
-pub mod default_rng {
+mod default_rng {
     use rand::{rngs::StdRng, Error, RngCore, SeedableRng};
 
     /// Default random number generator used by [`Scru128Generator`].
@@ -140,7 +137,7 @@ pub mod default_rng {
     /// Currently, this type wraps an instance of [`rand::rngs::StdRng`] and delegates all the jobs
     /// to it.
     ///
-    /// [`Scru128Generator`]: crate::generator::Scru128Generator
+    /// [`Scru128Generator`]: super::Scru128Generator
     #[derive(Clone, Debug)]
     pub struct DefaultRng(StdRng);
 
