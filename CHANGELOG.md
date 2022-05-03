@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.0.0 - 2022-05-01
+## v2.0.1 - unreleased
 
 ### Changed
 
@@ -10,6 +10,7 @@
   24 bits, `counter_lo`: 24 bits, `entropy`: 32 bits }
 - Timestamp epoch: 2020-01-01 00:00:00.000 UTC -> 1970-01-01 00:00:00.000 UTC
 - Counter overflow handling: stall generator -> increment timestamp
+- Default RNG type: rand::rngs::StdRng -> newtype that wraps concrete RNG
 - Rust edition: 2018 -> 2021
 
 ### Removed

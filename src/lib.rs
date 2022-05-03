@@ -34,7 +34,7 @@ mod default_gen;
 mod generator;
 mod identifier;
 pub use default_gen::{scru128, scru128_string};
-pub use generator::Scru128Generator;
+pub use generator::{default_rng::DefaultRng, Scru128Generator};
 pub use identifier::{ParseError, Scru128Id};
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ use crate::identifier::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::{rngs::StdRng, RngCore, SeedableRng};
+use rand::RngCore;
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
@@ -43,8 +43,8 @@ use rand::{rngs::StdRng, RngCore, SeedableRng};
 ///     let _ = h.join();
 /// }
 /// ```
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct Scru128Generator<R = StdRng> {
+#[derive(Clone, Eq, PartialEq, Debug, Default)]
+pub struct Scru128Generator<R = default_rng::DefaultRng> {
     timestamp: u64,
     counter_hi: u32,
     counter_lo: u32,
@@ -56,16 +56,10 @@ pub struct Scru128Generator<R = StdRng> {
     rng: R,
 }
 
-impl Default for Scru128Generator {
-    fn default() -> Self {
-        Self::with_rng(StdRng::from_entropy())
-    }
-}
-
 impl Scru128Generator {
     /// Creates a generator object with the default random number generator.
     pub fn new() -> Self {
-        Self::with_rng(StdRng::from_entropy())
+        Default::default()
     }
 }
 
@@ -83,10 +77,10 @@ impl<R: RngCore> Scru128Generator<R> {
     /// ```
     pub fn with_rng(rng: R) -> Self {
         Self {
-            timestamp: 0,
-            counter_hi: 0,
-            counter_lo: 0,
-            ts_counter_hi: 0,
+            timestamp: Default::default(),
+            counter_hi: Default::default(),
+            counter_lo: Default::default(),
+            ts_counter_hi: Default::default(),
             rng,
         }
     }
@@ -136,4 +130,41 @@ fn get_msec_unixts() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("clock may have gone backwards")
         .as_millis() as u64
+}
+
+pub mod default_rng {
+    use rand::{rngs::StdRng, Error, RngCore, SeedableRng};
+
+    /// Default random number generator used by [`Scru128Generator`].
+    ///
+    /// Currently, this type wraps an instance of [`rand::rngs::StdRng`] and delegates all the jobs
+    /// to it.
+    ///
+    /// [`Scru128Generator`]: crate::generator::Scru128Generator
+    #[derive(Clone, Debug)]
+    pub struct DefaultRng(StdRng);
+
+    impl Default for DefaultRng {
+        fn default() -> Self {
+            Self(StdRng::from_entropy())
+        }
+    }
+
+    impl RngCore for DefaultRng {
+        fn next_u32(&mut self) -> u32 {
+            self.0.next_u32()
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            self.0.next_u64()
+        }
+
+        fn fill_bytes(&mut self, dest: &mut [u8]) {
+            self.0.fill_bytes(dest)
+        }
+
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+            self.0.try_fill_bytes(dest)
+        }
+    }
 }
