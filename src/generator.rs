@@ -74,7 +74,7 @@ impl<R: RngCore> Scru128Generator<R> {
     /// ```rust
     /// use scru128::Scru128Generator;
     ///
-    /// let mut g = Scru128Generator::with_rng(rand::thread_rng());
+    /// let mut g = Scru128Generator::with_rng(rand::rngs::OsRng);
     /// println!("{}", g.generate());
     /// ```
     pub fn with_rng(rng: R) -> Self {
@@ -130,20 +130,29 @@ impl<R: RngCore> Scru128Generator<R> {
 }
 
 mod default_rng {
-    use rand::{rngs::StdRng, Error, RngCore, SeedableRng};
+    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, Error, RngCore, SeedableRng};
+    use rand_chacha::ChaCha12Core;
 
     /// Default random number generator used by [`Scru128Generator`].
     ///
-    /// Currently, this type wraps an instance of [`rand::rngs::StdRng`] and delegates all the jobs
-    /// to it.
+    /// Currently, `DefaultRng` uses [`ChaCha12Core`] that is initially seeded and subsequently
+    /// reseeded by [`OsRng`] every 64 kiB of random data using the [`ReseedingRng`] wrapper. It is
+    /// the same strategy as that employed by [`ThreadRng`]; see the docs for a detailed discussion
+    /// on the strategy.
     ///
     /// [`Scru128Generator`]: super::Scru128Generator
+    /// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
+    /// [`OsRng`]: rand::rngs::OsRng
+    /// [`ReseedingRng`]: rand::rngs::adapter::ReseedingRng
+    /// [`ThreadRng`]: rand::rngs::ThreadRng
     #[derive(Clone, Debug)]
-    pub struct DefaultRng(StdRng);
+    pub struct DefaultRng(ReseedingRng<ChaCha12Core, OsRng>);
 
     impl Default for DefaultRng {
         fn default() -> Self {
-            Self(StdRng::from_entropy())
+            let rng = ChaCha12Core::from_rng(OsRng)
+                .unwrap_or_else(|err| panic!("could not initialize DefaultRng: {}", err));
+            Self(ReseedingRng::new(rng, 1024 * 64, OsRng))
         }
     }
 
@@ -162,6 +171,54 @@ mod default_rng {
 
         fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
             self.0.try_fill_bytes(dest)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::DefaultRng;
+        use rand::RngCore;
+
+        /// Generates unbiased random numbers
+        ///
+        /// This test may fail at a very low probability.
+        #[test]
+        fn it_generates_unbiased_random_numbers() {
+            let mut rng = DefaultRng::default();
+
+            // test if random bits are set to 1 at ~50% probability
+            let mut counts = [0u32; 32];
+
+            // test if XOR of two consecutive outputs is also random
+            let mut prev = rng.next_u32();
+            let mut counts_xor = [0u32; 32];
+
+            const N: usize = 1_000_000;
+            for _ in 0..N {
+                let num = rng.next_u32();
+
+                let mut x = num;
+                for e in counts.iter_mut().rev() {
+                    *e += x & 1;
+                    x >>= 1;
+                }
+
+                let mut x = prev ^ num;
+                for e in counts_xor.iter_mut().rev() {
+                    *e += x & 1;
+                    x >>= 1;
+                }
+                prev = num;
+            }
+
+            // set margin based on binom dist 99.999% confidence interval
+            let margin = 4.417173 * (0.5 * 0.5 / N as f64).sqrt();
+            assert!(counts
+                .iter()
+                .all(|e| (*e as f64 / N as f64 - 0.5).abs() < margin));
+            assert!(counts_xor
+                .iter()
+                .all(|e| (*e as f64 / N as f64 - 0.5).abs() < margin));
         }
     }
 }
