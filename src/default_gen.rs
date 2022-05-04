@@ -1,8 +1,6 @@
 use crate::{Scru128Generator, Scru128Id};
-
-use std::sync::Mutex;
-
 use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> =
     Lazy::new(|| Mutex::new(Scru128Generator::new()));
@@ -11,7 +9,10 @@ static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> =
 ///
 /// This function is thread safe; multiple threads can call it concurrently.
 pub fn scru128() -> Scru128Id {
-    DEFAULT_GENERATOR.lock().unwrap().generate()
+    DEFAULT_GENERATOR
+        .lock()
+        .unwrap_or_else(|err| panic!("could not lock default generator: {}", err))
+        .generate()
 }
 
 /// Generates a new SCRU128 ID encoded in the 25-digit canonical string representation.
