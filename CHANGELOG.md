@@ -23,7 +23,7 @@
 ### Added
 
 - `Scru128Id#counter_hi()`, `Scru128Id#counter_lo()`, `Scru128Id#entropy()`
-- `Scru128Id#to_u128()`
+- `Scru128Id#to_u128()`, `Scru128Id#to_bytes()`
 
 ## v1.0.0 - 2022-01-03
 

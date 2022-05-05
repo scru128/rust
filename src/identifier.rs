@@ -64,6 +64,11 @@ impl Scru128Id {
         self.0
     }
 
+    /// Returns the big-endian byte array representation.
+    pub const fn to_bytes(&self) -> [u8; 16] {
+        self.0.to_be_bytes()
+    }
+
     /// Creates an object from field values.
     ///
     /// # Panics
@@ -174,6 +179,20 @@ impl From<Scru128Id> for u128 {
     }
 }
 
+impl From<[u8; 16]> for Scru128Id {
+    /// Creates an object from a 16-byte big-endian byte array.
+    fn from(value: [u8; 16]) -> Self {
+        Self(u128::from_be_bytes(value))
+    }
+}
+
+impl From<Scru128Id> for [u8; 16] {
+    /// Returns the big-endian byte array representation.
+    fn from(object: Scru128Id) -> Self {
+        object.to_bytes()
+    }
+}
+
 impl TryFrom<String> for Scru128Id {
     type Error = ParseError;
 
@@ -244,6 +263,14 @@ mod tests {
             assert_eq!(
                 from_string.to_u128(),
                 u128::from_str_radix(e.1, 36).unwrap()
+            );
+            assert_eq!(
+                from_fields.to_bytes(),
+                u128::from_str_radix(e.1, 36).unwrap().to_be_bytes()
+            );
+            assert_eq!(
+                from_string.to_bytes(),
+                u128::from_str_radix(e.1, 36).unwrap().to_be_bytes()
             );
             assert_eq!(
                 (
@@ -318,6 +345,8 @@ mod tests {
             assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
             assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
             assert_eq!(Scru128Id::from(u128::from(e)), e);
+            assert_eq!(Scru128Id::from(e.to_bytes()), e);
+            assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
             assert_eq!(
                 Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
                 e
