@@ -36,8 +36,8 @@ const DECODE_MAP: [u8; 256] = [
 /// let x = "036Z968FU2TUGY7SVKFZNEWKK".parse::<Scru128Id>()?;
 /// assert_eq!(x.to_string(), "036Z968FU2TUGY7SVKFZNEWKK");
 ///
-/// let y = Scru128Id::from_u128(0x017fa1de51a80fd992f9e8cc2d5eb88e);
-/// assert_eq!(y.as_u128(), 0x017fa1de51a80fd992f9e8cc2d5eb88e);
+/// let y = Scru128Id::from(0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
+/// assert_eq!(y.to_u128(), 0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
 /// # Ok::<(), scru128::ParseError>(())
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -50,13 +50,23 @@ pub struct Scru128Id(u128);
 
 impl Scru128Id {
     /// Creates an object from a 128-bit unsigned integer.
+    ///
+    /// Use `Scru128Id::from(u128)` instead out of `const` context. This constructor may be
+    /// deprecated in the future once [const trait impls] are stabilized.
+    ///
+    /// [const trait impls]: https://github.com/rust-lang/rust/issues/67792
     pub const fn from_u128(int_value: u128) -> Self {
         Self(int_value)
     }
 
     /// Returns the 128-bit unsigned integer representation.
-    pub const fn as_u128(&self) -> u128 {
+    pub const fn to_u128(&self) -> u128 {
         self.0
+    }
+
+    /// Returns the big-endian byte array representation.
+    pub const fn to_bytes(&self) -> [u8; 16] {
+        self.0.to_be_bytes()
     }
 
     /// Creates an object from field values.
@@ -64,7 +74,12 @@ impl Scru128Id {
     /// # Panics
     ///
     /// Panics if any argument is out of the value range of the field.
-    pub fn from_fields(timestamp: u64, counter_hi: u32, counter_lo: u32, entropy: u32) -> Self {
+    pub const fn from_fields(
+        timestamp: u64,
+        counter_hi: u32,
+        counter_lo: u32,
+        entropy: u32,
+    ) -> Self {
         if timestamp > 0xffff_ffff_ffff
             || counter_hi > MAX_COUNTER_HI
             || counter_lo > MAX_COUNTER_LO
@@ -81,22 +96,22 @@ impl Scru128Id {
     }
 
     /// Returns the 48-bit `timestamp` field value.
-    pub fn timestamp(&self) -> u64 {
+    pub const fn timestamp(&self) -> u64 {
         (self.0 >> 80) as u64
     }
 
     /// Returns the 24-bit `counter_hi` field value.
-    pub fn counter_hi(&self) -> u32 {
+    pub const fn counter_hi(&self) -> u32 {
         (self.0 >> 56) as u32 & MAX_COUNTER_HI
     }
 
     /// Returns the 24-bit `counter_lo` field value.
-    pub fn counter_lo(&self) -> u32 {
+    pub const fn counter_lo(&self) -> u32 {
         (self.0 >> 32) as u32 & MAX_COUNTER_LO
     }
 
     /// Returns the 32-bit `entropy` field value.
-    pub fn entropy(&self) -> u32 {
+    pub const fn entropy(&self) -> u32 {
         self.0 as u32 & u32::MAX
     }
 }
@@ -154,13 +169,27 @@ impl fmt::Display for Scru128Id {
 
 impl From<u128> for Scru128Id {
     fn from(value: u128) -> Self {
-        Self::from_u128(value)
+        Self(value)
     }
 }
 
 impl From<Scru128Id> for u128 {
     fn from(object: Scru128Id) -> Self {
-        object.as_u128()
+        object.to_u128()
+    }
+}
+
+impl From<[u8; 16]> for Scru128Id {
+    /// Creates an object from a 16-byte big-endian byte array.
+    fn from(value: [u8; 16]) -> Self {
+        Self(u128::from_be_bytes(value))
+    }
+}
+
+impl From<Scru128Id> for [u8; 16] {
+    /// Returns the big-endian byte array representation.
+    fn from(object: Scru128Id) -> Self {
+        object.to_bytes()
     }
 }
 
@@ -228,12 +257,20 @@ mod tests {
 
             assert_eq!(from_fields, from_string);
             assert_eq!(
-                from_fields.as_u128(),
+                from_fields.to_u128(),
                 u128::from_str_radix(e.1, 36).unwrap()
             );
             assert_eq!(
-                from_string.as_u128(),
+                from_string.to_u128(),
                 u128::from_str_radix(e.1, 36).unwrap()
+            );
+            assert_eq!(
+                from_fields.to_bytes(),
+                u128::from_str_radix(e.1, 36).unwrap().to_be_bytes()
+            );
+            assert_eq!(
+                from_string.to_bytes(),
+                u128::from_str_radix(e.1, 36).unwrap().to_be_bytes()
             );
             assert_eq!(
                 (
@@ -305,7 +342,11 @@ mod tests {
 
         for e in cases {
             assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
-            assert_eq!(Scru128Id::from_u128(e.as_u128()), e);
+            assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
+            assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
+            assert_eq!(Scru128Id::from(u128::from(e)), e);
+            assert_eq!(Scru128Id::from(e.to_bytes()), e);
+            assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
             assert_eq!(
                 Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
                 e
