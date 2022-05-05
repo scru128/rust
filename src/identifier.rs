@@ -69,7 +69,12 @@ impl Scru128Id {
     /// # Panics
     ///
     /// Panics if any argument is out of the value range of the field.
-    pub fn from_fields(timestamp: u64, counter_hi: u32, counter_lo: u32, entropy: u32) -> Self {
+    pub const fn from_fields(
+        timestamp: u64,
+        counter_hi: u32,
+        counter_lo: u32,
+        entropy: u32,
+    ) -> Self {
         if timestamp > 0xffff_ffff_ffff
             || counter_hi > MAX_COUNTER_HI
             || counter_lo > MAX_COUNTER_LO
@@ -86,22 +91,22 @@ impl Scru128Id {
     }
 
     /// Returns the 48-bit `timestamp` field value.
-    pub fn timestamp(&self) -> u64 {
+    pub const fn timestamp(&self) -> u64 {
         (self.0 >> 80) as u64
     }
 
     /// Returns the 24-bit `counter_hi` field value.
-    pub fn counter_hi(&self) -> u32 {
+    pub const fn counter_hi(&self) -> u32 {
         (self.0 >> 56) as u32 & MAX_COUNTER_HI
     }
 
     /// Returns the 24-bit `counter_lo` field value.
-    pub fn counter_lo(&self) -> u32 {
+    pub const fn counter_lo(&self) -> u32 {
         (self.0 >> 32) as u32 & MAX_COUNTER_LO
     }
 
     /// Returns the 32-bit `entropy` field value.
-    pub fn entropy(&self) -> u32 {
+    pub const fn entropy(&self) -> u32 {
         self.0 as u32 & u32::MAX
     }
 }
