@@ -16,7 +16,7 @@ pub use default_rng::DefaultRng;
 ///
 /// let mut g = Scru128Generator::new();
 /// println!("{}", g.generate());
-/// println!("{}", g.generate().as_u128());
+/// println!("{}", g.generate().to_u128());
 /// ```
 ///
 /// Each generator instance generates monotonically ordered IDs, but multiple generators called

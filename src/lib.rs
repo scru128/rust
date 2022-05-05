@@ -17,7 +17,7 @@
 //! // generate a new identifier object
 //! let x = scru128();
 //! println!("{}", x); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
-//! println!("{}", x.as_u128()); // as a 128-bit unsigned integer
+//! println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 //!
 //! // generate a textual representation directly
 //! println!("{}", scru128_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"

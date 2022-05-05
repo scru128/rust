@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.0.1 - 2022-05-04
+## v2.0.2 - unreleased
 
 ### Changed
 
@@ -18,10 +18,12 @@
 - `log` feature as counter overflow is no longer likely to occur
 - `TIMESTAMP_BIAS`
 - `Scru128Id#counter()`, `Scru128Id#per_sec_random()`, `Scru128Id#per_gen_random()`
+- `Scru128Id#as_u128()`
 
 ### Added
 
 - `Scru128Id#counter_hi()`, `Scru128Id#counter_lo()`, `Scru128Id#entropy()`
+- `Scru128Id#to_u128()`
 
 ## v1.0.0 - 2022-01-03
 
