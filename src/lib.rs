@@ -61,7 +61,7 @@ mod tests {
         use regex::Regex;
         let re = Regex::new(r"^[0-9A-Z]{25}$").unwrap();
         SAMPLES.with(|samples| {
-            for e in samples.iter() {
+            for e in samples {
                 assert!(re.is_match(e));
             }
         });
@@ -72,7 +72,7 @@ mod tests {
     fn it_generates_100k_identifiers_without_collision() {
         use std::collections::HashSet;
         SAMPLES.with(|samples| {
-            let s: HashSet<String> = samples.iter().cloned().collect();
+            let s: HashSet<&String> = samples.iter().collect();
             assert_eq!(s.len(), samples.len());
         });
     }
