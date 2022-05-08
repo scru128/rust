@@ -60,12 +60,12 @@ impl Scru128Id {
     }
 
     /// Returns the 128-bit unsigned integer representation.
-    pub const fn to_u128(&self) -> u128 {
+    pub const fn to_u128(self) -> u128 {
         self.0
     }
 
     /// Returns the big-endian byte array representation.
-    pub const fn to_bytes(&self) -> [u8; 16] {
+    pub const fn to_bytes(self) -> [u8; 16] {
         self.0.to_be_bytes()
     }
 
