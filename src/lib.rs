@@ -30,6 +30,9 @@
 //! [ksuid]: https://github.com/segmentio/ksuid
 //! [scru128 specification]: https://github.com/scru128/spec
 
+// TODO: make this crate compile under no_std
+#![cfg_attr(not(feature = "std"), no_std)]
+
 mod default_gen;
 pub use default_gen::{scru128, scru128_string};
 
