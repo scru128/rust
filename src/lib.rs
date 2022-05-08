@@ -30,6 +30,9 @@
 //! [ksuid]: https://github.com/segmentio/ksuid
 //! [scru128 specification]: https://github.com/scru128/spec
 
+// TODO: make this crate compile under no_std
+#![cfg_attr(not(feature = "std"), no_std)]
+
 mod default_gen;
 pub use default_gen::{scru128, scru128_string};
 
@@ -61,7 +64,7 @@ mod tests {
         use regex::Regex;
         let re = Regex::new(r"^[0-9A-Z]{25}$").unwrap();
         SAMPLES.with(|samples| {
-            for e in samples.iter() {
+            for e in samples {
                 assert!(re.is_match(e));
             }
         });
@@ -72,7 +75,7 @@ mod tests {
     fn it_generates_100k_identifiers_without_collision() {
         use std::collections::HashSet;
         SAMPLES.with(|samples| {
-            let s: HashSet<String> = samples.iter().cloned().collect();
+            let s: HashSet<&String> = samples.iter().collect();
             assert_eq!(s.len(), samples.len());
         });
     }

@@ -1,7 +1,7 @@
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO};
 use std::error::Error;
 use std::fmt;
-use std::str::{from_utf8, FromStr};
+use std::str::{from_utf8_unchecked, FromStr};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -60,12 +60,12 @@ impl Scru128Id {
     }
 
     /// Returns the 128-bit unsigned integer representation.
-    pub const fn to_u128(&self) -> u128 {
+    pub const fn to_u128(self) -> u128 {
         self.0
     }
 
     /// Returns the big-endian byte array representation.
-    pub const fn to_bytes(&self) -> [u8; 16] {
+    pub const fn to_bytes(self) -> [u8; 16] {
         self.0.to_be_bytes()
     }
 
@@ -114,6 +114,34 @@ impl Scru128Id {
     pub const fn entropy(&self) -> u32 {
         self.0 as u32 & u32::MAX
     }
+
+    /// Writes the 25-digit canonical string representation to `buf` as an ASCII byte array.
+    ///
+    /// # Panics
+    ///
+    /// This method panics if the length of `buf` is smaller than 25.
+    fn write_utf8(&self, buf: &mut [u8]) {
+        // implement Base36 using 56-bit words because Div<u128> is slow
+        let dst = &mut buf[0..25];
+        dst.fill(0);
+        let mut min_index: isize = 99; // any number greater than size of output array
+        for shift in (0..128).step_by(56).rev() {
+            let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
+
+            // iterate over output array from right to left while carry != 0 but at least up to
+            // place already filled
+            let mut i = dst.len() as isize - 1;
+            while carry > 0 || i > min_index {
+                carry += (dst[i as usize] as u64) << 56;
+                dst[i as usize] = (carry % 36) as u8;
+                carry /= 36;
+                i -= 1;
+            }
+            min_index = i;
+        }
+
+        dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
+    }
 }
 
 impl FromStr for Scru128Id {
@@ -144,26 +172,9 @@ impl FromStr for Scru128Id {
 impl fmt::Display for Scru128Id {
     /// Returns the 25-digit canonical string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // implement Base36 using 56-bit words because Div<u128> is slow
         let mut dst = [0u8; 25];
-        let mut min_index: isize = 99; // any number greater than size of output array
-        for shift in (0..128).step_by(56).rev() {
-            let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
-
-            // iterate over output array from right to left while carry != 0 but at least up to
-            // place already filled
-            let mut i = dst.len() as isize - 1;
-            while carry > 0 || i > min_index {
-                carry += (dst[i as usize] as u64) << 56;
-                dst[i as usize] = (carry % 36) as u8;
-                carry /= 36;
-                i -= 1;
-            }
-            min_index = i;
-        }
-
-        dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
-        f.write_str(from_utf8(&dst).unwrap())
+        self.write_utf8(&mut dst);
+        f.write_str(unsafe { from_utf8_unchecked(&dst) })
     }
 }
 
