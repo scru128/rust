@@ -115,11 +115,18 @@ impl Scru128Id {
         self.0 as u32 & u32::MAX
     }
 
-    /// Writes the 25-digit canonical string representation to `buf` as an ASCII byte array.
+    /// Writes the 25-digit string representation to `buf` as an ASCII byte array.
+    ///
+    /// This method primarily serves in the `no_std` environment where [`String`] is not readily
+    /// available. Use the [`Display`] trait and [`to_string()`] method to get the canonical string
+    /// representation in the common cases.
+    ///
+    /// [`Display`]: std::fmt::Display
+    /// [`to_string()`]: std::string::ToString::to_string
     ///
     /// # Panics
     ///
-    /// This method panics if the length of `buf` is smaller than 25.
+    /// Panics if the length of `buf` is smaller than 25.
     fn write_utf8(&self, buf: &mut [u8]) {
         // implement Base36 using 56-bit words because Div<u128> is slow
         let dst = &mut buf[0..25];
