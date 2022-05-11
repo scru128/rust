@@ -41,11 +41,6 @@ const DECODE_MAP: [u8; 256] = [
 /// # Ok::<(), scru128::ParseError>(())
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(into = "String", try_from = "String")
-)]
 pub struct Scru128Id(u128);
 
 impl Scru128Id {
@@ -421,27 +416,120 @@ mod tests {
             prev = curr;
         }
     }
+}
 
-    /// Serializes and deserializes an object using the canonical string representation
-    #[cfg(feature = "serde")]
-    #[test]
-    fn it_serializes_and_deserializes_an_object_using_the_canonical_string_representation() {
-        use serde_test::{assert_tokens, Token};
+#[cfg(feature = "serde")]
+mod serde_support {
+    use super::{fmt, from_utf8_unchecked, Scru128Id};
+    use serde::de::{Deserialize, Deserializer, Error, Visitor};
+    use serde::{Serialize, Serializer};
 
-        let cases = [
-            "036ZDXWI5X3EF45FNMP6V9N2D",
-            "036ZDXWI5X3EF45FNMPVK7D84",
-            "036ZDXWI5X3EF45FNMT5XUHBY",
-            "036ZDXWI5X3EF45FNMV4RAA2T",
-            "036ZDXWI5X3EF45FNMWWF2E75",
-            "036ZDXWI5X3EF45FNMXJHYH9V",
-            "036ZDXWI5X3EF45FNMZXIYEOP",
-            "036ZDXWI5X3EF45FNN1IDRAV9",
-        ];
+    impl Serialize for Scru128Id {
+        fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            if serializer.is_human_readable() {
+                let mut dst = [0u8; 25];
+                self.write_utf8(&mut dst);
+                serializer.serialize_str(unsafe { from_utf8_unchecked(&dst) })
+            } else {
+                serializer.serialize_bytes(&self.to_bytes())
+            }
+        }
+    }
 
-        for e in cases {
-            let obj = e.parse::<Scru128Id>().unwrap();
-            assert_tokens(&obj, &[Token::String(e)]);
+    impl<'de> Deserialize<'de> for Scru128Id {
+        fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+            if deserializer.is_human_readable() {
+                deserializer.deserialize_str(VisitorImpl)
+            } else {
+                deserializer.deserialize_bytes(VisitorImpl)
+            }
+        }
+    }
+
+    struct VisitorImpl;
+
+    impl<'de> Visitor<'de> for VisitorImpl {
+        type Value = Scru128Id;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(formatter, "a SCRU128 ID representation")
+        }
+
+        fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
+            value.parse::<Self::Value>().map_err(Error::custom)
+        }
+
+        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+            <[u8; 16]>::try_from(value)
+                .map(Self::Value::from)
+                .map_err(Error::custom)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::Scru128Id;
+        use serde_test::{assert_tokens, Configure, Token};
+
+        /// Serializes and deserializes prepared cases correctly
+        #[test]
+        fn it_serializes_and_deserializes_prepared_cases_correctly() {
+            let cases = [
+                (
+                    "037ARKZBGN93KDU9H3PW2OW2L",
+                    &[
+                        1, 128, 178, 254, 34, 56, 72, 100, 6, 87, 159, 252, 102, 145, 202, 93,
+                    ],
+                ),
+                (
+                    "037ARKZBH94JVGJMM6JTWGZTQ",
+                    &[
+                        1, 128, 178, 254, 34, 60, 72, 100, 6, 194, 191, 219, 2, 6, 125, 94,
+                    ],
+                ),
+                (
+                    "037ARKZBHELEY7UNPVCJF5K4Z",
+                    &[
+                        1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 140, 185, 18, 16, 51,
+                    ],
+                ),
+                (
+                    "037ARKZBHELEY7UNPVEL8ZYP1",
+                    &[
+                        1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 141, 195, 39, 182, 101,
+                    ],
+                ),
+                (
+                    "037ARKZBHELEY7UNPVGEFDINQ",
+                    &[
+                        1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 142, 174, 14, 198, 182,
+                    ],
+                ),
+                (
+                    "037ARKZBHELEY7UNPVHSYWHO2",
+                    &[
+                        1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 143, 100, 55, 67, 114,
+                    ],
+                ),
+                (
+                    "037ARKZBHELEY7UNPVJLR4OT7",
+                    &[
+                        1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 144, 77, 179, 181, 155,
+                    ],
+                ),
+                (
+                    "037ARKZBHELEY7UNPVMFM8457",
+                    &[
+                        1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 145, 188, 211, 88, 251,
+                    ],
+                ),
+            ];
+
+            for (text, bytes) in cases {
+                let e = text.parse::<Scru128Id>().unwrap();
+                assert_tokens(&e.readable(), &[Token::String(text)]);
+                assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
+            }
         }
     }
 }
