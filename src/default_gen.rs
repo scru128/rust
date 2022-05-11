@@ -37,7 +37,7 @@ mod tests {
 
     /// Generates no IDs sharing same timestamp and counters under multithreading
     #[test]
-    fn it_generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading() {
+    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading() {
         use std::collections::HashSet;
         use std::sync::mpsc::channel;
         use std::thread;

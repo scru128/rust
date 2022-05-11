@@ -243,7 +243,7 @@ mod tests {
 
     /// Encodes and decodes prepared cases correctly
     #[test]
-    fn it_encodes_and_decodes_prepared_cases_correctly() {
+    fn encodes_and_decodes_prepared_cases_correctly() {
         let cases: Vec<((u64, u32, u32, u32), &str)> = vec![
             ((0, 0, 0, 0), "0000000000000000000000000"),
             ((MAX_UINT48, 0, 0, 0), "F5LXX1ZZ5K6TP71GEEH2DB7K0"),
@@ -314,7 +314,7 @@ mod tests {
 
     /// Returns error if an invalid string representation is supplied
     #[test]
-    fn it_returns_error_if_an_invalid_string_representation_is_supplied() {
+    fn returns_error_if_an_invalid_string_representation_is_supplied() {
         let cases = vec![
             "",
             " 036Z8PUQ4TSXSIGK6O19Y164Q",
@@ -338,7 +338,7 @@ mod tests {
 
     /// Has symmetric converters from/to various values
     #[test]
-    fn it_has_symmetric_converters() {
+    fn has_symmetric_converters_from_to_various_values() {
         let mut cases = vec![
             Scru128Id::from_fields(0, 0, 0, 0),
             Scru128Id::from_fields(MAX_UINT48, 0, 0, 0),
@@ -369,7 +369,7 @@ mod tests {
 
     /// Supports comparison operators
     #[test]
-    fn it_supports_comparison_operators() {
+    fn supports_comparison_operators() {
         fn hash(v: impl std::hash::Hash) -> u64 {
             use std::{collections::hash_map::DefaultHasher, hash::Hasher};
             let mut hasher = DefaultHasher::new();
@@ -473,7 +473,7 @@ mod serde_support {
 
         /// Serializes and deserializes prepared cases correctly
         #[test]
-        fn it_serializes_and_deserializes_prepared_cases_correctly() {
+        fn serializes_and_deserializes_prepared_cases_correctly() {
             let cases = [
                 (
                     "037ARKZBGN93KDU9H3PW2OW2L",

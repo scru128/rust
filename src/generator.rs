@@ -183,7 +183,7 @@ mod default_rng {
         ///
         /// This test may fail at a very low probability.
         #[test]
-        fn it_generates_unbiased_random_numbers() {
+        fn generates_unbiased_random_numbers() {
             let mut rng = DefaultRng::default();
 
             // test if random bits are set to 1 at ~50% probability
