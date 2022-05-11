@@ -60,7 +60,7 @@ mod tests {
 
     /// Generates 25-digit canonical string
     #[test]
-    fn it_generates_25_digit_canonical_string() {
+    fn generates_25_digit_canonical_string() {
         use regex::Regex;
         let re = Regex::new(r"^[0-9A-Z]{25}$").unwrap();
         SAMPLES.with(|samples| {
@@ -72,7 +72,7 @@ mod tests {
 
     /// Generates 100k identifiers without collision
     #[test]
-    fn it_generates_100k_identifiers_without_collision() {
+    fn generates_100k_identifiers_without_collision() {
         use std::collections::HashSet;
         SAMPLES.with(|samples| {
             let s: HashSet<&String> = samples.iter().collect();
@@ -82,7 +82,7 @@ mod tests {
 
     /// Generates sortable string representation by creation time
     #[test]
-    fn it_generates_sortable_string_representation_by_creation_time() {
+    fn generates_sortable_string_representation_by_creation_time() {
         SAMPLES.with(|samples| {
             for i in 1..samples.len() {
                 assert!(samples[i - 1] < samples[i]);
@@ -92,7 +92,7 @@ mod tests {
 
     /// Encodes up-to-date timestamp
     #[test]
-    fn it_encodes_up_to_date_timestamp() {
+    fn encodes_up_to_date_timestamp() {
         use std::time::{SystemTime, UNIX_EPOCH};
         let mut g = Scru128Generator::new();
         for _ in 0..10_000 {
@@ -107,7 +107,7 @@ mod tests {
 
     /// Encodes unique sortable tuple of timestamp and counters
     #[test]
-    fn it_encodes_unique_sortable_tuple_of_timestamp_and_counters() {
+    fn encodes_unique_sortable_tuple_of_timestamp_and_counters() {
         SAMPLES.with(|samples| {
             let mut prev = samples[0].parse::<Scru128Id>().unwrap();
             for i in 1..samples.len() {
