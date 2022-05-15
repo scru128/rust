@@ -1,4 +1,4 @@
-use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO};
+use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 use std::error::Error;
 use std::fmt;
 use std::str::{from_utf8_unchecked, FromStr};
@@ -75,10 +75,7 @@ impl Scru128Id {
         counter_lo: u32,
         entropy: u32,
     ) -> Self {
-        if timestamp > 0xffff_ffff_ffff
-            || counter_hi > MAX_COUNTER_HI
-            || counter_lo > MAX_COUNTER_LO
-        {
+        if timestamp > MAX_TIMESTAMP || counter_hi > MAX_COUNTER_HI || counter_lo > MAX_COUNTER_LO {
             panic!("invalid field value");
         } else {
             Self(
@@ -110,7 +107,7 @@ impl Scru128Id {
         self.0 as u32 & u32::MAX
     }
 
-    /// Writes the 25-digit string representation to `buf` as an ASCII byte array.
+    /// Writes the 25-digit string representation to `buffer` as an ASCII byte array.
     ///
     /// This method primarily serves in the `no_std` environment where [`String`] is not readily
     /// available. Use the [`Display`] trait and [`to_string()`] method to get the canonical string
@@ -121,10 +118,10 @@ impl Scru128Id {
     ///
     /// # Panics
     ///
-    /// Panics if the length of `buf` is smaller than 25.
-    fn write_utf8(&self, buf: &mut [u8]) {
+    /// Panics if the length of `buffer` is smaller than 25.
+    fn write_utf8(&self, buffer: &mut [u8]) {
         // implement Base36 using 56-bit words because Div<u128> is slow
-        let dst = &mut buf[0..25];
+        let dst = &mut buffer[..25];
         dst.fill(0);
         let mut min_index: isize = 99; // any number greater than size of output array
         for shift in (0..128).step_by(56).rev() {
@@ -143,6 +140,7 @@ impl Scru128Id {
         }
 
         dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
+        assert!(buffer[..25].is_ascii());
     }
 }
 

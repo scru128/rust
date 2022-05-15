@@ -43,6 +43,9 @@ pub mod generator;
 #[doc(inline)]
 pub use generator::Scru128Generator;
 
+/// Maximum value of 48-bit `timestamp` field.
+const MAX_TIMESTAMP: u64 = 0xffff_ffff_ffff;
+
 /// Maximum value of 24-bit `counter_hi` field.
 const MAX_COUNTER_HI: u32 = 0xff_ffff;
 
@@ -98,7 +101,7 @@ mod tests {
         for _ in 0..10_000 {
             let ts_now = (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect("clock may have gone backwards")
+                .expect("clock may have gone backward")
                 .as_millis()) as i64;
             let timestamp = g.generate().timestamp() as i64;
             assert!((ts_now - timestamp).abs() < 16);

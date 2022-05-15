@@ -1,6 +1,6 @@
 //! SCRU128 generator and related items.
 
-use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO};
+use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 use rand::RngCore;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -89,30 +89,70 @@ impl<R: RngCore> Scru128Generator<R> {
 
     /// Generates a new SCRU128 ID object.
     pub fn generate(&mut self) -> Scru128Id {
-        let ts = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock may have gone backwards")
-            .as_millis() as u64;
-        if ts > self.timestamp {
-            self.timestamp = ts;
+        self.generate_core(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock may have gone backward")
+                .as_millis() as u64,
+        )
+        .0
+    }
+
+    /// Generates a new SCRU128 ID object with the `timestamp` passed.
+    ///
+    /// This method returns a generated ID and a [`Status`] code that indicates the internal state
+    /// involved in the generation. Callers can usually ignore the status unless the monotonic
+    /// order of generated IDs is critically important.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::{generator::Status, Scru128Generator};
+    ///
+    /// let mut g = Scru128Generator::new();
+    /// let ts = 1577836800000u64;
+    /// let (x, _) = g.generate_core(ts);
+    /// let (y, status) = g.generate_core(ts + 1);
+    /// if status == Status::ClockRollback {
+    ///     panic!("clock moved backward");
+    /// } else {
+    ///     assert!(x < y);
+    /// }
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the argument is not a 48-bit unsigned integer.
+    pub fn generate_core(&mut self, timestamp: u64) -> (Scru128Id, Status) {
+        if timestamp > MAX_TIMESTAMP {
+            panic!("`timestamp` must be a 48-bit unsigned integer");
+        }
+
+        let mut status = Status::NewTimestamp;
+        if timestamp > self.timestamp {
+            self.timestamp = timestamp;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
-        } else if ts + 10_000 > self.timestamp {
+        } else if timestamp + 10_000 > self.timestamp {
             self.counter_lo += 1;
+            status = Status::CounterLoInc;
             if self.counter_lo > MAX_COUNTER_LO {
                 self.counter_lo = 0;
                 self.counter_hi += 1;
+                status = Status::CounterHiInc;
                 if self.counter_hi > MAX_COUNTER_HI {
                     self.counter_hi = 0;
                     // increment timestamp at counter overflow
                     self.timestamp += 1;
                     self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
+                    status = Status::TimestampInc;
                 }
             }
         } else {
-            // reset state if clock moves back more than ten seconds
+            // reset state if clock moves back by ten seconds or more
             self.ts_counter_hi = 0;
-            self.timestamp = ts;
+            self.timestamp = timestamp;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
+            status = Status::ClockRollback;
         }
 
         if self.timestamp - self.ts_counter_hi >= 1_000 {
@@ -120,12 +160,78 @@ impl<R: RngCore> Scru128Generator<R> {
             self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
         }
 
-        Scru128Id::from_fields(
-            self.timestamp,
-            self.counter_hi,
-            self.counter_lo,
-            self.rng.next_u32(),
+        (
+            Scru128Id::from_fields(
+                self.timestamp,
+                self.counter_hi,
+                self.counter_lo,
+                self.rng.next_u32(),
+            ),
+            status,
         )
+    }
+}
+
+/// Status code reported by [`Scru128Generator::generate_core()`] method.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub enum Status {
+    /// Indicates that the `timestamp` passed was used because it was greater than the previous
+    /// one.
+    NewTimestamp,
+
+    /// Indicates that `counter_lo` was incremented because the `timestamp` passed was no greater
+    /// than the previous one.
+    CounterLoInc,
+
+    /// Indicates that `counter_hi` was incremented because `counter_lo` reached its maximum value.
+    CounterHiInc,
+
+    /// Indicates that the previous `timestamp` was incremented because `counter_hi` reached its
+    /// maximum value.
+    TimestampInc,
+
+    /// Indicates that the monotonic order of generated IDs was broken because the `timestamp`
+    /// passed was less than the previous one by ten seconds or more.
+    ClockRollback,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Scru128Generator, Status};
+
+    /// Generates increasing IDs even with decreasing or constant timestamp
+    #[test]
+    fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g = Scru128Generator::new();
+        let (mut prev, status) = g.generate_core(ts);
+        assert_eq!(status, Status::NewTimestamp);
+        assert_eq!(prev.timestamp(), ts);
+        for i in 0..100_000 as u64 {
+            let (curr, status) = g.generate_core(ts - i.min(9_998));
+            assert!(
+                status == Status::CounterLoInc
+                    || status == Status::CounterHiInc
+                    || status == Status::TimestampInc
+            );
+            assert!(prev < curr);
+            prev = curr;
+        }
+        assert!(prev.timestamp() >= ts);
+    }
+
+    /// Breaks increasing order of IDs if timestamp moves backward a lot
+    #[test]
+    fn breaks_increasing_order_of_ids_if_timestamp_moves_backward_a_lot() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g = Scru128Generator::new();
+        let (prev, status) = g.generate_core(ts);
+        assert_eq!(status, Status::NewTimestamp);
+        assert_eq!(prev.timestamp(), ts);
+        let (curr, status) = g.generate_core(ts - 10_000);
+        assert_eq!(status, Status::ClockRollback);
+        assert!(prev > curr);
+        assert_eq!(curr.timestamp(), ts - 10_000);
     }
 }
 
