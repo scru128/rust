@@ -54,6 +54,9 @@ pub struct Scru128Generator<R = DefaultRng> {
     /// Timestamp at the last renewal of `counter_hi` field.
     ts_counter_hi: u64,
 
+    /// Status code reported at the last generation.
+    last_status: Status,
+
     /// Random number generator used by the generator.
     rng: R,
 }
@@ -83,6 +86,7 @@ impl<R: RngCore> Scru128Generator<R> {
             counter_hi: Default::default(),
             counter_lo: Default::default(),
             ts_counter_hi: Default::default(),
+            last_status: Default::default(),
             rng,
         }
     }
@@ -95,56 +99,35 @@ impl<R: RngCore> Scru128Generator<R> {
                 .expect("clock may have gone backward")
                 .as_millis() as u64,
         )
-        .0
     }
 
     /// Generates a new SCRU128 ID object with the `timestamp` passed.
     ///
-    /// This method returns a generated ID and a [`Status`] code that indicates the internal state
-    /// involved in the generation. Callers can usually ignore the status unless the monotonic
-    /// order of generated IDs is critically important.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use scru128::{generator::Status, Scru128Generator};
-    ///
-    /// let mut g = Scru128Generator::new();
-    /// let ts = 1577836800000u64;
-    /// let (x, _) = g.generate_core(ts);
-    /// let (y, status) = g.generate_core(ts + 1);
-    /// if status == Status::ClockRollback {
-    ///     panic!("clock moved backward");
-    /// } else {
-    ///     assert!(x < y);
-    /// }
-    /// ```
-    ///
     /// # Panics
     ///
     /// Panics if the argument is not a 48-bit unsigned integer.
-    pub fn generate_core(&mut self, timestamp: u64) -> (Scru128Id, Status) {
+    pub fn generate_core(&mut self, timestamp: u64) -> Scru128Id {
         if timestamp > MAX_TIMESTAMP {
             panic!("`timestamp` must be a 48-bit unsigned integer");
         }
 
-        let mut status = Status::NewTimestamp;
+        self.last_status = Status::NewTimestamp;
         if timestamp > self.timestamp {
             self.timestamp = timestamp;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
         } else if timestamp + 10_000 > self.timestamp {
             self.counter_lo += 1;
-            status = Status::CounterLoInc;
+            self.last_status = Status::CounterLoInc;
             if self.counter_lo > MAX_COUNTER_LO {
                 self.counter_lo = 0;
                 self.counter_hi += 1;
-                status = Status::CounterHiInc;
+                self.last_status = Status::CounterHiInc;
                 if self.counter_hi > MAX_COUNTER_HI {
                     self.counter_hi = 0;
                     // increment timestamp at counter overflow
                     self.timestamp += 1;
                     self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
-                    status = Status::TimestampInc;
+                    self.last_status = Status::TimestampInc;
                 }
             }
         } else {
@@ -152,7 +135,7 @@ impl<R: RngCore> Scru128Generator<R> {
             self.ts_counter_hi = 0;
             self.timestamp = timestamp;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
-            status = Status::ClockRollback;
+            self.last_status = Status::ClockRollback;
         }
 
         if self.timestamp - self.ts_counter_hi >= 1_000 {
@@ -160,26 +143,50 @@ impl<R: RngCore> Scru128Generator<R> {
             self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
         }
 
-        (
-            Scru128Id::from_fields(
-                self.timestamp,
-                self.counter_hi,
-                self.counter_lo,
-                self.rng.next_u32(),
-            ),
-            status,
+        Scru128Id::from_fields(
+            self.timestamp,
+            self.counter_hi,
+            self.counter_lo,
+            self.rng.next_u32(),
         )
+    }
+
+    /// Returns a [`Status`] code that indicates the internal state involved in the last generation
+    /// of ID.
+    ///
+    /// Note that the generator object should be protected from concurrent accesses during the
+    /// sequential calls to a generation method and this method to avoid race conditions.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::{generator::Status, Scru128Generator};
+    ///
+    /// let mut g = Scru128Generator::new();
+    /// let x = g.generate();
+    /// let y = g.generate();
+    /// if g.last_status() == Status::ClockRollback {
+    ///     panic!("clock moved backward");
+    /// } else {
+    ///     assert!(x < y);
+    /// }
+    /// ```
+    pub fn last_status(&self) -> Status {
+        self.last_status
     }
 }
 
-/// Status code reported by [`Scru128Generator::generate_core()`] method.
+/// Status code returned by [`Scru128Generator::last_status()`] method.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Status {
-    /// Indicates that the `timestamp` passed was used because it was greater than the previous
+    /// Indicates that the generator has yet to generate an ID.
+    NotExecuted,
+
+    /// Indicates that the latest `timestamp` was used because it was greater than the previous
     /// one.
     NewTimestamp,
 
-    /// Indicates that `counter_lo` was incremented because the `timestamp` passed was no greater
+    /// Indicates that `counter_lo` was incremented because the latest `timestamp` was no greater
     /// than the previous one.
     CounterLoInc,
 
@@ -190,9 +197,15 @@ pub enum Status {
     /// maximum value.
     TimestampInc,
 
-    /// Indicates that the monotonic order of generated IDs was broken because the `timestamp`
-    /// passed was less than the previous one by ten seconds or more.
+    /// Indicates that the monotonic order of generated IDs was broken because the latest
+    /// `timestamp` was less than the previous one by ten seconds or more.
     ClockRollback,
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Status::NotExecuted
+    }
 }
 
 #[cfg(test)]
@@ -204,15 +217,18 @@ mod tests {
     fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
-        let (mut prev, status) = g.generate_core(ts);
-        assert_eq!(status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NotExecuted);
+
+        let mut prev = g.generate_core(ts);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
+
         for i in 0..100_000 as u64 {
-            let (curr, status) = g.generate_core(ts - i.min(9_998));
+            let curr = g.generate_core(ts - i.min(9_998));
             assert!(
-                status == Status::CounterLoInc
-                    || status == Status::CounterHiInc
-                    || status == Status::TimestampInc
+                g.last_status() == Status::CounterLoInc
+                    || g.last_status() == Status::CounterHiInc
+                    || g.last_status() == Status::TimestampInc
             );
             assert!(prev < curr);
             prev = curr;
@@ -225,11 +241,14 @@ mod tests {
     fn breaks_increasing_order_of_ids_if_timestamp_moves_backward_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
-        let (prev, status) = g.generate_core(ts);
-        assert_eq!(status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NotExecuted);
+
+        let prev = g.generate_core(ts);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
-        let (curr, status) = g.generate_core(ts - 10_000);
-        assert_eq!(status, Status::ClockRollback);
+
+        let curr = g.generate_core(ts - 10_000);
+        assert_eq!(g.last_status(), Status::ClockRollback);
         assert!(prev > curr);
         assert_eq!(curr.timestamp(), ts - 10_000);
     }

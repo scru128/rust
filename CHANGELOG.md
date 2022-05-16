@@ -4,7 +4,7 @@
 
 ### Added
 
-- `Scru128Generator#generate_core()`
+- `generate_core()` and `last_status()` to `Scru128Generator`
 
 ## v2.0.4 - 2022-05-11
 
