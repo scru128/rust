@@ -1,5 +1,7 @@
+#[cfg(not(feature = "std"))]
+use core as std;
+
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
-use std::error::Error;
 use std::fmt;
 use std::str::{from_utf8_unchecked, FromStr};
 
@@ -107,21 +109,32 @@ impl Scru128Id {
         self.0 as u32 & u32::MAX
     }
 
-    /// Writes the 25-digit string representation to `buffer` as an ASCII byte array.
-    ///
-    /// This method primarily serves in the `no_std` environment where [`String`] is not readily
-    /// available. Use the [`Display`] trait and [`to_string()`] method to get the canonical string
-    /// representation in the common cases.
-    ///
-    /// [`Display`]: std::fmt::Display
-    /// [`to_string()`]: std::string::ToString::to_string
+    /// Writes the 25-digit string representation to `buffer` as an ASCII byte array and returns
+    /// the subslice of `buffer` as a string slice.
     ///
     /// # Panics
     ///
     /// Panics if the length of `buffer` is smaller than 25.
-    fn write_utf8(&self, buffer: &mut [u8]) {
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Id;
+    ///
+    /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    ///
+    /// let mut buffer = [b'\n'; 26];
+    /// let subslice = x.encode_buf(&mut buffer);
+    ///
+    /// assert_eq!(subslice, "037D0XYE6OP48CMCE8EY4XLCF");
+    /// assert_eq!(&buffer, b"037D0XYE6OP48CMCE8EY4XLCF\n");
+    /// # Ok::<(), scru128::ParseError>(())
+    /// ```
+    pub fn encode_buf<'a>(&self, buffer: &'a mut [u8]) -> &'a str {
         // implement Base36 using 56-bit words because Div<u128> is slow
-        let dst = &mut buffer[..25];
+        let dst = buffer
+            .get_mut(..25)
+            .expect("length of `buffer` must be at least 25");
         dst.fill(0);
         let mut min_index: isize = 99; // any number greater than size of output array
         for shift in (0..128).step_by(56).rev() {
@@ -141,6 +154,7 @@ impl Scru128Id {
 
         dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
         assert!(buffer[..25].is_ascii());
+        unsafe { from_utf8_unchecked(&buffer[..25]) }
     }
 }
 
@@ -172,9 +186,7 @@ impl FromStr for Scru128Id {
 impl fmt::Display for Scru128Id {
     /// Returns the 25-digit canonical string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut dst = [0u8; 25];
-        self.write_utf8(&mut dst);
-        f.write_str(unsafe { from_utf8_unchecked(&dst) })
+        f.write_str(self.encode_buf(&mut [0u8; 25]))
     }
 }
 
@@ -204,20 +216,6 @@ impl From<Scru128Id> for [u8; 16] {
     }
 }
 
-impl TryFrom<String> for Scru128Id {
-    type Error = ParseError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::from_str(&value)
-    }
-}
-
-impl From<Scru128Id> for String {
-    fn from(object: Scru128Id) -> Self {
-        object.to_string()
-    }
-}
-
 /// Error parsing an invalid string representation of SCRU128 ID.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ParseError {}
@@ -228,11 +226,34 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl Error for ParseError {}
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+mod std_ext {
+    use super::{FromStr, ParseError, Scru128Id};
+    use std::error::Error;
+
+    impl TryFrom<String> for Scru128Id {
+        type Error = ParseError;
+
+        fn try_from(value: String) -> Result<Self, Self::Error> {
+            Self::from_str(&value)
+        }
+    }
+
+    impl From<Scru128Id> for String {
+        fn from(object: Scru128Id) -> Self {
+            object.encode_buf(&mut [0u8; 25]).to_owned()
+        }
+    }
+
+    impl Error for ParseError {}
+}
 
 #[cfg(test)]
 mod tests {
     use super::Scru128Id;
+
+    #[cfg(feature = "std")]
     use crate::Scru128Generator;
 
     const MAX_UINT48: u64 = (1 << 48) - 1;
@@ -242,7 +263,7 @@ mod tests {
     /// Encodes and decodes prepared cases correctly
     #[test]
     fn encodes_and_decodes_prepared_cases_correctly() {
-        let cases: Vec<((u64, u32, u32, u32), &str)> = vec![
+        let cases: &[((u64, u32, u32, u32), &str)] = &[
             ((0, 0, 0, 0), "0000000000000000000000000"),
             ((MAX_UINT48, 0, 0, 0), "F5LXX1ZZ5K6TP71GEEH2DB7K0"),
             ((MAX_UINT48, 0, 0, 0), "f5lxx1zz5k6tp71geeh2db7k0"),
@@ -262,6 +283,7 @@ mod tests {
             ),
         ];
 
+        let mut buffer = [0u8; 25];
         for e in cases {
             let from_fields = Scru128Id::from_fields(e.0 .0, e.0 .1, e.0 .2, e.0 .3);
             let from_string = e.1.parse::<Scru128Id>().unwrap();
@@ -291,9 +313,9 @@ mod tests {
                         from_fields.counter_lo(),
                         from_fields.entropy(),
                     ),
-                    from_fields.to_string(),
+                    from_fields.encode_buf(&mut buffer)
                 ),
-                (e.0, e.1.to_uppercase()),
+                (e.0, e.1.to_uppercase().as_str())
             );
             assert_eq!(
                 (
@@ -303,17 +325,21 @@ mod tests {
                         from_string.counter_lo(),
                         from_string.entropy(),
                     ),
-                    from_string.to_string(),
+                    from_string.encode_buf(&mut buffer)
                 ),
-                (e.0, e.1.to_uppercase()),
+                (e.0, e.1.to_uppercase().as_str())
             );
+            #[cfg(feature = "std")]
+            assert_eq!(from_fields.to_string(), e.1.to_uppercase());
+            #[cfg(feature = "std")]
+            assert_eq!(from_string.to_string(), e.1.to_uppercase());
         }
     }
 
     /// Returns error if an invalid string representation is supplied
     #[test]
     fn returns_error_if_an_invalid_string_representation_is_supplied() {
-        let cases = vec![
+        let cases = [
             "",
             " 036Z8PUQ4TSXSIGK6O19Y164Q",
             "036Z8PUQ54QNY1VQ3HCBRKWEB ",
@@ -337,7 +363,7 @@ mod tests {
     /// Has symmetric converters from/to various values
     #[test]
     fn has_symmetric_converters_from_to_various_values() {
-        let mut cases = vec![
+        let cases = [
             Scru128Id::from_fields(0, 0, 0, 0),
             Scru128Id::from_fields(MAX_UINT48, 0, 0, 0),
             Scru128Id::from_fields(0, MAX_UINT24, 0, 0),
@@ -346,13 +372,22 @@ mod tests {
             Scru128Id::from_fields(MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32),
         ];
 
-        let mut g = Scru128Generator::new();
-        for _ in 0..1000 {
-            cases.push(g.generate());
-        }
+        #[cfg(feature = "std")]
+        let cases = {
+            let mut v = cases.to_vec();
+            let mut g = Scru128Generator::new();
+            for _ in 0..1000 {
+                v.push(g.generate());
+            }
+            v
+        };
 
+        let mut buffer = [0u8; 25];
         for e in cases {
+            assert_eq!(e.encode_buf(&mut buffer).parse::<Scru128Id>(), Ok(e));
+            #[cfg(feature = "std")]
             assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
+            #[cfg(feature = "std")]
             assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
             assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
             assert_eq!(Scru128Id::from(u128::from(e)), e);
@@ -368,6 +403,7 @@ mod tests {
     /// Supports comparison operators
     #[test]
     fn supports_comparison_operators() {
+        #[cfg(feature = "std")]
         fn hash(v: impl std::hash::Hash) -> u64 {
             use std::{collections::hash_map::DefaultHasher, hash::Hasher};
             let mut hasher = DefaultHasher::new();
@@ -375,7 +411,7 @@ mod tests {
             hasher.finish()
         }
 
-        let mut ordered = vec![
+        let ordered = [
             Scru128Id::from_fields(0, 0, 0, 0),
             Scru128Id::from_fields(0, 0, 0, 1),
             Scru128Id::from_fields(0, 0, 0, MAX_UINT32),
@@ -387,24 +423,31 @@ mod tests {
             Scru128Id::from_fields(2, 0, 0, 0),
         ];
 
-        let mut g = Scru128Generator::new();
-        for _ in 0..1000 {
-            ordered.push(g.generate());
-        }
+        #[cfg(feature = "std")]
+        let ordered = {
+            let mut v = ordered.to_vec();
+            let mut g = Scru128Generator::new();
+            for _ in 0..1000 {
+                v.push(g.generate());
+            }
+            v
+        };
 
-        let mut prev = ordered.remove(0);
-        for curr in ordered {
+        let mut prev = &ordered[0];
+        for curr in &ordered[1..] {
             assert_ne!(curr, prev);
             assert_ne!(prev, curr);
+            #[cfg(feature = "std")]
             assert_ne!(hash(curr), hash(prev));
             assert!(curr > prev);
             assert!(curr >= prev);
             assert!(prev < curr);
             assert!(prev <= curr);
 
-            let clone = curr.clone();
+            let clone = &curr.clone();
             assert_eq!(curr, clone);
             assert_eq!(clone, curr);
+            #[cfg(feature = "std")]
             assert_eq!(hash(curr), hash(clone));
             assert!(curr >= clone);
             assert!(clone >= curr);
@@ -417,17 +460,16 @@ mod tests {
 }
 
 #[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde_support {
-    use super::{fmt, from_utf8_unchecked, Scru128Id};
+    use super::{fmt, Scru128Id};
     use serde::de::{Deserialize, Deserializer, Error, Visitor};
     use serde::{Serialize, Serializer};
 
     impl Serialize for Scru128Id {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             if serializer.is_human_readable() {
-                let mut dst = [0u8; 25];
-                self.write_utf8(&mut dst);
-                serializer.serialize_str(unsafe { from_utf8_unchecked(&dst) })
+                serializer.serialize_str(self.encode_buf(&mut [0u8; 25]))
             } else {
                 serializer.serialize_bytes(&self.to_bytes())
             }

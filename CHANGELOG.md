@@ -5,6 +5,7 @@
 ### Added
 
 - `generate_core()` and `last_status()` to `Scru128Generator`
+- Experimental `no_std` support
 
 ## v2.0.4 - 2022-05-11
 

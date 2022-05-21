@@ -2,9 +2,16 @@
 
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 use rand::RngCore;
-use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(feature = "std")]
 pub use default_rng::DefaultRng;
+
+/// Default random number generator used by [`Scru128Generator`].
+///
+/// No default random number generator is available in `no_std` mode.
+#[cfg(not(feature = "std"))]
+#[derive(Clone, Debug)]
+pub struct DefaultRng(());
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
@@ -61,13 +68,6 @@ pub struct Scru128Generator<R = DefaultRng> {
     rng: R,
 }
 
-impl Scru128Generator {
-    /// Creates a generator object with the default random number generator.
-    pub fn new() -> Self {
-        Default::default()
-    }
-}
-
 impl<R: RngCore> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
@@ -89,16 +89,6 @@ impl<R: RngCore> Scru128Generator<R> {
             last_status: Default::default(),
             rng,
         }
-    }
-
-    /// Generates a new SCRU128 ID object.
-    pub fn generate(&mut self) -> Scru128Id {
-        self.generate_core(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("clock may have gone backward")
-                .as_millis() as u64,
-        )
     }
 
     /// Generates a new SCRU128 ID object with the `timestamp` passed.
@@ -208,6 +198,33 @@ impl Default for Status {
     }
 }
 
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+mod std_ext {
+    use super::{RngCore, Scru128Generator, Scru128Id};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    impl Scru128Generator {
+        /// Creates a generator object with the default random number generator.
+        pub fn new() -> Self {
+            Default::default()
+        }
+    }
+
+    impl<R: RngCore> Scru128Generator<R> {
+        /// Generates a new SCRU128 ID object.
+        pub fn generate(&mut self) -> Scru128Id {
+            self.generate_core(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("clock may have gone backward")
+                    .as_millis() as u64,
+            )
+        }
+    }
+}
+
+#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
     use super::{Scru128Generator, Status};
@@ -254,25 +271,27 @@ mod tests {
     }
 }
 
+#[cfg(feature = "std")]
 mod default_rng {
-    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, Error, RngCore, SeedableRng};
+    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, CryptoRng, Error, RngCore, SeedableRng};
     use rand_chacha::ChaCha12Core;
 
     /// Default random number generator used by [`Scru128Generator`].
     ///
     /// Currently, `DefaultRng` uses [`ChaCha12Core`] that is initially seeded and subsequently
     /// reseeded by [`OsRng`] every 64 kiB of random data using the [`ReseedingRng`] wrapper. It is
-    /// the same strategy as that employed by [`ThreadRng`]; see the docs for a detailed discussion
-    /// on the strategy.
+    /// the same strategy as that employed by [`ThreadRng`]; see the docs of `rand` crate for a
+    /// detailed discussion on the strategy.
     ///
     /// [`Scru128Generator`]: super::Scru128Generator
     /// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
     /// [`OsRng`]: rand::rngs::OsRng
     /// [`ReseedingRng`]: rand::rngs::adapter::ReseedingRng
-    /// [`ThreadRng`]: rand::rngs::ThreadRng
+    /// [`ThreadRng`]: https://docs.rs/rand/0.8/rand/rngs/struct.ThreadRng.html
     #[derive(Clone, Debug)]
     pub struct DefaultRng(ReseedingRng<ChaCha12Core, OsRng>);
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     impl Default for DefaultRng {
         fn default() -> Self {
             let rng = ChaCha12Core::from_rng(OsRng)
@@ -281,6 +300,7 @@ mod default_rng {
         }
     }
 
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     impl RngCore for DefaultRng {
         fn next_u32(&mut self) -> u32 {
             self.0.next_u32()
@@ -298,6 +318,9 @@ mod default_rng {
             self.0.try_fill_bytes(dest)
         }
     }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+    impl CryptoRng for DefaultRng {}
 
     #[cfg(test)]
     mod tests {

@@ -29,12 +29,26 @@
 //! [ulid]: https://github.com/ulid/spec
 //! [ksuid]: https://github.com/segmentio/ksuid
 //! [scru128 specification]: https://github.com/scru128/spec
+//!
+//! ## Crate features
+//!
+//! Default features:
+//!
+//! - `std` enables the primary [`scru128()`] and [`scru128_string()`] functions and
+//!   configures [`Scru128Generator`] with the system clock and default random number
+//!   generator. Without `std`, this crate provides limited functionality available
+//!   under `no_std` environments. Note that the `no_std` support is experimental.
+//!
+//! Optional features:
+//!
+//! - `serde` enables serialization/deserialization via serde.
 
-// TODO: make this crate compile under no_std
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod default_gen;
-pub use default_gen::{scru128, scru128_string};
+mod std_gen;
+#[cfg(feature = "std")]
+pub use std_gen::{scru128, scru128_string};
 
 mod identifier;
 pub use identifier::{ParseError, Scru128Id};
@@ -52,6 +66,7 @@ const MAX_COUNTER_HI: u32 = 0xff_ffff;
 /// Maximum value of 24-bit `counter_lo` field.
 const MAX_COUNTER_LO: u32 = 0xff_ffff;
 
+#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
     use crate::{Scru128Generator, Scru128Id};
