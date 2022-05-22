@@ -1,6 +1,6 @@
 [package]
 name = "scru128"
-version = "2.0.4"
+version = "2.1.0"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -10,17 +10,20 @@ keywords = ["identifier", "uuid", "guid", "ulid", "ksuid"]
 categories = ["algorithms"]
 
 [features]
-# Define and enable the default `std` feature to support `no_std` environment in
-# the future; this crate currently does not compile without the default feature.
 default = ["std"]
-std = []
+std = ["rand/std", "rand_chacha", "once_cell"]
 
 [dependencies]
-once_cell = "1.10"
-rand = "0.8"
-rand_chacha = "0.3"
+rand = { version = "0.8", default-features = false }
+rand_chacha = { version = "0.3", optional = true }
+once_cell = { version = "1.11", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
 regex = "1.5"
 serde_test = "1.0"
+
+[package.metadata.docs.rs]
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --open
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

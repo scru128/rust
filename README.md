@@ -33,9 +33,18 @@ See [SCRU128 Specification] for details.
 [ksuid]: https://github.com/segmentio/ksuid
 [scru128 specification]: https://github.com/scru128/spec
 
-## Optional features
+## Crate features
 
-- `serde` - Enables serialization/deserialization via serde.
+Default features:
+
+- `std` enables the primary `scru128()` and `scru128_string()` functions and
+  configures `Scru128Generator` with the system clock and default random number
+  generator. Without `std`, this crate provides limited functionality available
+  under `no_std` environments. Note that the `no_std` support is experimental.
+
+Optional features:
+
+- `serde` enables serialization/deserialization via serde.
 
 ## License
 

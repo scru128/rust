@@ -1,13 +1,15 @@
+#![cfg(feature = "std")]
+
 use crate::{Scru128Generator, Scru128Id};
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
-static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> =
-    Lazy::new(|| Mutex::new(Scru128Generator::new()));
+static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> = Lazy::new(Default::default);
 
 /// Generates a new SCRU128 ID object.
 ///
-/// This function is thread safe; multiple threads can call it concurrently.
+/// This function is thread-safe; multiple threads can call it concurrently.
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn scru128() -> Scru128Id {
     DEFAULT_GENERATOR
         .lock()
@@ -17,7 +19,7 @@ pub fn scru128() -> Scru128Id {
 
 /// Generates a new SCRU128 ID encoded in the 25-digit canonical string representation.
 ///
-/// This function is thread safe. Use this to quickly get a new SCRU128 ID as a string.
+/// This function is thread-safe. Use this to quickly get a new SCRU128 ID as a string.
 ///
 /// # Examples
 ///
@@ -27,6 +29,7 @@ pub fn scru128() -> Scru128Id {
 ///
 /// assert!(regex::Regex::new(r"^[0-9A-Z]{25}$").unwrap().is_match(&x));
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn scru128_string() -> String {
     scru128().into()
 }
