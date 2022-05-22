@@ -95,10 +95,10 @@ impl<R: RngCore> Scru128Generator<R> {
     ///
     /// # Panics
     ///
-    /// Panics if the argument is not a 48-bit unsigned integer.
+    /// Panics if the argument is not a 48-bit positive integer.
     pub fn generate_core(&mut self, timestamp: u64) -> Scru128Id {
-        if timestamp > MAX_TIMESTAMP {
-            panic!("`timestamp` must be a 48-bit unsigned integer");
+        if timestamp == 0 || timestamp > MAX_TIMESTAMP {
+            panic!("`timestamp` must be a 48-bit positive integer");
         }
 
         self.last_status = Status::NewTimestamp;

@@ -1,6 +1,6 @@
 [package]
 name = "scru128"
-version = "2.1.0"
+version = "2.1.1"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -24,6 +24,6 @@ regex = "1.5"
 serde_test = "1.0"
 
 [package.metadata.docs.rs]
-# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --open
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
