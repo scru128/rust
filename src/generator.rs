@@ -128,7 +128,7 @@ impl<R: RngCore> Scru128Generator<R> {
             self.last_status = Status::ClockRollback;
         }
 
-        if self.timestamp - self.ts_counter_hi >= 1_000 {
+        if self.timestamp - self.ts_counter_hi >= 1_000 || self.ts_counter_hi == 0 {
             self.ts_counter_hi = self.timestamp;
             self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
         }
