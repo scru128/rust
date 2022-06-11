@@ -1,11 +1,15 @@
 # Changelog
 
-## v2.1.2 - Unreleased
+## v2.1.2 - 2022-06-11
 
 ### Fixed
 
 - `scru128()` and `scru128_string()` to reset state when process ID changes
 - `generate_core()` to update `counter_hi` when `timestamp` passed < 1000
+
+### Maintenance
+
+- Updated `once_cell` to 1.12
 
 ## v2.1.1 - 2022-05-23
 

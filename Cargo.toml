@@ -1,6 +1,6 @@
 [package]
 name = "scru128"
-version = "2.1.1"
+version = "2.1.2"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -16,7 +16,7 @@ std = ["rand/std", "rand_chacha", "once_cell"]
 [dependencies]
 rand = { version = "0.8", default-features = false }
 rand_chacha = { version = "0.3", optional = true }
-once_cell = { version = "1.11", optional = true }
+once_cell = { version = "1.12", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
