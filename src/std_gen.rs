@@ -2,13 +2,43 @@
 
 use crate::{Scru128Generator, Scru128Id};
 use once_cell::sync::Lazy;
+use std::process;
 use std::sync::Mutex;
 
-static DEFAULT_GENERATOR: Lazy<Mutex<Scru128Generator>> = Lazy::new(Default::default);
+static DEFAULT_GENERATOR: Lazy<Mutex<ProcessWideGenerator>> = Lazy::new(Default::default);
+
+/// Thin wrapper to reset the state when the process ID changes (i.e. upon fork).
+#[derive(Debug)]
+struct ProcessWideGenerator {
+    gen: Scru128Generator,
+    pid: u32,
+}
+
+impl Default for ProcessWideGenerator {
+    fn default() -> Self {
+        Self {
+            gen: Default::default(),
+            pid: process::id(),
+        }
+    }
+}
+
+impl ProcessWideGenerator {
+    fn generate(&mut self) -> Scru128Id {
+        let pid = process::id();
+        if pid != self.pid {
+            self.gen = Default::default();
+            self.pid = pid;
+        }
+        self.gen.generate()
+    }
+}
 
 /// Generates a new SCRU128 ID object.
 ///
-/// This function is thread-safe; multiple threads can call it concurrently.
+/// This function is thread-safe; multiple threads in a process can call it concurrently without
+/// breaking the monotonic order of generated IDs. This function resets the generator state when
+/// the process ID changes.
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn scru128() -> Scru128Id {
     DEFAULT_GENERATOR
@@ -19,7 +49,11 @@ pub fn scru128() -> Scru128Id {
 
 /// Generates a new SCRU128 ID encoded in the 25-digit canonical string representation.
 ///
-/// This function is thread-safe. Use this to quickly get a new SCRU128 ID as a string.
+/// Use this to quickly get a new SCRU128 ID as a string.
+///
+/// This function is thread-safe; multiple threads in a process can call it concurrently without
+/// breaking the monotonic order of generated IDs. This function resets the generator state when
+/// the process ID changes.
 ///
 /// # Examples
 ///
