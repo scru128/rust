@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `const` qualifier to `Scru128Generator::with_rng()` to allow const
+  initialization with e.g. `rand::rngs::OsRng`
+
 ## v2.1.2 - 2022-06-11
 
 ### Fixed
