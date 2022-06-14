@@ -7,6 +7,11 @@
 - `const` qualifier to `Scru128Generator::with_rng()` to allow const
   initialization with e.g. `rand::rngs::OsRng`
 
+### Changed
+
+- Revered change to `scru128()` and `scru128_string()` in v2.1.2 (process fork
+  protection) on systems other than Unix
+
 ## v2.1.2 - 2022-06-11
 
 ### Fixed
