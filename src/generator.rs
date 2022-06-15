@@ -80,13 +80,13 @@ impl<R: RngCore> Scru128Generator<R> {
     /// let mut g = Scru128Generator::with_rng(rand::rngs::OsRng);
     /// println!("{}", g.generate());
     /// ```
-    pub fn with_rng(rng: R) -> Self {
+    pub const fn with_rng(rng: R) -> Self {
         Self {
-            timestamp: Default::default(),
-            counter_hi: Default::default(),
-            counter_lo: Default::default(),
-            ts_counter_hi: Default::default(),
-            last_status: Default::default(),
+            timestamp: 0,
+            counter_hi: 0,
+            counter_lo: 0,
+            ts_counter_hi: 0,
+            last_status: Status::NotExecuted,
             rng,
         }
     }
@@ -161,7 +161,7 @@ impl<R: RngCore> Scru128Generator<R> {
     ///     assert!(x < y);
     /// }
     /// ```
-    pub fn last_status(&self) -> Status {
+    pub const fn last_status(&self) -> Status {
         self.last_status
     }
 }
