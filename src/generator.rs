@@ -1,7 +1,6 @@
 //! SCRU128 generator and related items.
 
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
-use rand::RngCore;
 
 #[cfg(feature = "std")]
 pub use default_rng::DefaultRng;
@@ -68,7 +67,7 @@ pub struct Scru128Generator<R = DefaultRng> {
     rng: R,
 }
 
-impl<R: RngCore> Scru128Generator<R> {
+impl<R: rand::RngCore> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
     ///
@@ -201,7 +200,7 @@ impl Default for Status {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
-    use super::{RngCore, Scru128Generator, Scru128Id};
+    use super::{Scru128Generator, Scru128Id};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     impl Scru128Generator {
@@ -211,7 +210,7 @@ mod std_ext {
         }
     }
 
-    impl<R: RngCore> Scru128Generator<R> {
+    impl<R: rand::RngCore> Scru128Generator<R> {
         /// Generates a new SCRU128 ID object.
         pub fn generate(&mut self) -> Scru128Id {
             self.generate_core(
@@ -273,7 +272,7 @@ mod tests {
 
 #[cfg(feature = "std")]
 mod default_rng {
-    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, CryptoRng, Error, RngCore, SeedableRng};
+    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng};
     use rand_chacha::ChaCha12Core;
 
     /// Default random number generator used by [`Scru128Generator`].
@@ -301,7 +300,7 @@ mod default_rng {
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    impl RngCore for DefaultRng {
+    impl rand::RngCore for DefaultRng {
         fn next_u32(&mut self) -> u32 {
             self.0.next_u32()
         }
@@ -314,13 +313,13 @@ mod default_rng {
             self.0.fill_bytes(dest)
         }
 
-        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand::Error> {
             self.0.try_fill_bytes(dest)
         }
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    impl CryptoRng for DefaultRng {}
+    impl rand::CryptoRng for DefaultRng {}
 
     #[cfg(test)]
     mod tests {

@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.2.0 - 2022-10-30
+
+### Added
+
+- `new()` and `new_string()`
+
+### Deprecated
+
+- `scru128()` and `scru128_string()` to promote `scru128::new()` syntax over
+  `use scru128::scru128;`
+
+### Maintenance
+
+- Updated dev dependencies
+
 ## v2.1.3 - 2022-06-15
 
 ### Added
@@ -9,7 +24,7 @@
 
 ### Changed
 
-- Revered change to `scru128()` and `scru128_string()` in v2.1.2 (process fork
+- Reverted change to `scru128()` and `scru128_string()` in v2.1.2 (process fork
   protection) on systems other than Unix
 
 ## v2.1.2 - 2022-06-11

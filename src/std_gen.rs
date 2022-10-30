@@ -18,7 +18,7 @@ static DEFAULT_GENERATOR: Lazy<Mutex<DefGenInner>> = Lazy::new(Default::default)
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
 /// state when the process ID changes (i.e. upon forks) to avoid collisions across processes.
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub fn scru128() -> Scru128Id {
+pub fn new() -> Scru128Id {
     DEFAULT_GENERATOR
         .lock()
         .unwrap_or_else(|err| panic!("could not lock default generator: {}", err))
@@ -36,14 +36,27 @@ pub fn scru128() -> Scru128Id {
 /// # Examples
 ///
 /// ```rust
-/// use scru128::scru128_string;
-/// let x = scru128_string(); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
+/// let x = scru128::new_string(); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 ///
 /// assert!(regex::Regex::new(r"^[0-9A-Z]{25}$").unwrap().is_match(&x));
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub fn new_string() -> String {
+    new().into()
+}
+
+/// Deprecated synonym for [`new()`].
+#[deprecated(since = "2.2.0", note = "use `scru128::new()` (synonym)")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub fn scru128() -> Scru128Id {
+    new()
+}
+
+/// Deprecated synonym for [`new_string()`].
+#[deprecated(since = "2.2.0", note = "use `scru128::new_string()` (synonym)")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn scru128_string() -> String {
-    scru128().into()
+    new_string()
 }
 
 #[cfg(unix)]
@@ -81,21 +94,17 @@ mod unix_fork_safety {
 
 #[cfg(test)]
 mod tests {
-    use super::scru128;
-
     /// Generates no IDs sharing same timestamp and counters under multithreading
     #[test]
     fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading() {
-        use std::collections::HashSet;
-        use std::sync::mpsc::channel;
-        use std::thread;
+        use std::{collections::HashSet, sync::mpsc, thread};
 
-        let (tx, rx) = channel();
+        let (tx, rx) = mpsc::channel();
         for _ in 0..4 {
             let tx = tx.clone();
             thread::spawn(move || {
                 for _ in 0..10000 {
-                    tx.send(scru128()).unwrap();
+                    tx.send(super::new()).unwrap();
                 }
             });
         }

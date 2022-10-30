@@ -12,15 +12,13 @@
 //! - 80-bit three-layer randomness for global uniqueness
 //!
 //! ```rust
-//! use scru128::{scru128, scru128_string};
-//!
 //! // generate a new identifier object
-//! let x = scru128();
+//! let x = scru128::new();
 //! println!("{}", x); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 //! println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 //!
 //! // generate a textual representation directly
-//! println!("{}", scru128_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
+//! println!("{}", scru128::new_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
 //! ```
 //!
 //! See [SCRU128 Specification] for details.
@@ -34,10 +32,10 @@
 //!
 //! Default features:
 //!
-//! - `std` enables the primary [`scru128()`] and [`scru128_string()`] functions and
-//!   configures [`Scru128Generator`] with the system clock and default random number
-//!   generator. Without `std`, this crate provides limited functionality available
-//!   under `no_std` environments. Note that the `no_std` support is experimental.
+//! - `std` enables the primary [`new()`] and [`new_string()`] functions and configures
+//!   [`Scru128Generator`] with the system clock and default random number generator.
+//!   Without `std`, this crate provides limited functionality available under
+//!   `no_std` environments. Note that the `no_std` support is experimental.
 //!
 //! Optional features:
 //!
@@ -48,6 +46,10 @@
 
 mod std_gen;
 #[cfg(feature = "std")]
+pub use std_gen::{new, new_string};
+
+#[cfg(feature = "std")]
+#[allow(deprecated)]
 pub use std_gen::{scru128, scru128_string};
 
 mod identifier;
@@ -79,8 +81,7 @@ mod tests {
     /// Generates 25-digit canonical string
     #[test]
     fn generates_25_digit_canonical_string() {
-        use regex::Regex;
-        let re = Regex::new(r"^[0-9A-Z]{25}$").unwrap();
+        let re = regex::Regex::new(r"^[0-9A-Z]{25}$").unwrap();
         SAMPLES.with(|samples| {
             for e in samples {
                 assert!(re.is_match(e));

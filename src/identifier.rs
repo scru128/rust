@@ -2,8 +2,7 @@
 use core as std;
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
-use std::fmt;
-use std::str::{from_utf8_unchecked, FromStr};
+use std::{fmt, str};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -154,11 +153,11 @@ impl Scru128Id {
 
         dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
         assert!(buffer[..25].is_ascii());
-        unsafe { from_utf8_unchecked(&buffer[..25]) }
+        unsafe { str::from_utf8_unchecked(&buffer[..25]) }
     }
 }
 
-impl FromStr for Scru128Id {
+impl str::FromStr for Scru128Id {
     type Err = ParseError;
 
     /// Creates an object from a 25-digit string representation.
@@ -229,8 +228,8 @@ impl fmt::Display for ParseError {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
-    use super::{FromStr, ParseError, Scru128Id};
-    use std::error::Error;
+    use super::{ParseError, Scru128Id};
+    use std::{error, str::FromStr};
 
     impl TryFrom<String> for Scru128Id {
         type Error = ParseError;
@@ -246,7 +245,7 @@ mod std_ext {
         }
     }
 
-    impl Error for ParseError {}
+    impl error::Error for ParseError {}
 }
 
 #[cfg(test)]
@@ -405,8 +404,8 @@ mod tests {
     fn supports_comparison_operators() {
         #[cfg(feature = "std")]
         fn hash(v: impl std::hash::Hash) -> u64 {
-            use std::{collections::hash_map::DefaultHasher, hash::Hasher};
-            let mut hasher = DefaultHasher::new();
+            use std::{collections::hash_map, hash::Hasher};
+            let mut hasher = hash_map::DefaultHasher::new();
             v.hash(&mut hasher);
             hasher.finish()
         }
@@ -463,10 +462,9 @@ mod tests {
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde_support {
     use super::{fmt, Scru128Id};
-    use serde::de::{Deserialize, Deserializer, Error, Visitor};
-    use serde::{Serialize, Serializer};
+    use serde::{de, Deserializer, Serializer};
 
-    impl Serialize for Scru128Id {
+    impl serde::Serialize for Scru128Id {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             if serializer.is_human_readable() {
                 serializer.serialize_str(self.encode_buf(&mut [0u8; 25]))
@@ -476,7 +474,7 @@ mod serde_support {
         }
     }
 
-    impl<'de> Deserialize<'de> for Scru128Id {
+    impl<'de> serde::Deserialize<'de> for Scru128Id {
         fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
             if deserializer.is_human_readable() {
                 deserializer.deserialize_str(VisitorImpl)
@@ -488,21 +486,21 @@ mod serde_support {
 
     struct VisitorImpl;
 
-    impl<'de> Visitor<'de> for VisitorImpl {
+    impl<'de> de::Visitor<'de> for VisitorImpl {
         type Value = Scru128Id;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(formatter, "a SCRU128 ID representation")
         }
 
-        fn visit_str<E: Error>(self, value: &str) -> Result<Self::Value, E> {
-            value.parse::<Self::Value>().map_err(Error::custom)
+        fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
+            value.parse::<Self::Value>().map_err(de::Error::custom)
         }
 
-        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Self::Value, E> {
+        fn visit_bytes<E: de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
             <[u8; 16]>::try_from(value)
                 .map(Self::Value::from)
-                .map_err(Error::custom)
+                .map_err(de::Error::custom)
         }
     }
 
