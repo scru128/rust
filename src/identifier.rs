@@ -2,7 +2,7 @@
 use core as std;
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
-use std::{fmt, str};
+use std::{fmt, ops, str};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -108,6 +108,27 @@ impl Scru128Id {
         self.0 as u32 & u32::MAX
     }
 
+    /// Returns the 25-digit string representation stored in a stack-allocated structure that can
+    /// be dereferenced as `str`.
+    ///
+    /// This method is primarily for `no_std` environments where heap-allocated string types are
+    /// not readily available; use [`fmt::Display`] usually.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Id;
+    ///
+    /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    /// assert_eq!(&x.encode() as &str, "037D0XYE6OP48CMCE8EY4XLCF");
+    /// # Ok::<(), scru128::ParseError>(())
+    /// ```
+    pub fn encode(&self) -> impl ops::Deref<Target = str> {
+        let mut buffer = [0u8; 25];
+        self.encode_inner(&mut buffer);
+        Scru128Str(buffer)
+    }
+
     /// Writes the 25-digit string representation to `buffer` as an ASCII byte array and returns
     /// the subslice of `buffer` as a string slice.
     ///
@@ -129,12 +150,19 @@ impl Scru128Id {
     /// assert_eq!(&buffer, b"037D0XYE6OP48CMCE8EY4XLCF\n");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
+    #[deprecated(since = "2.3.0", note = "use `Scru128Id::encode()` instead")]
     pub fn encode_buf<'a>(&self, buffer: &'a mut [u8]) -> &'a str {
-        // implement Base36 using 56-bit words because Div<u128> is slow
         let dst = buffer
             .get_mut(..25)
             .expect("length of `buffer` must be at least 25");
         dst.fill(0);
+        self.encode_inner(dst);
+        str::from_utf8(dst).unwrap()
+    }
+
+    fn encode_inner(&self, dst: &mut [u8]) {
+        // implement Base36 using 56-bit words because Div<u128> is slow
+        debug_assert_eq!(dst, &[0; 25]);
         let mut min_index: isize = 99; // any number greater than size of output array
         for shift in (0..128).step_by(56).rev() {
             let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
@@ -152,8 +180,6 @@ impl Scru128Id {
         }
 
         dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
-        assert!(buffer[..25].is_ascii());
-        unsafe { str::from_utf8_unchecked(&buffer[..25]) }
     }
 }
 
@@ -185,7 +211,7 @@ impl str::FromStr for Scru128Id {
 impl fmt::Display for Scru128Id {
     /// Returns the 25-digit canonical string representation.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.encode_buf(&mut [0u8; 25]))
+        f.write_str(&self.encode())
     }
 }
 
@@ -215,6 +241,19 @@ impl From<Scru128Id> for [u8; 16] {
     }
 }
 
+/// Concrete return type of [`Scru128Id::encode()`] containing the stack-allocated 25-digit string
+/// representation.
+struct Scru128Str([u8; 25]);
+
+impl ops::Deref for Scru128Str {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        debug_assert!(self.0.is_ascii());
+        unsafe { str::from_utf8_unchecked(&self.0) }
+    }
+}
+
 /// Error parsing an invalid string representation of SCRU128 ID.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ParseError {}
@@ -241,7 +280,7 @@ mod std_ext {
 
     impl From<Scru128Id> for String {
         fn from(object: Scru128Id) -> Self {
-            object.encode_buf(&mut [0u8; 25]).to_owned()
+            object.encode().to_owned()
         }
     }
 
@@ -282,7 +321,6 @@ mod tests {
             ),
         ];
 
-        let mut buffer = [0u8; 25];
         for e in cases {
             let from_fields = Scru128Id::from_fields(e.0 .0, e.0 .1, e.0 .2, e.0 .3);
             let from_string = e.1.parse::<Scru128Id>().unwrap();
@@ -312,7 +350,7 @@ mod tests {
                         from_fields.counter_lo(),
                         from_fields.entropy(),
                     ),
-                    from_fields.encode_buf(&mut buffer)
+                    &from_fields.encode() as &str
                 ),
                 (e.0, e.1.to_uppercase().as_str())
             );
@@ -324,7 +362,7 @@ mod tests {
                         from_string.counter_lo(),
                         from_string.entropy(),
                     ),
-                    from_string.encode_buf(&mut buffer)
+                    &from_string.encode() as &str
                 ),
                 (e.0, e.1.to_uppercase().as_str())
             );
@@ -381,9 +419,8 @@ mod tests {
             v
         };
 
-        let mut buffer = [0u8; 25];
         for e in cases {
-            assert_eq!(e.encode_buf(&mut buffer).parse::<Scru128Id>(), Ok(e));
+            assert_eq!(e.encode().parse::<Scru128Id>(), Ok(e));
             #[cfg(feature = "std")]
             assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
             #[cfg(feature = "std")]
@@ -467,7 +504,7 @@ mod serde_support {
     impl serde::Serialize for Scru128Id {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             if serializer.is_human_readable() {
-                serializer.serialize_str(self.encode_buf(&mut [0u8; 25]))
+                serializer.serialize_str(&self.encode())
             } else {
                 serializer.serialize_bytes(&self.to_bytes())
             }

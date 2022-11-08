@@ -149,7 +149,7 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     /// # Examples
     ///
     /// ```rust
-    /// use scru128::{generator::Status, Scru128Generator};
+    /// use scru128::generator::{Scru128Generator, Status};
     ///
     /// let mut g = Scru128Generator::new();
     /// let x = g.generate();

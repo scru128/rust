@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.3.0 - unreleased
+
+### Added
+
+- `Scru128Id::encode()`
+
+### Deprecated
+
+- `Scru128Id::encode_buf()`
+
 ## v2.2.0 - 2022-10-30
 
 ### Added
