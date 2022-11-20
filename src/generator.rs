@@ -239,7 +239,7 @@ mod tests {
         assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
-        for i in 0..100_000 as u64 {
+        for i in 0..100_000u64 {
             let curr = g.generate_core(ts - i.min(9_998));
             assert!(
                 g.last_status() == Status::CounterLoInc

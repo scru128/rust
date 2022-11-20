@@ -129,8 +129,8 @@ mod tests {
     fn encodes_unique_sortable_tuple_of_timestamp_and_counters() {
         SAMPLES.with(|samples| {
             let mut prev = samples[0].parse::<Scru128Id>().unwrap();
-            for i in 1..samples.len() {
-                let curr = samples[i].parse::<Scru128Id>().unwrap();
+            for e in &samples[1..] {
+                let curr = e.parse::<Scru128Id>().unwrap();
                 assert!(
                     prev.timestamp() < curr.timestamp()
                         || (prev.timestamp() == curr.timestamp()
