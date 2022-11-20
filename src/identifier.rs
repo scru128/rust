@@ -109,10 +109,10 @@ impl Scru128Id {
     }
 
     /// Returns the 25-digit string representation stored in a stack-allocated structure that can
-    /// be dereferenced as `str`.
+    /// be [`Display`](fmt::Display)ed and [`Deref`](ops::Deref)ed as `str`.
     ///
     /// This method is primarily for `no_std` environments where heap-allocated string types are
-    /// not readily available; use [`fmt::Display`] usually.
+    /// not readily available.
     ///
     /// # Examples
     ///
@@ -120,10 +120,12 @@ impl Scru128Id {
     /// use scru128::Scru128Id;
     ///
     /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
-    /// assert_eq!(&x.encode() as &str, "037D0XYE6OP48CMCE8EY4XLCF");
+    /// let y = x.encode();
+    /// assert_eq!(&y as &str, "037D0XYE6OP48CMCE8EY4XLCF");
+    /// assert_eq!(format!("{}", y), "037D0XYE6OP48CMCE8EY4XLCF");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
-    pub fn encode(&self) -> impl ops::Deref<Target = str> {
+    pub fn encode(&self) -> impl ops::Deref<Target = str> + fmt::Display {
         let mut buffer = [0u8; 25];
         self.encode_inner(&mut buffer);
         Scru128Str(buffer)
@@ -251,6 +253,12 @@ impl ops::Deref for Scru128Str {
     fn deref(&self) -> &Self::Target {
         debug_assert!(self.0.is_ascii());
         unsafe { str::from_utf8_unchecked(&self.0) }
+    }
+}
+
+impl fmt::Display for Scru128Str {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self)
     }
 }
 
