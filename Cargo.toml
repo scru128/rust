@@ -11,9 +11,10 @@ categories = ["algorithms"]
 
 [features]
 default = ["std"]
-std = ["rand/std", "rand_chacha", "once_cell"]
+std = ["fstr/std", "rand/std", "rand_chacha", "once_cell"]
 
 [dependencies]
+fstr = { version = "0.1", default-features = false }
 rand = { version = "0.8", default-features = false }
 rand_chacha = { version = "0.3", optional = true }
 once_cell = { version = "1.12", optional = true }

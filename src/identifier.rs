@@ -2,7 +2,8 @@
 use core as std;
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
-use std::{fmt, ops, str};
+use fstr::FStr;
+use std::{fmt, str};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -108,8 +109,8 @@ impl Scru128Id {
         self.0 as u32 & u32::MAX
     }
 
-    /// Returns the 25-digit string representation stored in a stack-allocated structure that can
-    /// be [`Display`](fmt::Display)ed and [`Deref`](ops::Deref)ed as `str`.
+    /// Returns the 25-digit string representation stored in a stack-allocated string-like type
+    /// that can be handled like [`String`] through common traits.
     ///
     /// This method is primarily for `no_std` environments where heap-allocated string types are
     /// not readily available.
@@ -121,14 +122,14 @@ impl Scru128Id {
     ///
     /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
     /// let y = x.encode();
-    /// assert_eq!(&y as &str, "037D0XYE6OP48CMCE8EY4XLCF");
+    /// assert_eq!(y, "037D0XYE6OP48CMCE8EY4XLCF");
     /// assert_eq!(format!("{}", y), "037D0XYE6OP48CMCE8EY4XLCF");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
-    pub fn encode(&self) -> impl ops::Deref<Target = str> + fmt::Display {
+    pub fn encode(&self) -> FStr<25> {
         let mut buffer = [0u8; 25];
         self.encode_inner(&mut buffer);
-        Scru128Str(buffer)
+        unsafe { FStr::from_inner_unchecked(buffer) }
     }
 
     /// Writes the 25-digit string representation to `buffer` as an ASCII byte array and returns
@@ -243,25 +244,6 @@ impl From<Scru128Id> for [u8; 16] {
     }
 }
 
-/// Concrete return type of [`Scru128Id::encode()`] containing the stack-allocated 25-digit string
-/// representation.
-struct Scru128Str([u8; 25]);
-
-impl ops::Deref for Scru128Str {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        debug_assert!(self.0.is_ascii());
-        unsafe { str::from_utf8_unchecked(&self.0) }
-    }
-}
-
-impl fmt::Display for Scru128Str {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self)
-    }
-}
-
 /// Error parsing an invalid string representation of SCRU128 ID.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ParseError {}
@@ -288,7 +270,7 @@ mod std_ext {
 
     impl From<Scru128Id> for String {
         fn from(object: Scru128Id) -> Self {
-            object.encode().to_owned()
+            object.encode().into()
         }
     }
 
