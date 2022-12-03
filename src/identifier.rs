@@ -123,7 +123,7 @@ impl Scru128Id {
     /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
     /// let y = x.encode();
     /// assert_eq!(y, "037D0XYE6OP48CMCE8EY4XLCF");
-    /// assert_eq!(format!("{}", y), "037D0XYE6OP48CMCE8EY4XLCF");
+    /// assert_eq!(format!("{y}"), "037D0XYE6OP48CMCE8EY4XLCF");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
     pub fn encode(&self) -> FStr<25> {

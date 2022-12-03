@@ -42,7 +42,7 @@ pub struct DefaultRng(());
 ///         let mut g_local = Scru128Generator::new();
 ///         for _ in 0..4 {
 ///             println!("Shared generator: {}", g_shared.lock().unwrap().generate());
-///             println!("Thread-local generator {}: {}", i, g_local.generate());
+///             println!("Thread-local generator {i}: {}", g_local.generate());
 ///         }
 ///     }));
 /// }
@@ -294,7 +294,7 @@ mod default_rng {
     impl Default for DefaultRng {
         fn default() -> Self {
             let rng = ChaCha12Core::from_rng(OsRng)
-                .unwrap_or_else(|err| panic!("could not initialize DefaultRng: {}", err));
+                .unwrap_or_else(|err| panic!("could not initialize DefaultRng: {err}"));
             Self(ReseedingRng::new(rng, 1024 * 64, OsRng))
         }
     }

@@ -14,7 +14,7 @@
 //! ```rust
 //! // generate a new identifier object
 //! let x = scru128::new();
-//! println!("{}", x); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
+//! println!("{x}"); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 //! println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 //!
 //! // generate a textual representation directly
