@@ -21,7 +21,7 @@ static DEFAULT_GENERATOR: Lazy<Mutex<DefGenInner>> = Lazy::new(Default::default)
 pub fn new() -> Scru128Id {
     DEFAULT_GENERATOR
         .lock()
-        .unwrap_or_else(|err| panic!("could not lock default generator: {}", err))
+        .unwrap_or_else(|err| panic!("could not lock default generator: {err}"))
         .generate()
 }
 

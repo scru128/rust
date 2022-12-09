@@ -17,7 +17,7 @@ decentralized, globally unique time-ordered identifiers. SCRU128 is inspired by
 ```rust
 // generate a new identifier object
 let x = scru128::new();
-println!("{}", x); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
+println!("{x}"); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 
 // generate a textual representation directly
@@ -38,7 +38,7 @@ Default features:
 - `std` enables the primary `new()` and `new_string()` functions and configures
   `Scru128Generator` with the system clock and default random number generator.
   Without `std`, this crate provides limited functionality available under
-  `no_std` environments. Note that the `no_std` support is experimental.
+  `no_std` environments.
 
 Optional features:
 

@@ -18,11 +18,14 @@ pub struct DefaultRng(());
 /// # Examples
 ///
 /// ```rust
+/// # #[cfg(feature = "std")]
+/// # {
 /// use scru128::Scru128Generator;
 ///
 /// let mut g = Scru128Generator::new();
 /// println!("{}", g.generate());
 /// println!("{}", g.generate().to_u128());
+/// # }
 /// ```
 ///
 /// Each generator instance generates monotonically ordered IDs, but multiple generators called
@@ -30,6 +33,8 @@ pub struct DefaultRng(());
 /// synchronization mechanisms to control the scope of guaranteed monotonicity:
 ///
 /// ```rust
+/// # #[cfg(feature = "std")]
+/// # {
 /// use scru128::Scru128Generator;
 /// use std::sync::{Arc, Mutex};
 ///
@@ -42,7 +47,7 @@ pub struct DefaultRng(());
 ///         let mut g_local = Scru128Generator::new();
 ///         for _ in 0..4 {
 ///             println!("Shared generator: {}", g_shared.lock().unwrap().generate());
-///             println!("Thread-local generator {}: {}", i, g_local.generate());
+///             println!("Thread-local generator {i}: {}", g_local.generate());
 ///         }
 ///     }));
 /// }
@@ -50,6 +55,7 @@ pub struct DefaultRng(());
 /// for h in hs {
 ///     let _ = h.join();
 /// }
+/// # }
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Scru128Generator<R = DefaultRng> {
@@ -74,10 +80,13 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     /// # Examples
     ///
     /// ```rust
+    /// # #[cfg(feature = "std")]
+    /// # {
     /// use scru128::Scru128Generator;
     ///
     /// let mut g = Scru128Generator::with_rng(rand::rngs::OsRng);
     /// println!("{}", g.generate());
+    /// # }
     /// ```
     pub const fn with_rng(rng: R) -> Self {
         Self {
@@ -149,7 +158,9 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     /// # Examples
     ///
     /// ```rust
-    /// use scru128::{generator::Status, Scru128Generator};
+    /// # #[cfg(feature = "std")]
+    /// # {
+    /// use scru128::generator::{Scru128Generator, Status};
     ///
     /// let mut g = Scru128Generator::new();
     /// let x = g.generate();
@@ -159,6 +170,7 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     /// } else {
     ///     assert!(x < y);
     /// }
+    /// # }
     /// ```
     pub const fn last_status(&self) -> Status {
         self.last_status
@@ -239,7 +251,7 @@ mod tests {
         assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
-        for i in 0..100_000 as u64 {
+        for i in 0..100_000u64 {
             let curr = g.generate_core(ts - i.min(9_998));
             assert!(
                 g.last_status() == Status::CounterLoInc
@@ -294,7 +306,7 @@ mod default_rng {
     impl Default for DefaultRng {
         fn default() -> Self {
             let rng = ChaCha12Core::from_rng(OsRng)
-                .unwrap_or_else(|err| panic!("could not initialize DefaultRng: {}", err));
+                .unwrap_or_else(|err| panic!("could not initialize DefaultRng: {err}"));
             Self(ReseedingRng::new(rng, 1024 * 64, OsRng))
         }
     }

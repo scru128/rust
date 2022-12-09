@@ -12,13 +12,16 @@
 //! - 80-bit three-layer randomness for global uniqueness
 //!
 //! ```rust
+//! # #[cfg(feature = "std")]
+//! # {
 //! // generate a new identifier object
 //! let x = scru128::new();
-//! println!("{}", x); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
+//! println!("{x}"); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
 //! println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 //!
 //! // generate a textual representation directly
 //! println!("{}", scru128::new_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
+//! # }
 //! ```
 //!
 //! See [SCRU128 Specification] for details.
@@ -35,7 +38,7 @@
 //! - `std` enables the primary [`new()`] and [`new_string()`] functions and configures
 //!   [`Scru128Generator`] with the system clock and default random number generator.
 //!   Without `std`, this crate provides limited functionality available under
-//!   `no_std` environments. Note that the `no_std` support is experimental.
+//!   `no_std` environments.
 //!
 //! Optional features:
 //!
@@ -129,8 +132,8 @@ mod tests {
     fn encodes_unique_sortable_tuple_of_timestamp_and_counters() {
         SAMPLES.with(|samples| {
             let mut prev = samples[0].parse::<Scru128Id>().unwrap();
-            for i in 1..samples.len() {
-                let curr = samples[i].parse::<Scru128Id>().unwrap();
+            for e in &samples[1..] {
+                let curr = e.parse::<Scru128Id>().unwrap();
                 assert!(
                     prev.timestamp() < curr.timestamp()
                         || (prev.timestamp() == curr.timestamp()
