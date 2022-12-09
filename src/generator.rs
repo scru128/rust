@@ -18,11 +18,14 @@ pub struct DefaultRng(());
 /// # Examples
 ///
 /// ```rust
+/// # #[cfg(feature = "std")]
+/// # {
 /// use scru128::Scru128Generator;
 ///
 /// let mut g = Scru128Generator::new();
 /// println!("{}", g.generate());
 /// println!("{}", g.generate().to_u128());
+/// # }
 /// ```
 ///
 /// Each generator instance generates monotonically ordered IDs, but multiple generators called
@@ -30,6 +33,8 @@ pub struct DefaultRng(());
 /// synchronization mechanisms to control the scope of guaranteed monotonicity:
 ///
 /// ```rust
+/// # #[cfg(feature = "std")]
+/// # {
 /// use scru128::Scru128Generator;
 /// use std::sync::{Arc, Mutex};
 ///
@@ -50,6 +55,7 @@ pub struct DefaultRng(());
 /// for h in hs {
 ///     let _ = h.join();
 /// }
+/// # }
 /// ```
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Scru128Generator<R = DefaultRng> {
@@ -74,10 +80,13 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     /// # Examples
     ///
     /// ```rust
+    /// # #[cfg(feature = "std")]
+    /// # {
     /// use scru128::Scru128Generator;
     ///
     /// let mut g = Scru128Generator::with_rng(rand::rngs::OsRng);
     /// println!("{}", g.generate());
+    /// # }
     /// ```
     pub const fn with_rng(rng: R) -> Self {
         Self {
@@ -149,6 +158,8 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     /// # Examples
     ///
     /// ```rust
+    /// # #[cfg(feature = "std")]
+    /// # {
     /// use scru128::generator::{Scru128Generator, Status};
     ///
     /// let mut g = Scru128Generator::new();
@@ -159,6 +170,7 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     /// } else {
     ///     assert!(x < y);
     /// }
+    /// # }
     /// ```
     pub const fn last_status(&self) -> Status {
         self.last_status

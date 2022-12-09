@@ -12,6 +12,8 @@
 //! - 80-bit three-layer randomness for global uniqueness
 //!
 //! ```rust
+//! # #[cfg(feature = "std")]
+//! # {
 //! // generate a new identifier object
 //! let x = scru128::new();
 //! println!("{x}"); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
@@ -19,6 +21,7 @@
 //!
 //! // generate a textual representation directly
 //! println!("{}", scru128::new_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
+//! # }
 //! ```
 //!
 //! See [SCRU128 Specification] for details.
@@ -35,7 +38,7 @@
 //! - `std` enables the primary [`new()`] and [`new_string()`] functions and configures
 //!   [`Scru128Generator`] with the system clock and default random number generator.
 //!   Without `std`, this crate provides limited functionality available under
-//!   `no_std` environments. Note that the `no_std` support is experimental.
+//!   `no_std` environments.
 //!
 //! Optional features:
 //!

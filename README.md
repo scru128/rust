@@ -38,7 +38,7 @@ Default features:
 - `std` enables the primary `new()` and `new_string()` functions and configures
   `Scru128Generator` with the system clock and default random number generator.
   Without `std`, this crate provides limited functionality available under
-  `no_std` environments. Note that the `no_std` support is experimental.
+  `no_std` environments.
 
 Optional features:
 
