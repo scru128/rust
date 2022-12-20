@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Iterator implementation to `Scru128Generator` to make it work as infinite
+  iterator
+
 ## v2.3.0 - 2022-12-10
 
 ### Added

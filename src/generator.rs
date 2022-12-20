@@ -213,7 +213,7 @@ impl Default for Status {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
     use super::{Scru128Generator, Scru128Id};
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::{iter, time};
 
     impl Scru128Generator {
         /// Creates a generator object with the default random number generator.
@@ -226,13 +226,40 @@ mod std_ext {
         /// Generates a new SCRU128 ID object.
         pub fn generate(&mut self) -> Scru128Id {
             self.generate_core(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
+                time::SystemTime::now()
+                    .duration_since(time::UNIX_EPOCH)
                     .expect("clock may have gone backward")
                     .as_millis() as u64,
             )
         }
     }
+
+    /// `Scru128Generator` behaves as an infinite iterator that produces a new ID for each call of
+    /// `next()`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Generator;
+    ///
+    /// let g = Scru128Generator::new();
+    /// for (i, e) in g.take(8).enumerate() {
+    ///     println!("[{i}] {e}");
+    /// }
+    /// ```
+    impl<R: rand::RngCore> Iterator for Scru128Generator<R> {
+        type Item = Scru128Id;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            Some(self.generate())
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            (usize::MAX, None)
+        }
+    }
+
+    impl<R: rand::RngCore> iter::FusedIterator for Scru128Generator<R> {}
 }
 
 #[cfg(feature = "std")]
@@ -279,6 +306,20 @@ mod tests {
         assert_eq!(g.last_status(), Status::ClockRollback);
         assert!(prev > curr);
         assert_eq!(curr.timestamp(), ts - 10_000);
+    }
+
+    /// Is iterable with for-in loop
+    #[test]
+    fn is_iterable_with_for_in_loop() {
+        let mut i = 0;
+        for e in Scru128Generator::new() {
+            assert!(e.timestamp() > 0);
+            i += 1;
+            if i > 100 {
+                break;
+            }
+        }
+        assert_eq!(i, 101);
     }
 }
 
