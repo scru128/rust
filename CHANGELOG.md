@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Maintenance
+
+- Embedded debug message in `ParseError`
+
 ## v2.4.0 - 2022-12-25
 
 ### Added
