@@ -4,8 +4,10 @@
 
 ### Changed
 
-- serde deserializer behavior so it tries to parse byte slice also as textual
-  representation, not only as 128-bit byte array
+- `serde` deserializer behavior:
+  - Now it tries to parse byte slice also as textual representation, not only as
+    128-bit byte array
+  - Now it deserializes `u128` values
 
 ### Maintenance
 
