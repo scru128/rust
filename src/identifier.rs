@@ -192,20 +192,28 @@ impl str::FromStr for Scru128Id {
     /// Creates an object from a 25-digit string representation.
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
         if str_value.len() != 25 {
-            return Err(ParseError {}); // invalid length
+            return Err(ParseError {
+                debug_message: "invalid length",
+            });
         }
 
         let mut int_value = 0u128;
         for b in str_value.as_bytes() {
             let n = DECODE_MAP[*b as usize];
             if n == 0xff {
-                return Err(ParseError {}); // invalid digit
+                return Err(ParseError {
+                    debug_message: "invalid digit",
+                });
             }
             int_value = int_value
                 .checked_mul(36)
-                .ok_or(ParseError {})?
+                .ok_or(ParseError {
+                    debug_message: "out of 128-bit value range",
+                })?
                 .checked_add(n as u128)
-                .ok_or(ParseError {})?; // out of 128-bit value range
+                .ok_or(ParseError {
+                    debug_message: "out of 128-bit value range",
+                })?;
         }
         Ok(Self(int_value))
     }
@@ -246,7 +254,9 @@ impl From<Scru128Id> for [u8; 16] {
 
 /// Error parsing an invalid string representation of SCRU128 ID.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct ParseError {}
+pub struct ParseError {
+    debug_message: &'static str,
+}
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -488,7 +498,7 @@ mod tests {
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde_support {
-    use super::{fmt, Scru128Id};
+    use super::{fmt, str, Scru128Id};
     use serde::{de, Deserializer, Serializer};
 
     impl serde::Serialize for Scru128Id {
@@ -525,9 +535,17 @@ mod serde_support {
         }
 
         fn visit_bytes<E: de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
-            <[u8; 16]>::try_from(value)
-                .map(Self::Value::from)
-                .map_err(de::Error::custom)
+            match <[u8; 16]>::try_from(value) {
+                Ok(array_value) => Ok(Self::Value::from(array_value)),
+                Err(err) => match str::from_utf8(value) {
+                    Ok(str_value) => self.visit_str(str_value),
+                    _ => Err(de::Error::custom(err)),
+                },
+            }
+        }
+
+        fn visit_u128<E: de::Error>(self, value: u128) -> Result<Self::Value, E> {
+            Ok(Self::Value::from(value))
         }
     }
 
@@ -598,6 +616,10 @@ mod serde_support {
                 // deserialize the other format regardless of human-readability configuration
                 serde_test::assert_de_tokens(&e.readable(), &[Token::Bytes(bytes)]);
                 serde_test::assert_de_tokens(&e.compact(), &[Token::Str(text)]);
+
+                // deserialize textual representation even if passed as byte slice
+                serde_test::assert_de_tokens(&e.readable(), &[Token::Bytes(text.as_bytes())]);
+                serde_test::assert_de_tokens(&e.compact(), &[Token::Bytes(text.as_bytes())]);
             }
         }
     }

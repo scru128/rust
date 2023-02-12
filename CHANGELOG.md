@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.5.0 - 2023-02-12
+
+### Changed
+
+- `serde` deserializer behavior:
+  - Now it tries to parse byte slice also as textual representation, not only as
+    128-bit byte array
+  - Now it deserializes `u128` values
+
+### Maintenance
+
+- Embedded debug message in `ParseError`
+
 ## v2.4.0 - 2022-12-25
 
 ### Added
