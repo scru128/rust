@@ -3,7 +3,7 @@ use core as std;
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 use fstr::FStr;
-use std::{fmt, str};
+use std::{fmt, hash, str};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -253,14 +253,28 @@ impl From<Scru128Id> for [u8; 16] {
 }
 
 /// Error parsing an invalid string representation of SCRU128 ID.
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Eq, Debug)]
 pub struct ParseError {
+    #[allow(dead_code)]
     debug_message: &'static str,
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "invalid string representation")
+    }
+}
+
+impl PartialEq for ParseError {
+    fn eq(&self, _other: &ParseError) -> bool {
+        // ignore debug_message
+        true
+    }
+}
+
+impl hash::Hash for ParseError {
+    fn hash<H: hash::Hasher>(&self, _hasher: &mut H) {
+        // ignore debug_message
     }
 }
 
