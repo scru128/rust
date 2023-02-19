@@ -3,7 +3,7 @@ use core as std;
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 use fstr::FStr;
-use std::{fmt, hash, str};
+use std::{fmt, str};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -193,7 +193,7 @@ impl str::FromStr for Scru128Id {
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
         if str_value.len() != 25 {
             return Err(ParseError {
-                debug_message: "invalid length",
+                debug_message: "from_str: invalid length",
             });
         }
 
@@ -202,17 +202,17 @@ impl str::FromStr for Scru128Id {
             let n = DECODE_MAP[*b as usize];
             if n == 0xff {
                 return Err(ParseError {
-                    debug_message: "invalid digit",
+                    debug_message: "from_str: invalid digit",
                 });
             }
             int_value = int_value
                 .checked_mul(36)
                 .ok_or(ParseError {
-                    debug_message: "out of 128-bit value range",
+                    debug_message: "from_str: out of 128-bit value range",
                 })?
                 .checked_add(n as u128)
                 .ok_or(ParseError {
-                    debug_message: "out of 128-bit value range",
+                    debug_message: "from_str: out of 128-bit value range",
                 })?;
         }
         Ok(Self(int_value))
@@ -253,28 +253,14 @@ impl From<Scru128Id> for [u8; 16] {
 }
 
 /// Error parsing an invalid string representation of SCRU128 ID.
-#[derive(Clone, Eq, Debug)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ParseError {
-    #[allow(dead_code)]
     debug_message: &'static str,
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "invalid string representation")
-    }
-}
-
-impl PartialEq for ParseError {
-    fn eq(&self, _other: &ParseError) -> bool {
-        // ignore debug_message
-        true
-    }
-}
-
-impl hash::Hash for ParseError {
-    fn hash<H: hash::Hasher>(&self, _hasher: &mut H) {
-        // ignore debug_message
     }
 }
 

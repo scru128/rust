@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.5.1 - 2023-02-19
+## v2.5.2 - 2023-02-19
 
 ### Changed
 
@@ -8,10 +8,7 @@
   - Now it tries to parse byte slice also as textual representation, not only as
     128-bit byte array
   - Now it deserializes `u128` values
-
-### Maintenance
-
-- Embedded debug message in `ParseError`
+- `ParseError` structure to embed debug messages
 
 ## v2.4.0 - 2022-12-25
 
