@@ -193,7 +193,7 @@ impl str::FromStr for Scru128Id {
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
         if str_value.len() != 25 {
             return Err(ParseError {
-                debug_message: "from_str: invalid length",
+                kind: ParseErrorKind::InvalidLength,
             });
         }
 
@@ -202,17 +202,17 @@ impl str::FromStr for Scru128Id {
             let n = DECODE_MAP[*b as usize];
             if n == 0xff {
                 return Err(ParseError {
-                    debug_message: "from_str: invalid digit",
+                    kind: ParseErrorKind::InvalidDigit,
                 });
             }
             int_value = int_value
                 .checked_mul(36)
                 .ok_or(ParseError {
-                    debug_message: "from_str: out of 128-bit value range",
+                    kind: ParseErrorKind::OutOfU128Range,
                 })?
                 .checked_add(n as u128)
                 .ok_or(ParseError {
-                    debug_message: "from_str: out of 128-bit value range",
+                    kind: ParseErrorKind::OutOfU128Range,
                 })?;
         }
         Ok(Self(int_value))
@@ -253,9 +253,16 @@ impl From<Scru128Id> for [u8; 16] {
 }
 
 /// Error parsing an invalid string representation of SCRU128 ID.
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseError {
-    debug_message: &'static str,
+    kind: ParseErrorKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum ParseErrorKind {
+    InvalidLength,
+    InvalidDigit,
+    OutOfU128Range,
 }
 
 impl fmt::Display for ParseError {
