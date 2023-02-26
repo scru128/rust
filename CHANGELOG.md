@@ -6,6 +6,10 @@
 
 - `generate_monotonic()` and `generate_core_monotonic()` to `Scru128Generator`
 
+### Deprecated
+
+- `Scru128Generator::last_status()` and `generator::Status`
+
 ## v2.5.3 - 2023-02-19
 
 ### Changed
