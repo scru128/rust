@@ -237,6 +237,14 @@ mod std_ext {
         }
     }
 
+    /// Returns the current Unix timestamp in milliseconds.
+    fn unix_ts_ms() -> u64 {
+        time::SystemTime::now()
+            .duration_since(time::UNIX_EPOCH)
+            .expect("clock may have gone backward")
+            .as_millis() as u64
+    }
+
     impl<R: rand::RngCore> Scru128Generator<R> {
         /// Generates a new SCRU128 ID object from the current `timestamp`.
         ///
@@ -245,12 +253,7 @@ mod std_ext {
         /// preceding ID. If such a significant clock rollback is detected, this method resets the
         /// generator state and returns a new ID based on the up-to-date `timestamp`.
         pub fn generate(&mut self) -> Scru128Id {
-            self.generate_core(
-                time::SystemTime::now()
-                    .duration_since(time::UNIX_EPOCH)
-                    .expect("clock may have gone backward")
-                    .as_millis() as u64,
-            )
+            self.generate_core(unix_ts_ms())
         }
 
         /// Generates a new SCRU128 ID object from the current `timestamp`, guaranteeing that the
@@ -262,12 +265,7 @@ mod std_ext {
         /// preceding ID. If such a significant clock rollback is detected, this method returns
         /// `None` and keeps the generator state untouched.
         pub fn generate_monotonic(&mut self) -> Option<Scru128Id> {
-            self.generate_core_monotonic(
-                time::SystemTime::now()
-                    .duration_since(time::UNIX_EPOCH)
-                    .expect("clock may have gone backward")
-                    .as_millis() as u64,
-            )
+            self.generate_core_monotonic(unix_ts_ms())
         }
     }
 
