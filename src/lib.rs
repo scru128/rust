@@ -47,13 +47,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod std_gen;
+mod global_gen;
 #[cfg(feature = "std")]
-pub use std_gen::{new, new_string};
+pub use global_gen::{new, new_string};
 
 #[cfg(feature = "std")]
 #[allow(deprecated)]
-pub use std_gen::{scru128, scru128_string};
+pub use global_gen::{scru128, scru128_string};
 
 mod identifier;
 pub use identifier::{ParseError, Scru128Id};
