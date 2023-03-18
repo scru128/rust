@@ -65,7 +65,7 @@ mod unix_fork_safety {
     use super::{Scru128Generator, Scru128Id};
     use std::process;
 
-    /// Thin wrapper to reset the state when the process ID changes (i.e. upon process forks).
+    /// A thin wrapper to reset the state when the process ID changes (i.e. upon process forks).
     #[derive(Debug)]
     pub struct ProcessLocalGenerator {
         gen: Scru128Generator,

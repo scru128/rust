@@ -5,7 +5,7 @@ use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 #[cfg(feature = "std")]
 pub use default_rng::DefaultRng;
 
-/// Default random number generator used by [`Scru128Generator`].
+/// The default random number generator used by [`Scru128Generator`].
 ///
 /// No default random number generator is available in `no_std` mode.
 #[cfg(not(feature = "std"))]
@@ -85,13 +85,13 @@ pub struct Scru128Generator<R = DefaultRng> {
     counter_hi: u32,
     counter_lo: u32,
 
-    /// Timestamp at the last renewal of `counter_hi` field.
+    /// The timestamp at the last renewal of `counter_hi` field.
     ts_counter_hi: u64,
 
-    /// Status code reported at the last generation.
+    /// The status code reported at the last generation.
     last_status: Status,
 
-    /// Random number generator used by the generator.
+    /// The random number generator used by the generator.
     rng: R,
 }
 
@@ -208,7 +208,7 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     }
 }
 
-/// _Deprecated_. Status code returned by [`Scru128Generator::last_status()`] method.
+/// _Deprecated_. The status code returned by [`Scru128Generator::last_status()`] method.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Status {
     /// Indicates that the generator has yet to generate an ID.
@@ -437,7 +437,7 @@ mod default_rng {
     use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng};
     use rand_chacha::ChaCha12Core;
 
-    /// Default random number generator used by [`Scru128Generator`].
+    /// The default random number generator used by [`Scru128Generator`].
     ///
     /// Currently, `DefaultRng` uses [`ChaCha12Core`] that is initially seeded and subsequently
     /// reseeded by [`OsRng`] every 64 kiB of random data using the [`ReseedingRng`] wrapper. It is
