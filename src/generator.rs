@@ -12,6 +12,9 @@ pub use default_rng::DefaultRng;
 #[derive(Clone, Debug)]
 pub struct DefaultRng(());
 
+/// The default timestamp rollback allowance.
+const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
+
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
 ///
@@ -70,10 +73,11 @@ pub struct DefaultRng(());
 /// | [`generate_core_no_rewind`] | Argument  | Returns `None`      |
 ///
 /// Each method returns monotonically increasing IDs unless a `timestamp` provided is significantly
-/// (by ten seconds or more) smaller than the one embedded in the immediately preceding ID. If such
-/// a significant clock rollback is detected, the standard `generate` rewinds the generator state
-/// and returns a new ID based on the current `timestamp`, whereas `no_rewind` variants keep the
-/// state untouched and return `None`. `core` functions offer low-level primitives.
+/// (by ten seconds or more by default) smaller than the one embedded in the immediately preceding
+/// ID. If such a significant clock rollback is detected, the standard `generate` rewinds the
+/// generator state and returns a new ID based on the current `timestamp`, whereas `no_rewind`
+/// variants keep the state untouched and return `None`. `core` functions offer low-level
+/// primitives.
 ///
 /// [`generate`]: Scru128Generator::generate
 /// [`generate_no_rewind`]: Scru128Generator::generate_no_rewind
@@ -127,15 +131,17 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     ///
     /// # Panics
     ///
-    /// Panics if the argument is not a 48-bit positive integer.
+    /// Panics if `timestamp` is not a 48-bit positive integer.
     pub fn generate_core(&mut self, timestamp: u64) -> Scru128Id {
-        if let Some(value) = self.generate_core_no_rewind(timestamp) {
+        if let Some(value) = self.generate_core_no_rewind(timestamp, DEFAULT_ROLLBACK_ALLOWANCE) {
             value
         } else {
             // reset state and resume
             self.timestamp = 0;
             self.ts_counter_hi = 0;
-            let value = self.generate_core_no_rewind(timestamp).unwrap();
+            let value = self
+                .generate_core_no_rewind(timestamp, DEFAULT_ROLLBACK_ALLOWANCE)
+                .unwrap();
             self.last_status = Status::ClockRollback;
             value
         }
@@ -146,21 +152,28 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     ///
     /// See the [`Scru128Generator`] type documentation for the description.
     ///
+    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
     /// # Panics
     ///
-    /// Panics if the argument is not a 48-bit positive integer.
-    pub fn generate_core_no_rewind(&mut self, timestamp: u64) -> Option<Scru128Id> {
-        const ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
-
+    /// Panics if `timestamp` is not a 48-bit positive integer.
+    pub fn generate_core_no_rewind(
+        &mut self,
+        timestamp: u64,
+        rollback_allowance: u64,
+    ) -> Option<Scru128Id> {
         if timestamp == 0 || timestamp > MAX_TIMESTAMP {
             panic!("`timestamp` must be a 48-bit positive integer");
+        } else if rollback_allowance > MAX_TIMESTAMP {
+            panic!("`rollback_allowance` out of reasonable range");
         }
 
         if timestamp > self.timestamp {
             self.timestamp = timestamp;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
             self.last_status = Status::NewTimestamp;
-        } else if timestamp + ROLLBACK_ALLOWANCE > self.timestamp {
+        } else if timestamp + rollback_allowance > self.timestamp {
             // go on with previous timestamp if new one is not much smaller
             self.counter_lo += 1;
             self.last_status = Status::CounterLoInc;
@@ -243,7 +256,7 @@ impl Default for Status {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
-    use super::{Scru128Generator, Scru128Id};
+    use super::{Scru128Generator, Scru128Id, DEFAULT_ROLLBACK_ALLOWANCE};
     use std::{iter, time};
 
     impl Scru128Generator {
@@ -274,7 +287,7 @@ mod std_ext {
         ///
         /// See the [`Scru128Generator`] type documentation for the description.
         pub fn generate_no_rewind(&mut self) -> Option<Scru128Id> {
-            self.generate_core_no_rewind(unix_ts_ms())
+            self.generate_core_no_rewind(unix_ts_ms(), DEFAULT_ROLLBACK_ALLOWANCE)
         }
     }
 
@@ -374,12 +387,14 @@ mod tests_generate_core_no_rewind {
         let mut g = Scru128Generator::new();
         assert_eq!(g.last_status, Status::NotExecuted);
 
-        let mut prev = g.generate_core_no_rewind(ts).unwrap();
+        let mut prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
         assert_eq!(g.last_status, Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
         for i in 0..100_000u64 {
-            let curr = g.generate_core_no_rewind(ts - i.min(9_998)).unwrap();
+            let curr = g
+                .generate_core_no_rewind(ts - i.min(9_998), 10_000)
+                .unwrap();
             assert!(
                 g.last_status == Status::CounterLoInc
                     || g.last_status == Status::CounterHiInc
@@ -398,15 +413,15 @@ mod tests_generate_core_no_rewind {
         let mut g = Scru128Generator::new();
         assert_eq!(g.last_status, Status::NotExecuted);
 
-        let prev = g.generate_core_no_rewind(ts).unwrap();
+        let prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
         assert_eq!(g.last_status, Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
-        let mut curr = g.generate_core_no_rewind(ts - 10_000);
+        let mut curr = g.generate_core_no_rewind(ts - 10_000, 10_000);
         assert!(curr.is_none());
         assert_eq!(g.last_status, Status::NewTimestamp);
 
-        curr = g.generate_core_no_rewind(ts - 10_001);
+        curr = g.generate_core_no_rewind(ts - 10_001, 10_000);
         assert!(curr.is_none());
         assert_eq!(g.last_status, Status::NewTimestamp);
     }
