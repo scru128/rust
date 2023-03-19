@@ -1,10 +1,11 @@
 # Changelog
 
-## v2.6.0 - unreleased
+## v2.5.4 - unreleased
 
 ### Added
 
 - `generate_no_rewind()` and `generate_core_no_rewind()` to `Scru128Generator`
+  (experimental)
 
 ## v2.5.3 - 2023-02-19
 

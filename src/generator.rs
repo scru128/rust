@@ -74,10 +74,10 @@ const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
 ///
 /// Each method returns monotonically increasing IDs unless a `timestamp` provided is significantly
 /// (by ten seconds or more by default) smaller than the one embedded in the immediately preceding
-/// ID. If such a significant clock rollback is detected, the standard `generate` rewinds the
-/// generator state and returns a new ID based on the current `timestamp`, whereas `no_rewind`
-/// variants keep the state untouched and return `None`. `core` functions offer low-level
-/// primitives.
+/// ID. If such a significant clock rollback is detected, the `generate` method rewinds the
+/// generator state and returns a new ID based on the current `timestamp`, whereas the experimental
+/// `no_rewind` variants keep the state untouched and return `None`. `core` functions offer
+/// low-level primitives.
 ///
 /// [`generate`]: Scru128Generator::generate
 /// [`generate_no_rewind`]: Scru128Generator::generate_no_rewind
@@ -147,8 +147,8 @@ impl<R: rand::RngCore> Scru128Generator<R> {
         }
     }
 
-    /// Generates a new SCRU128 ID object from the `timestamp` passed, guaranteeing the monotonic
-    /// order of generated IDs despite a significant timestamp rollback.
+    /// _Experimental_. Generates a new SCRU128 ID object from the `timestamp` passed, guaranteeing
+    /// the monotonic order of generated IDs despite a significant timestamp rollback.
     ///
     /// See the [`Scru128Generator`] type documentation for the description.
     ///
@@ -296,8 +296,9 @@ mod std_ext {
             self.generate_core(unix_ts_ms())
         }
 
-        /// Generates a new SCRU128 ID object from the current `timestamp`, guaranteeing the
-        /// monotonic order of generated IDs despite a significant timestamp rollback.
+        /// _Experimental_. Generates a new SCRU128 ID object from the current `timestamp`,
+        /// guaranteeing the monotonic order of generated IDs despite a significant timestamp
+        /// rollback.
         ///
         /// See the [`Scru128Generator`] type documentation for the description.
         pub fn generate_no_rewind(&mut self) -> Option<Scru128Id> {
