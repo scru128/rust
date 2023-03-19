@@ -212,16 +212,30 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     ///
     /// Note that the generator object should be protected from concurrent accesses during the
     /// sequential calls to a generation method and this method to avoid race conditions.
-    #[deprecated(
-        since = "2.6.0",
-        note = "use `generate_no_rewind()` to guarantee monotonicity"
-    )]
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # #[cfg(feature = "std")]
+    /// # {
+    /// use scru128::generator::{Scru128Generator, Status};
+    ///
+    /// let mut g = Scru128Generator::new();
+    /// let x = g.generate();
+    /// let y = g.generate();
+    /// if g.last_status() == Status::ClockRollback {
+    ///     panic!("clock moved backward");
+    /// } else {
+    ///     assert!(x < y);
+    /// }
+    /// # }
+    /// ```
     pub const fn last_status(&self) -> Status {
         self.last_status
     }
 }
 
-/// _Deprecated_. The status code returned by [`Scru128Generator::last_status()`] method.
+/// The status code returned by [`Scru128Generator::last_status()`] method.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Status {
     /// Indicates that the generator has yet to generate an ID.
@@ -329,18 +343,18 @@ mod tests_generate_core {
     fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
-        assert_eq!(g.last_status, Status::NotExecuted);
+        assert_eq!(g.last_status(), Status::NotExecuted);
 
         let mut prev = g.generate_core(ts);
-        assert_eq!(g.last_status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
         for i in 0..100_000u64 {
             let curr = g.generate_core(ts - i.min(9_998));
             assert!(
-                g.last_status == Status::CounterLoInc
-                    || g.last_status == Status::CounterHiInc
-                    || g.last_status == Status::TimestampInc
+                g.last_status() == Status::CounterLoInc
+                    || g.last_status() == Status::CounterHiInc
+                    || g.last_status() == Status::TimestampInc
             );
             assert!(prev < curr);
             prev = curr;
@@ -353,23 +367,23 @@ mod tests_generate_core {
     fn breaks_increasing_order_of_ids_if_timestamp_moves_backward_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
-        assert_eq!(g.last_status, Status::NotExecuted);
+        assert_eq!(g.last_status(), Status::NotExecuted);
 
         let mut prev = g.generate_core(ts);
-        assert_eq!(g.last_status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
         let mut curr = g.generate_core(ts - 10_000);
-        assert_eq!(g.last_status, Status::ClockRollback);
+        assert_eq!(g.last_status(), Status::ClockRollback);
         assert!(prev > curr);
         assert_eq!(curr.timestamp(), ts - 10_000);
 
         prev = curr;
         curr = g.generate_core(ts - 10_001);
         assert!(
-            g.last_status == Status::CounterLoInc
-                || g.last_status == Status::CounterHiInc
-                || g.last_status == Status::TimestampInc
+            g.last_status() == Status::CounterLoInc
+                || g.last_status() == Status::CounterHiInc
+                || g.last_status() == Status::TimestampInc
         );
         assert!(prev < curr);
     }
@@ -385,10 +399,10 @@ mod tests_generate_core_no_rewind {
     fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
-        assert_eq!(g.last_status, Status::NotExecuted);
+        assert_eq!(g.last_status(), Status::NotExecuted);
 
         let mut prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
-        assert_eq!(g.last_status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
         for i in 0..100_000u64 {
@@ -396,9 +410,9 @@ mod tests_generate_core_no_rewind {
                 .generate_core_no_rewind(ts - i.min(9_998), 10_000)
                 .unwrap();
             assert!(
-                g.last_status == Status::CounterLoInc
-                    || g.last_status == Status::CounterHiInc
-                    || g.last_status == Status::TimestampInc
+                g.last_status() == Status::CounterLoInc
+                    || g.last_status() == Status::CounterHiInc
+                    || g.last_status() == Status::TimestampInc
             );
             assert!(prev < curr);
             prev = curr;
@@ -411,19 +425,19 @@ mod tests_generate_core_no_rewind {
     fn returns_none_if_timestamp_moves_backward_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
-        assert_eq!(g.last_status, Status::NotExecuted);
+        assert_eq!(g.last_status(), Status::NotExecuted);
 
         let prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
-        assert_eq!(g.last_status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
         let mut curr = g.generate_core_no_rewind(ts - 10_000, 10_000);
         assert!(curr.is_none());
-        assert_eq!(g.last_status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
 
         curr = g.generate_core_no_rewind(ts - 10_001, 10_000);
         assert!(curr.is_none());
-        assert_eq!(g.last_status, Status::NewTimestamp);
+        assert_eq!(g.last_status(), Status::NewTimestamp);
     }
 }
 

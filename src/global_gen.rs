@@ -46,14 +46,14 @@ pub fn new_string() -> String {
     new().into()
 }
 
-/// Deprecated synonym for [`new()`].
+/// A deprecated synonym for [`new()`].
 #[deprecated(since = "2.2.0", note = "use `scru128::new()` (synonym)")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn scru128() -> Scru128Id {
     new()
 }
 
-/// Deprecated synonym for [`new_string()`].
+/// A deprecated synonym for [`new_string()`].
 #[deprecated(since = "2.2.0", note = "use `scru128::new_string()` (synonym)")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn scru128_string() -> String {

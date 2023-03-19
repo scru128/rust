@@ -6,10 +6,6 @@
 
 - `generate_no_rewind()` and `generate_core_no_rewind()` to `Scru128Generator`
 
-### Deprecated
-
-- `Scru128Generator::last_status()` and `generator::Status`
-
 ## v2.5.3 - 2023-02-19
 
 ### Changed
