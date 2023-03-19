@@ -47,13 +47,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod std_gen;
+mod global_gen;
 #[cfg(feature = "std")]
-pub use std_gen::{new, new_string};
+pub use global_gen::{new, new_string};
 
 #[cfg(feature = "std")]
 #[allow(deprecated)]
-pub use std_gen::{scru128, scru128_string};
+pub use global_gen::{scru128, scru128_string};
 
 mod identifier;
 pub use identifier::{ParseError, Scru128Id};
@@ -62,13 +62,13 @@ pub mod generator;
 #[doc(inline)]
 pub use generator::Scru128Generator;
 
-/// Maximum value of 48-bit `timestamp` field.
+/// The maximum value of 48-bit `timestamp` field.
 const MAX_TIMESTAMP: u64 = 0xffff_ffff_ffff;
 
-/// Maximum value of 24-bit `counter_hi` field.
+/// The maximum value of 24-bit `counter_hi` field.
 const MAX_COUNTER_HI: u32 = 0xff_ffff;
 
-/// Maximum value of 24-bit `counter_lo` field.
+/// The maximum value of 24-bit `counter_lo` field.
 const MAX_COUNTER_LO: u32 = 0xff_ffff;
 
 #[cfg(feature = "std")]

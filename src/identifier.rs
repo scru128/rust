@@ -8,7 +8,7 @@ use std::{fmt, str};
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-/// O(1) map from ASCII code points to Base36 digit values.
+/// An O(1) map from ASCII code points to Base36 digit values.
 const DECODE_MAP: [u8; 256] = [
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -252,7 +252,7 @@ impl From<Scru128Id> for [u8; 16] {
     }
 }
 
-/// Error parsing an invalid string representation of SCRU128 ID.
+/// An error parsing an invalid string representation of SCRU128 ID.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseError {
     kind: ParseErrorKind,

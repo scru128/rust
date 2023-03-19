@@ -5,12 +5,15 @@ use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 #[cfg(feature = "std")]
 pub use default_rng::DefaultRng;
 
-/// Default random number generator used by [`Scru128Generator`].
+/// The default random number generator used by [`Scru128Generator`].
 ///
 /// No default random number generator is available in `no_std` mode.
 #[cfg(not(feature = "std"))]
 #[derive(Clone, Debug)]
 pub struct DefaultRng(());
+
+/// The default timestamp rollback allowance.
+const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
@@ -57,19 +60,42 @@ pub struct DefaultRng(());
 /// }
 /// # }
 /// ```
+///
+/// # Generator functions
+///
+/// The generator offers four different methods to generate a SCRU128 ID:
+///
+/// | Flavor                      | Timestamp | On big clock rewind |
+/// | --------------------------- | --------- | ------------------- |
+/// | [`generate`]                | Now       | Rewinds state       |
+/// | [`generate_no_rewind`]      | Now       | Returns `None`      |
+/// | [`generate_core`]           | Argument  | Rewinds state       |
+/// | [`generate_core_no_rewind`] | Argument  | Returns `None`      |
+///
+/// Each method returns monotonically increasing IDs unless a `timestamp` provided is significantly
+/// (by ten seconds or more by default) smaller than the one embedded in the immediately preceding
+/// ID. If such a significant clock rollback is detected, the `generate` method rewinds the
+/// generator state and returns a new ID based on the current `timestamp`, whereas the experimental
+/// `no_rewind` variants keep the state untouched and return `None`. `core` functions offer
+/// low-level primitives.
+///
+/// [`generate`]: Scru128Generator::generate
+/// [`generate_no_rewind`]: Scru128Generator::generate_no_rewind
+/// [`generate_core`]: Scru128Generator::generate_core
+/// [`generate_core_no_rewind`]: Scru128Generator::generate_core_no_rewind
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Scru128Generator<R = DefaultRng> {
     timestamp: u64,
     counter_hi: u32,
     counter_lo: u32,
 
-    /// Timestamp at the last renewal of `counter_hi` field.
+    /// The timestamp at the last renewal of `counter_hi` field.
     ts_counter_hi: u64,
 
-    /// Status code reported at the last generation.
+    /// The status code reported at the last generation.
     last_status: Status,
 
-    /// Random number generator used by the generator.
+    /// The random number generator used by the generator.
     rng: R,
 }
 
@@ -99,21 +125,56 @@ impl<R: rand::RngCore> Scru128Generator<R> {
         }
     }
 
-    /// Generates a new SCRU128 ID object with the `timestamp` passed.
+    /// Generates a new SCRU128 ID object from the `timestamp` passed.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
     ///
     /// # Panics
     ///
-    /// Panics if the argument is not a 48-bit positive integer.
+    /// Panics if `timestamp` is not a 48-bit positive integer.
     pub fn generate_core(&mut self, timestamp: u64) -> Scru128Id {
+        if let Some(value) = self.generate_core_no_rewind(timestamp, DEFAULT_ROLLBACK_ALLOWANCE) {
+            value
+        } else {
+            // reset state and resume
+            self.timestamp = 0;
+            self.ts_counter_hi = 0;
+            let value = self
+                .generate_core_no_rewind(timestamp, DEFAULT_ROLLBACK_ALLOWANCE)
+                .unwrap();
+            self.last_status = Status::ClockRollback;
+            value
+        }
+    }
+
+    /// _Experimental_. Generates a new SCRU128 ID object from the `timestamp` passed, guaranteeing
+    /// the monotonic order of generated IDs despite a significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    ///
+    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `timestamp` is not a 48-bit positive integer.
+    pub fn generate_core_no_rewind(
+        &mut self,
+        timestamp: u64,
+        rollback_allowance: u64,
+    ) -> Option<Scru128Id> {
         if timestamp == 0 || timestamp > MAX_TIMESTAMP {
             panic!("`timestamp` must be a 48-bit positive integer");
+        } else if rollback_allowance > MAX_TIMESTAMP {
+            panic!("`rollback_allowance` out of reasonable range");
         }
 
-        self.last_status = Status::NewTimestamp;
         if timestamp > self.timestamp {
             self.timestamp = timestamp;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
-        } else if timestamp + 10_000 > self.timestamp {
+            self.last_status = Status::NewTimestamp;
+        } else if timestamp + rollback_allowance > self.timestamp {
+            // go on with previous timestamp if new one is not much smaller
             self.counter_lo += 1;
             self.last_status = Status::CounterLoInc;
             if self.counter_lo > MAX_COUNTER_LO {
@@ -129,11 +190,8 @@ impl<R: rand::RngCore> Scru128Generator<R> {
                 }
             }
         } else {
-            // reset state if clock moves back by ten seconds or more
-            self.ts_counter_hi = 0;
-            self.timestamp = timestamp;
-            self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
-            self.last_status = Status::ClockRollback;
+            // abort if clock moves back to unbearable extent
+            return None;
         }
 
         if self.timestamp - self.ts_counter_hi >= 1_000 || self.ts_counter_hi == 0 {
@@ -141,12 +199,12 @@ impl<R: rand::RngCore> Scru128Generator<R> {
             self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
         }
 
-        Scru128Id::from_fields(
+        Some(Scru128Id::from_fields(
             self.timestamp,
             self.counter_hi,
             self.counter_lo,
             self.rng.next_u32(),
-        )
+        ))
     }
 
     /// Returns a [`Status`] code that indicates the internal state involved in the last generation
@@ -177,7 +235,7 @@ impl<R: rand::RngCore> Scru128Generator<R> {
     }
 }
 
-/// Status code returned by [`Scru128Generator::last_status()`] method.
+/// The status code returned by [`Scru128Generator::last_status()`] method.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Status {
     /// Indicates that the generator has yet to generate an ID.
@@ -212,7 +270,7 @@ impl Default for Status {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
-    use super::{Scru128Generator, Scru128Id};
+    use super::{Scru128Generator, Scru128Id, DEFAULT_ROLLBACK_ALLOWANCE};
     use std::{iter, time};
 
     impl Scru128Generator {
@@ -222,15 +280,29 @@ mod std_ext {
         }
     }
 
+    /// Returns the current Unix timestamp in milliseconds.
+    fn unix_ts_ms() -> u64 {
+        time::SystemTime::now()
+            .duration_since(time::UNIX_EPOCH)
+            .expect("clock may have gone backward")
+            .as_millis() as u64
+    }
+
     impl<R: rand::RngCore> Scru128Generator<R> {
-        /// Generates a new SCRU128 ID object.
+        /// Generates a new SCRU128 ID object from the current `timestamp`.
+        ///
+        /// See the [`Scru128Generator`] type documentation for the description.
         pub fn generate(&mut self) -> Scru128Id {
-            self.generate_core(
-                time::SystemTime::now()
-                    .duration_since(time::UNIX_EPOCH)
-                    .expect("clock may have gone backward")
-                    .as_millis() as u64,
-            )
+            self.generate_core(unix_ts_ms())
+        }
+
+        /// _Experimental_. Generates a new SCRU128 ID object from the current `timestamp`,
+        /// guaranteeing the monotonic order of generated IDs despite a significant timestamp
+        /// rollback.
+        ///
+        /// See the [`Scru128Generator`] type documentation for the description.
+        pub fn generate_no_rewind(&mut self) -> Option<Scru128Id> {
+            self.generate_core_no_rewind(unix_ts_ms(), DEFAULT_ROLLBACK_ALLOWANCE)
         }
     }
 
@@ -264,7 +336,7 @@ mod std_ext {
 
 #[cfg(feature = "std")]
 #[cfg(test)]
-mod tests {
+mod tests_generate_core {
     use super::{Scru128Generator, Status};
 
     /// Generates increasing IDs even with decreasing or constant timestamp
@@ -298,15 +370,82 @@ mod tests {
         let mut g = Scru128Generator::new();
         assert_eq!(g.last_status(), Status::NotExecuted);
 
-        let prev = g.generate_core(ts);
+        let mut prev = g.generate_core(ts);
         assert_eq!(g.last_status(), Status::NewTimestamp);
         assert_eq!(prev.timestamp(), ts);
 
-        let curr = g.generate_core(ts - 10_000);
+        let mut curr = g.generate_core(ts - 10_000);
         assert_eq!(g.last_status(), Status::ClockRollback);
         assert!(prev > curr);
         assert_eq!(curr.timestamp(), ts - 10_000);
+
+        prev = curr;
+        curr = g.generate_core(ts - 10_001);
+        assert!(
+            g.last_status() == Status::CounterLoInc
+                || g.last_status() == Status::CounterHiInc
+                || g.last_status() == Status::TimestampInc
+        );
+        assert!(prev < curr);
     }
+}
+
+#[cfg(feature = "std")]
+#[cfg(test)]
+mod tests_generate_core_no_rewind {
+    use super::{Scru128Generator, Status};
+
+    /// Generates increasing IDs even with decreasing or constant timestamp
+    #[test]
+    fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g = Scru128Generator::new();
+        assert_eq!(g.last_status(), Status::NotExecuted);
+
+        let mut prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
+        assert_eq!(g.last_status(), Status::NewTimestamp);
+        assert_eq!(prev.timestamp(), ts);
+
+        for i in 0..100_000u64 {
+            let curr = g
+                .generate_core_no_rewind(ts - i.min(9_998), 10_000)
+                .unwrap();
+            assert!(
+                g.last_status() == Status::CounterLoInc
+                    || g.last_status() == Status::CounterHiInc
+                    || g.last_status() == Status::TimestampInc
+            );
+            assert!(prev < curr);
+            prev = curr;
+        }
+        assert!(prev.timestamp() >= ts);
+    }
+
+    /// Returns None if timestamp moves backward a lot
+    #[test]
+    fn returns_none_if_timestamp_moves_backward_a_lot() {
+        let ts = 0x0123_4567_89abu64;
+        let mut g = Scru128Generator::new();
+        assert_eq!(g.last_status(), Status::NotExecuted);
+
+        let prev = g.generate_core_no_rewind(ts, 10_000).unwrap();
+        assert_eq!(g.last_status(), Status::NewTimestamp);
+        assert_eq!(prev.timestamp(), ts);
+
+        let mut curr = g.generate_core_no_rewind(ts - 10_000, 10_000);
+        assert!(curr.is_none());
+        assert_eq!(g.last_status(), Status::NewTimestamp);
+
+        curr = g.generate_core_no_rewind(ts - 10_001, 10_000);
+        assert!(curr.is_none());
+        assert_eq!(g.last_status(), Status::NewTimestamp);
+    }
+}
+
+#[cfg(feature = "std")]
+#[cfg(test)]
+mod tests {
+    use super::Scru128Generator;
 
     /// Is iterable with for-in loop
     #[test]
@@ -328,7 +467,7 @@ mod default_rng {
     use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng};
     use rand_chacha::ChaCha12Core;
 
-    /// Default random number generator used by [`Scru128Generator`].
+    /// The default random number generator used by [`Scru128Generator`].
     ///
     /// Currently, `DefaultRng` uses [`ChaCha12Core`] that is initially seeded and subsequently
     /// reseeded by [`OsRng`] every 64 kiB of random data using the [`ReseedingRng`] wrapper. It is
