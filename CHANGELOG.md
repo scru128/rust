@@ -11,6 +11,7 @@
 ### Deprecated
 
 - `Scru128Generator#generate_core()`
+- `Scru128Generator#last_status()` and `generator::Status`
 
 ## v2.5.4 - 2023-03-19
 
