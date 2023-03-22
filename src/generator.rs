@@ -295,6 +295,19 @@ mod std_ext {
         /// significant timestamp rollback.
         ///
         /// See the [`Scru128Generator`] type documentation for the description.
+        ///
+        /// # Examples
+        ///
+        /// ```rust
+        /// use scru128::Scru128Generator;
+        ///
+        /// let mut g = Scru128Generator::new();
+        /// let x = g.generate_or_abort().unwrap();
+        /// let y = g
+        ///     .generate_or_abort()
+        ///     .expect("The clock went backwards by ten seconds!");
+        /// assert!(x < y);
+        /// ```
         pub fn generate_or_abort(&mut self) -> Option<Scru128Id> {
             self.generate_or_abort_core(unix_ts_ms(), DEFAULT_ROLLBACK_ALLOWANCE)
         }
