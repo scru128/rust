@@ -203,7 +203,7 @@ impl<R: rand::RngCore> Scru128Generator<R> {
                 }
             }
         } else {
-            // abort if clock moves back to unbearable extent
+            // abort if clock went backwards to unbearable extent
             return None;
         }
 
@@ -278,7 +278,7 @@ mod std_ext {
     fn unix_ts_ms() -> u64 {
         time::SystemTime::now()
             .duration_since(time::UNIX_EPOCH)
-            .expect("clock may have gone backward")
+            .expect("clock may have gone backwards")
             .as_millis() as u64
     }
 
@@ -370,9 +370,9 @@ mod tests_generate_or_reset {
         assert!(prev.timestamp() >= ts);
     }
 
-    /// Breaks increasing order of IDs if timestamp moves backward a lot
+    /// Breaks increasing order of IDs if timestamp goes backwards by ten seconds
     #[test]
-    fn breaks_increasing_order_of_ids_if_timestamp_moves_backward_a_lot() {
+    fn breaks_increasing_order_of_ids_if_timestamp_goes_backwards_by_ten_seconds() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
         assert_eq!(g.last_status, Status::NotExecuted);
@@ -426,9 +426,9 @@ mod tests_generate_or_abort {
         assert!(prev.timestamp() >= ts);
     }
 
-    /// Returns None if timestamp moves backward a lot
+    /// Returns None if timestamp goes backwards by ten seconds
     #[test]
-    fn returns_none_if_timestamp_moves_backward_a_lot() {
+    fn returns_none_if_timestamp_goes_backwards_by_ten_seconds() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
         assert_eq!(g.last_status, Status::NotExecuted);

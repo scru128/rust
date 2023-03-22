@@ -120,7 +120,7 @@ mod tests {
         for _ in 0..10_000 {
             let ts_now = (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect("clock may have gone backward")
+                .expect("clock may have gone backwards")
                 .as_millis()) as i64;
             let timestamp = g.generate().timestamp() as i64;
             assert!((ts_now - timestamp).abs() < 16);
