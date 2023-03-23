@@ -26,10 +26,10 @@
 //!
 //! See [SCRU128 Specification] for details.
 //!
-//! [uuid]: https://en.wikipedia.org/wiki/Universally_unique_identifier
-//! [ulid]: https://github.com/ulid/spec
-//! [ksuid]: https://github.com/segmentio/ksuid
-//! [scru128 specification]: https://github.com/scru128/spec
+//! [UUID]: https://en.wikipedia.org/wiki/Universally_unique_identifier
+//! [ULID]: https://github.com/ulid/spec
+//! [KSUID]: https://github.com/segmentio/ksuid
+//! [SCRU128 Specification]: https://github.com/scru128/spec
 //!
 //! ## Crate features
 //!
