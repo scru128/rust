@@ -447,12 +447,15 @@ mod tests {
     #[test]
     fn supports_comparison_operators() {
         #[cfg(feature = "std")]
-        fn hash(v: impl std::hash::Hash) -> u64 {
-            use std::{collections::hash_map, hash::Hasher};
-            let mut hasher = hash_map::DefaultHasher::new();
-            v.hash(&mut hasher);
-            hasher.finish()
-        }
+        let hash = {
+            use std::hash::{BuildHasher, Hash, Hasher};
+            let s = std::collections::hash_map::RandomState::new();
+            move |value: &Scru128Id| {
+                let mut hasher = s.build_hasher();
+                value.hash(&mut hasher);
+                hasher.finish()
+            }
+        };
 
         let ordered = [
             Scru128Id::from_fields(0, 0, 0, 0),
