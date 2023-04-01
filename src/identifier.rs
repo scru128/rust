@@ -221,8 +221,21 @@ impl str::FromStr for Scru128Id {
 
 impl fmt::Display for Scru128Id {
     /// Returns the 25-digit canonical string representation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Id;
+    ///
+    /// let x = "03997FT3CKZ99O1I3F82ZAT1T".parse::<Scru128Id>()?;
+    /// assert_eq!(format!("{x}"), "03997FT3CKZ99O1I3F82ZAT1T");
+    /// assert_eq!(format!("{x:32}"), "03997FT3CKZ99O1I3F82ZAT1T       ");
+    /// assert_eq!(format!("{x:->32}"), "-------03997FT3CKZ99O1I3F82ZAT1T");
+    /// assert_eq!(format!("{x:.^7.5}"), ".03997.");
+    /// # Ok::<(), scru128::ParseError>(())
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.encode())
+        fmt::Display::fmt(self.encode().as_str(), f)
     }
 }
 
