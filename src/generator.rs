@@ -370,9 +370,9 @@ mod tests_generate_or_reset {
         assert!(prev.timestamp() >= ts);
     }
 
-    /// Breaks increasing order of IDs if timestamp goes backwards by ten seconds
+    /// Breaks increasing order of IDs if timestamp goes backwards a lot
     #[test]
-    fn breaks_increasing_order_of_ids_if_timestamp_goes_backwards_by_ten_seconds() {
+    fn breaks_increasing_order_of_ids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
         assert_eq!(g.last_status, Status::NotExecuted);
@@ -426,9 +426,9 @@ mod tests_generate_or_abort {
         assert!(prev.timestamp() >= ts);
     }
 
-    /// Returns None if timestamp goes backwards by ten seconds
+    /// Returns None if timestamp goes backwards a lot
     #[test]
-    fn returns_none_if_timestamp_goes_backwards_by_ten_seconds() {
+    fn returns_none_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
         assert_eq!(g.last_status, Status::NotExecuted);

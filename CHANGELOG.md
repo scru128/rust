@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.0 - 2023-04-01
+
+### Changed
+
+- `fmt::Display` implementation of `Scru128Id`; it now supports width,
+  fill/align, and precision flags (e.g., `{:32}`, `{:^9.5}`), which used to be
+  ignored
+
 ## v2.6.0 - 2023-03-22
 
 ### Added

@@ -221,8 +221,21 @@ impl str::FromStr for Scru128Id {
 
 impl fmt::Display for Scru128Id {
     /// Returns the 25-digit canonical string representation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Id;
+    ///
+    /// let x = "03997FT3CKZ99O1I3F82ZAT1T".parse::<Scru128Id>()?;
+    /// assert_eq!(format!("{x}"), "03997FT3CKZ99O1I3F82ZAT1T");
+    /// assert_eq!(format!("{x:32}"), "03997FT3CKZ99O1I3F82ZAT1T       ");
+    /// assert_eq!(format!("{x:->32}"), "-------03997FT3CKZ99O1I3F82ZAT1T");
+    /// assert_eq!(format!("{x:.^7.5}"), ".03997.");
+    /// # Ok::<(), scru128::ParseError>(())
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.encode())
+        fmt::Display::fmt(self.encode().as_str(), f)
     }
 }
 
@@ -447,12 +460,15 @@ mod tests {
     #[test]
     fn supports_comparison_operators() {
         #[cfg(feature = "std")]
-        fn hash(v: impl std::hash::Hash) -> u64 {
-            use std::{collections::hash_map, hash::Hasher};
-            let mut hasher = hash_map::DefaultHasher::new();
-            v.hash(&mut hasher);
-            hasher.finish()
-        }
+        let hash = {
+            use std::hash::{BuildHasher, Hash, Hasher};
+            let s = std::collections::hash_map::RandomState::new();
+            move |value: &Scru128Id| {
+                let mut hasher = s.build_hasher();
+                value.hash(&mut hasher);
+                hasher.finish()
+            }
+        };
 
         let ordered = [
             Scru128Id::from_fields(0, 0, 0, 0),
