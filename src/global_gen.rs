@@ -21,7 +21,7 @@ static GLOBAL_GENERATOR: Lazy<Mutex<GlobalGenInner>> = Lazy::new(Default::defaul
 pub fn new() -> Scru128Id {
     GLOBAL_GENERATOR
         .lock()
-        .unwrap_or_else(|err| panic!("scru128: could not lock global generator: {err}"))
+        .expect("scru128: could not lock global generator")
         .generate()
 }
 

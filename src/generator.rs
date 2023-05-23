@@ -490,8 +490,7 @@ mod default_rng {
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     impl Default for DefaultRng {
         fn default() -> Self {
-            let rng = ChaCha12Core::from_rng(OsRng)
-                .unwrap_or_else(|err| panic!("could not initialize DefaultRng: {err}"));
+            let rng = ChaCha12Core::from_rng(OsRng).expect("could not initialize DefaultRng");
             Self(ReseedingRng::new(rng, 1024 * 64, OsRng))
         }
     }
