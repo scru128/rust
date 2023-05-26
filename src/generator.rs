@@ -468,6 +468,7 @@ mod tests {
 }
 
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod default_rng {
     use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng};
     use rand_chacha::ChaCha12Core;
@@ -479,6 +480,9 @@ mod default_rng {
     /// the same strategy as that employed by [`ThreadRng`]; see the docs of `rand` crate for a
     /// detailed discussion on the strategy.
     ///
+    /// This structure does exist under the `no_std` environment but is not able to be instantiated
+    /// or used as a random number generator.
+    ///
     /// [`Scru128Generator`]: super::Scru128Generator
     /// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
     /// [`OsRng`]: rand::rngs::OsRng
@@ -487,16 +491,13 @@ mod default_rng {
     #[derive(Clone, Debug)]
     pub struct DefaultRng(ReseedingRng<ChaCha12Core, OsRng>);
 
-    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     impl Default for DefaultRng {
         fn default() -> Self {
-            let rng = ChaCha12Core::from_rng(OsRng)
-                .unwrap_or_else(|err| panic!("could not initialize DefaultRng: {err}"));
+            let rng = ChaCha12Core::from_rng(OsRng).expect("could not initialize DefaultRng");
             Self(ReseedingRng::new(rng, 1024 * 64, OsRng))
         }
     }
 
-    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     impl rand::RngCore for DefaultRng {
         fn next_u32(&mut self) -> u32 {
             self.0.next_u32()
@@ -515,7 +516,6 @@ mod default_rng {
         }
     }
 
-    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     impl rand::CryptoRng for DefaultRng {}
 
     #[cfg(test)]

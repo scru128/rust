@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.7.1 - 2023-05-26
+
+### Maintenance
+
+- Minor refactoring and documentation updates
+
 ## v2.7.0 - 2023-04-01
 
 ### Changed

@@ -1,7 +1,7 @@
 #![cfg(feature = "std")]
 
 use crate::{Scru128Generator, Scru128Id};
-use once_cell::sync::Lazy;
+use once_cell::sync::OnceCell as OnceLock;
 use std::sync::Mutex;
 
 #[cfg(unix)]
@@ -10,8 +10,6 @@ type GlobalGenInner = unix_fork_safety::ProcessLocalGenerator;
 #[cfg(not(unix))]
 type GlobalGenInner = Scru128Generator;
 
-static GLOBAL_GENERATOR: Lazy<Mutex<GlobalGenInner>> = Lazy::new(Default::default);
-
 /// Generates a new SCRU128 ID object using the global generator.
 ///
 /// This function is thread-safe; multiple threads in a process can call it concurrently without
@@ -19,9 +17,11 @@ static GLOBAL_GENERATOR: Lazy<Mutex<GlobalGenInner>> = Lazy::new(Default::defaul
 /// state when the process ID changes (i.e. upon forks) to avoid collisions across processes.
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn new() -> Scru128Id {
-    GLOBAL_GENERATOR
+    static G: OnceLock<Mutex<GlobalGenInner>> = OnceLock::new();
+
+    G.get_or_init(Default::default)
         .lock()
-        .unwrap_or_else(|err| panic!("scru128: could not lock global generator: {err}"))
+        .expect("scru128: could not lock global generator")
         .generate()
 }
 
