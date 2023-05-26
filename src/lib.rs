@@ -59,7 +59,6 @@ mod identifier;
 pub use identifier::{ParseError, Scru128Id};
 
 pub mod generator;
-#[doc(inline)]
 pub use generator::Scru128Generator;
 
 /// The maximum value of 48-bit `timestamp` field.
