@@ -1,10 +1,14 @@
 # Changelog
 
-## v2.7.3 - unreleased
+## v2.8.0 - unreleased
 
 ### Changed
 
 - Internal representation and error messages of `ParseError`
+
+### Added
+
+- `Scru128Id::from_bytes()`
 
 ### Maintenance
 

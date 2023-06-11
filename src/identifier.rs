@@ -61,6 +61,11 @@ impl Scru128Id {
         self.0
     }
 
+    /// Creates an object from a 16-byte big-endian byte array.
+    pub const fn from_bytes(array_value: [u8; 16]) -> Self {
+        Self(u128::from_be_bytes(array_value))
+    }
+
     /// Returns the big-endian byte array representation.
     pub const fn to_bytes(self) -> [u8; 16] {
         self.0.to_be_bytes()
@@ -261,7 +266,7 @@ impl From<Scru128Id> for u128 {
 impl From<[u8; 16]> for Scru128Id {
     /// Creates an object from a 16-byte big-endian byte array.
     fn from(value: [u8; 16]) -> Self {
-        Self(u128::from_be_bytes(value))
+        Self::from_bytes(value)
     }
 }
 
@@ -524,7 +529,7 @@ mod tests {
             assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
             assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
             assert_eq!(Scru128Id::from(u128::from(e)), e);
-            assert_eq!(Scru128Id::from(e.to_bytes()), e);
+            assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
             assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
             assert_eq!(
                 Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
