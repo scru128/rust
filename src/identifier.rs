@@ -47,11 +47,6 @@ pub struct Scru128Id(u128);
 
 impl Scru128Id {
     /// Creates an object from a 128-bit unsigned integer.
-    ///
-    /// Use `Scru128Id::from(u128)` instead out of `const` context. This constructor may be
-    /// deprecated in the future once [const trait impls] are stabilized.
-    ///
-    /// [const trait impls]: https://github.com/rust-lang/rust/issues/67792
     pub const fn from_u128(int_value: u128) -> Self {
         Self(int_value)
     }
@@ -141,9 +136,6 @@ impl Scru128Id {
 
     /// Returns the 25-digit string representation stored in a stack-allocated string-like type
     /// that can be handled like [`String`] through common traits.
-    ///
-    /// This method is primarily for `no_std` environments where heap-allocated string types are
-    /// not readily available.
     ///
     /// # Examples
     ///
@@ -253,7 +245,7 @@ impl fmt::Display for Scru128Id {
 
 impl From<u128> for Scru128Id {
     fn from(value: u128) -> Self {
-        Self(value)
+        Self::from_u128(value)
     }
 }
 
@@ -636,12 +628,12 @@ mod serde_support {
         }
 
         fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
-            value.parse::<Self::Value>().map_err(de::Error::custom)
+            Self::Value::try_from_str(value).map_err(de::Error::custom)
         }
 
         fn visit_bytes<E: de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
             match <[u8; 16]>::try_from(value) {
-                Ok(array_value) => Ok(Self::Value::from(array_value)),
+                Ok(array_value) => Ok(Self::Value::from_bytes(array_value)),
                 Err(err) => match str::from_utf8(value) {
                     Ok(str_value) => self.visit_str(str_value),
                     _ => Err(de::Error::custom(err)),
@@ -650,7 +642,7 @@ mod serde_support {
         }
 
         fn visit_u128<E: de::Error>(self, value: u128) -> Result<Self::Value, E> {
-            Ok(Self::Value::from(value))
+            Ok(Self::Value::from_u128(value))
         }
     }
 
