@@ -443,24 +443,40 @@ mod tests {
     /// Returns error if an invalid string representation is supplied
     #[test]
     fn returns_error_if_an_invalid_string_representation_is_supplied() {
+        use super::ParseErrorKind::{self, *};
+        fn invalid_digit(c: char) -> ParseErrorKind {
+            let mut utf8_char = [0u8; 4];
+            c.encode_utf8(&mut utf8_char);
+            InvalidDigit(utf8_char)
+        }
+
         let cases = [
-            "",
-            " 036Z8PUQ4TSXSIGK6O19Y164Q",
-            "036Z8PUQ54QNY1VQ3HCBRKWEB ",
-            " 036Z8PUQ54QNY1VQ3HELIVWAX ",
-            "+036Z8PUQ54QNY1VQ3HFCV3SS0",
-            "-036Z8PUQ54QNY1VQ3HHY8U1CH",
-            "+36Z8PUQ54QNY1VQ3HJQ48D9P",
-            "-36Z8PUQ5A7J0TI08OZ6ZDRDY",
-            "036Z8PUQ5A7J0T_08P2CDZ28V",
-            "036Z8PU-5A7J0TI08P3OL8OOL",
-            "036Z8PUQ5A7J0TI08P4J 6CYA",
-            "F5LXX1ZZ5PNORYNQGLHZMSP34",
-            "ZZZZZZZZZZZZZZZZZZZZZZZZZ",
+            ("", InvalidLength(0)),
+            (" 036Z8PUQ4TSXSIGK6O19Y164Q", InvalidLength(26)),
+            ("036Z8PUQ54QNY1VQ3HCBRKWEB ", InvalidLength(26)),
+            (" 036Z8PUQ54QNY1VQ3HELIVWAX ", InvalidLength(27)),
+            ("+036Z8PUQ54QNY1VQ3HFCV3SS0", InvalidLength(26)),
+            ("-036Z8PUQ54QNY1VQ3HHY8U1CH", InvalidLength(26)),
+            ("+36Z8PUQ54QNY1VQ3HJQ48D9P", invalid_digit('+')),
+            ("-36Z8PUQ5A7J0TI08OZ6ZDRDY", invalid_digit('-')),
+            ("036Z8PUQ5A7J0T_08P2CDZ28V", invalid_digit('_')),
+            ("036Z8PU-5A7J0TI08P3OL8OOL", invalid_digit('-')),
+            ("036Z8PUQ5A7J0TI08P4J 6CYA", invalid_digit(' ')),
+            ("F5LXX1ZZ5PNORYNQGLHZMSP34", OutOfU128Range),
+            ("ZZZZZZZZZZZZZZZZZZZZZZZZZ", OutOfU128Range),
+            ("039O\tVVKLFMQLQE7FZLLZ7C7T", invalid_digit('\t')),
+            ("039ONVVKLFMQLQ漢字FGVD1", invalid_digit('漢')),
+            ("039ONVVKL🤣QE7FZR2HDOQU", invalid_digit('🤣')),
+            ("頭ONVVKLFMQLQE7FZRHTGCFZ", invalid_digit('頭')),
+            ("039ONVVKLFMQLQE7FZTFT5尾", invalid_digit('尾')),
+            ("039漢字A52XP4BVF4SN94E09CJA", InvalidLength(29)),
+            ("039OOA52XP4BV😘SN97642MWL", InvalidLength(27)),
         ];
 
         for e in cases {
-            assert!(e.parse::<Scru128Id>().is_err());
+            let result = e.0.parse::<Scru128Id>();
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err().kind, e.1);
         }
     }
 
