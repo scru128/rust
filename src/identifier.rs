@@ -110,7 +110,18 @@ impl Scru128Id {
     }
 
     /// Creates an object from a 25-digit string representation.
-    const fn try_from_str(str_value: &str) -> Result<Self, ParseError> {
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Id;
+    ///
+    /// let x = Scru128Id::try_from_str("037D0XYE6OP48CMCE8EY4XLCF")?;
+    /// let y = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    /// assert_eq!(x, y);
+    /// # Ok::<(), scru128::ParseError>(())
+    /// ```
+    pub const fn try_from_str(str_value: &str) -> Result<Self, ParseError> {
         if str_value.len() != 25 {
             return Err(ParseError::invalid_length(str_value.len()));
         }

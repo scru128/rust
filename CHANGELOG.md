@@ -9,6 +9,7 @@
 ### Added
 
 - `Scru128Id::from_bytes()`
+- `Scru128Id::try_from_str()`
 
 ### Maintenance
 
