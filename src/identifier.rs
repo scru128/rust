@@ -192,28 +192,21 @@ impl str::FromStr for Scru128Id {
     /// Creates an object from a 25-digit string representation.
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
         if str_value.len() != 25 {
-            return Err(ParseError {
-                kind: ParseErrorKind::InvalidLength,
-            });
+            return Err(ParseError::invalid_length(str_value.len()));
         }
 
         let mut int_value = 0u128;
-        for b in str_value.as_bytes() {
-            let n = DECODE_MAP[*b as usize];
+        for &b in str_value.as_bytes() {
+            let n = DECODE_MAP[b as usize];
             if n == 0xff {
-                return Err(ParseError {
-                    kind: ParseErrorKind::InvalidDigit,
-                });
+                let pos = str_value.bytes().position(|e| e == b).unwrap();
+                return Err(ParseError::invalid_digit(str_value, pos));
             }
             int_value = int_value
                 .checked_mul(36)
-                .ok_or(ParseError {
-                    kind: ParseErrorKind::OutOfU128Range,
-                })?
+                .ok_or(ParseError::out_of_u128_range())?
                 .checked_add(n as u128)
-                .ok_or(ParseError {
-                    kind: ParseErrorKind::OutOfU128Range,
-                })?;
+                .ok_or(ParseError::out_of_u128_range())?;
         }
         Ok(Self(int_value))
     }
@@ -273,14 +266,68 @@ pub struct ParseError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ParseErrorKind {
-    InvalidLength,
-    InvalidDigit,
+    InvalidLength(usize),
+
+    /// Holds the invalid character as a UTF-8 byte array to work in the const context.
+    InvalidDigit([u8; 4]),
+
     OutOfU128Range,
+}
+
+impl ParseError {
+    /// Creates an `InvalidLength` variant from the actual length.
+    const fn invalid_length(len: usize) -> Self {
+        Self {
+            kind: ParseErrorKind::InvalidLength(len),
+        }
+    }
+
+    /// Creates an `InvalidDigit` variant from the entire strong and the position of invalid digit.
+    const fn invalid_digit(src: &str, position: usize) -> Self {
+        const fn is_char_boundary(utf8_bytes: &[u8], index: usize) -> bool {
+            match index {
+                0 => true,
+                i if i < utf8_bytes.len() => (utf8_bytes[i] as i8) >= -64,
+                _ => index == utf8_bytes.len(),
+            }
+        }
+
+        let bs = src.as_bytes();
+        assert!(is_char_boundary(bs, position));
+        let mut utf8_char = [bs[position], 0, 0, 0];
+
+        let mut i = 1;
+        while !is_char_boundary(bs, position + i) {
+            utf8_char[i] = bs[position + i];
+            i += 1;
+        }
+
+        Self {
+            kind: ParseErrorKind::InvalidDigit(utf8_char),
+        }
+    }
+
+    /// Creates an `OutOfU128Range` variant.
+    const fn out_of_u128_range() -> Self {
+        Self {
+            kind: ParseErrorKind::OutOfU128Range,
+        }
+    }
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "invalid string representation")
+        write!(f, "could not parse string as SCRU128 ID: ")?;
+        match self.kind {
+            ParseErrorKind::InvalidLength(n_bytes) => {
+                write!(f, "invalid length in bytes of {} (expected 25)", n_bytes)
+            }
+            ParseErrorKind::InvalidDigit(utf8_char) => {
+                let chr = str::from_utf8(&utf8_char).unwrap().chars().next().unwrap();
+                write!(f, "invalid digit '{}'", chr.escape_debug())
+            }
+            ParseErrorKind::OutOfU128Range => write!(f, "out of 128-bit value range"),
+        }
     }
 }
 

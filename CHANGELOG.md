@@ -2,6 +2,10 @@
 
 ## v2.7.3 - unreleased
 
+### Changed
+
+- Internal representation and error messages of `ParseError`
+
 ### Maintenance
 
 - Updated dev dependencies
