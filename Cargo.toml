@@ -21,6 +21,7 @@ once_cell = { version = "1.12", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
+rand_chacha = { version = "0.3", default-features = false }
 regex = { version = "1.8", default-features = false, features = ["std"] }
 serde_test = "1.0"
 
