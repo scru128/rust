@@ -192,7 +192,9 @@ impl Scru128Id {
         // implement Base36 using 56-bit words because Div<u128> is slow
         debug_assert_eq!(dst, &[0; 25]);
         let mut min_index: isize = 99; // any number greater than size of output array
-        for shift in (0..128).step_by(56).rev() {
+        let mut shift = 56 * 3;
+        while shift > 0 {
+            shift -= 56;
             let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
 
             // iterate over output array from right to left while carry != 0 but at least up to
@@ -207,7 +209,11 @@ impl Scru128Id {
             min_index = i;
         }
 
-        dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
+        let mut i = 0;
+        while i < dst.len() {
+            dst[i] = DIGITS[dst[i] as usize];
+            i += 1;
+        }
     }
 }
 
