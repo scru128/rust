@@ -109,6 +109,31 @@ impl Scru128Id {
         self.0 as u32 & u32::MAX
     }
 
+    /// Creates an object from a 25-digit string representation.
+    const fn try_from_str(str_value: &str) -> Result<Self, ParseError> {
+        if str_value.len() != 25 {
+            return Err(ParseError::invalid_length(str_value.len()));
+        }
+
+        let mut int_value = 0u128;
+        let mut i = 0;
+        while i < 25 {
+            let n = DECODE_MAP[str_value.as_bytes()[i] as usize];
+            if n == 0xff {
+                return Err(ParseError::invalid_digit(str_value, i));
+            }
+            int_value = match int_value.checked_mul(36) {
+                Some(int_value) => match int_value.checked_add(n as u128) {
+                    Some(int_value) => int_value,
+                    _ => return Err(ParseError::out_of_u128_range()),
+                },
+                _ => return Err(ParseError::out_of_u128_range()),
+            };
+            i += 1;
+        }
+        Ok(Self(int_value))
+    }
+
     /// Returns the 25-digit string representation stored in a stack-allocated string-like type
     /// that can be handled like [`String`] through common traits.
     ///
@@ -191,24 +216,7 @@ impl str::FromStr for Scru128Id {
 
     /// Creates an object from a 25-digit string representation.
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
-        if str_value.len() != 25 {
-            return Err(ParseError::invalid_length(str_value.len()));
-        }
-
-        let mut int_value = 0u128;
-        for &b in str_value.as_bytes() {
-            let n = DECODE_MAP[b as usize];
-            if n == 0xff {
-                let pos = str_value.bytes().position(|e| e == b).unwrap();
-                return Err(ParseError::invalid_digit(str_value, pos));
-            }
-            int_value = int_value
-                .checked_mul(36)
-                .ok_or(ParseError::out_of_u128_range())?
-                .checked_add(n as u128)
-                .ok_or(ParseError::out_of_u128_range())?;
-        }
-        Ok(Self(int_value))
+        Self::try_from_str(str_value)
     }
 }
 
@@ -335,13 +343,12 @@ impl fmt::Display for ParseError {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
     use super::{ParseError, Scru128Id};
-    use std::{error, str::FromStr};
 
     impl TryFrom<String> for Scru128Id {
         type Error = ParseError;
 
         fn try_from(value: String) -> Result<Self, Self::Error> {
-            Self::from_str(&value)
+            Self::try_from_str(&value)
         }
     }
 
@@ -351,7 +358,7 @@ mod std_ext {
         }
     }
 
-    impl error::Error for ParseError {}
+    impl std::error::Error for ParseError {}
 }
 
 #[cfg(test)]
@@ -503,6 +510,7 @@ mod tests {
         };
 
         for e in cases {
+            assert_eq!(Scru128Id::try_from_str(&e.encode()), Ok(e));
             assert_eq!(e.encode().parse::<Scru128Id>(), Ok(e));
             #[cfg(feature = "std")]
             assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
