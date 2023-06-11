@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.7.3 - unreleased
+
+### Maintenance
+
+- Updated dev dependencies
+- Disabled unnecessary features of dev dependencies
+
 ## v2.7.2 - 2023-05-27
 
 ### Maintenance
