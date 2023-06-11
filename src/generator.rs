@@ -341,7 +341,6 @@ mod std_ext {
     impl<R: rand::RngCore> iter::FusedIterator for Scru128Generator<R> {}
 }
 
-#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests_generate_or_reset {
     use super::{Scru128Generator, Status};
@@ -350,7 +349,10 @@ mod tests_generate_or_reset {
     #[test]
     fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
+        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
+        #[cfg(not(feature = "std"))]
+        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
         assert_eq!(g.last_status, Status::NotExecuted);
 
         let mut prev = g.generate_or_reset_core(ts, 10_000);
@@ -374,7 +376,10 @@ mod tests_generate_or_reset {
     #[test]
     fn breaks_increasing_order_of_ids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
+        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
+        #[cfg(not(feature = "std"))]
+        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
         assert_eq!(g.last_status, Status::NotExecuted);
 
         let mut prev = g.generate_or_reset_core(ts, 10_000);
@@ -397,7 +402,6 @@ mod tests_generate_or_reset {
     }
 }
 
-#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests_generate_or_abort {
     use super::{Scru128Generator, Status};
@@ -406,7 +410,10 @@ mod tests_generate_or_abort {
     #[test]
     fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
+        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
+        #[cfg(not(feature = "std"))]
+        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
         assert_eq!(g.last_status, Status::NotExecuted);
 
         let mut prev = g.generate_or_abort_core(ts, 10_000).unwrap();
@@ -430,7 +437,10 @@ mod tests_generate_or_abort {
     #[test]
     fn returns_none_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
+        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
+        #[cfg(not(feature = "std"))]
+        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
         assert_eq!(g.last_status, Status::NotExecuted);
 
         let prev = g.generate_or_abort_core(ts, 10_000).unwrap();
@@ -447,14 +457,22 @@ mod tests_generate_or_abort {
     }
 }
 
-#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
-    use super::Scru128Generator;
+    #[cfg(not(feature = "std"))]
+    pub fn no_std_rng() -> impl rand::RngCore {
+        use rand::SeedableRng as _;
+        let local_var = 0u32;
+        let addr_as_seed = (&local_var as *const u32) as u64;
+        rand_chacha::ChaCha12Rng::seed_from_u64(addr_as_seed)
+    }
 
     /// Is iterable with for-in loop
+    #[cfg(feature = "std")]
     #[test]
     fn is_iterable_with_for_in_loop() {
+        use super::Scru128Generator;
+
         let mut i = 0;
         for e in Scru128Generator::new() {
             assert!(e.timestamp() > 0);

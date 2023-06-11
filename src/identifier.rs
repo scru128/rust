@@ -47,11 +47,6 @@ pub struct Scru128Id(u128);
 
 impl Scru128Id {
     /// Creates an object from a 128-bit unsigned integer.
-    ///
-    /// Use `Scru128Id::from(u128)` instead out of `const` context. This constructor may be
-    /// deprecated in the future once [const trait impls] are stabilized.
-    ///
-    /// [const trait impls]: https://github.com/rust-lang/rust/issues/67792
     pub const fn from_u128(int_value: u128) -> Self {
         Self(int_value)
     }
@@ -59,6 +54,11 @@ impl Scru128Id {
     /// Returns the 128-bit unsigned integer representation.
     pub const fn to_u128(self) -> u128 {
         self.0
+    }
+
+    /// Creates an object from a 16-byte big-endian byte array.
+    pub const fn from_bytes(array_value: [u8; 16]) -> Self {
+        Self(u128::from_be_bytes(array_value))
     }
 
     /// Returns the big-endian byte array representation.
@@ -109,11 +109,44 @@ impl Scru128Id {
         self.0 as u32 & u32::MAX
     }
 
+    /// Creates an object from a 25-digit string representation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Id;
+    ///
+    /// let x = Scru128Id::try_from_str("037D0XYE6OP48CMCE8EY4XLCF")?;
+    /// let y = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    /// assert_eq!(x, y);
+    /// # Ok::<(), scru128::ParseError>(())
+    /// ```
+    pub const fn try_from_str(str_value: &str) -> Result<Self, ParseError> {
+        if str_value.len() != 25 {
+            return Err(ParseError::invalid_length(str_value.len()));
+        }
+
+        let mut int_value = 0u128;
+        let mut i = 0;
+        while i < 25 {
+            let n = DECODE_MAP[str_value.as_bytes()[i] as usize];
+            if n == 0xff {
+                return Err(ParseError::invalid_digit(str_value, i));
+            }
+            int_value = match int_value.checked_mul(36) {
+                Some(int_value) => match int_value.checked_add(n as u128) {
+                    Some(int_value) => int_value,
+                    _ => return Err(ParseError::out_of_u128_range()),
+                },
+                _ => return Err(ParseError::out_of_u128_range()),
+            };
+            i += 1;
+        }
+        Ok(Self(int_value))
+    }
+
     /// Returns the 25-digit string representation stored in a stack-allocated string-like type
     /// that can be handled like [`String`] through common traits.
-    ///
-    /// This method is primarily for `no_std` environments where heap-allocated string types are
-    /// not readily available.
     ///
     /// # Examples
     ///
@@ -167,7 +200,9 @@ impl Scru128Id {
         // implement Base36 using 56-bit words because Div<u128> is slow
         debug_assert_eq!(dst, &[0; 25]);
         let mut min_index: isize = 99; // any number greater than size of output array
-        for shift in (0..128).step_by(56).rev() {
+        let mut shift = 56 * 3;
+        while shift > 0 {
+            shift -= 56;
             let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
 
             // iterate over output array from right to left while carry != 0 but at least up to
@@ -182,7 +217,11 @@ impl Scru128Id {
             min_index = i;
         }
 
-        dst.iter_mut().for_each(|e| *e = DIGITS[*e as usize]);
+        let mut i = 0;
+        while i < dst.len() {
+            dst[i] = DIGITS[dst[i] as usize];
+            i += 1;
+        }
     }
 }
 
@@ -191,31 +230,7 @@ impl str::FromStr for Scru128Id {
 
     /// Creates an object from a 25-digit string representation.
     fn from_str(str_value: &str) -> Result<Self, Self::Err> {
-        if str_value.len() != 25 {
-            return Err(ParseError {
-                kind: ParseErrorKind::InvalidLength,
-            });
-        }
-
-        let mut int_value = 0u128;
-        for b in str_value.as_bytes() {
-            let n = DECODE_MAP[*b as usize];
-            if n == 0xff {
-                return Err(ParseError {
-                    kind: ParseErrorKind::InvalidDigit,
-                });
-            }
-            int_value = int_value
-                .checked_mul(36)
-                .ok_or(ParseError {
-                    kind: ParseErrorKind::OutOfU128Range,
-                })?
-                .checked_add(n as u128)
-                .ok_or(ParseError {
-                    kind: ParseErrorKind::OutOfU128Range,
-                })?;
-        }
-        Ok(Self(int_value))
+        Self::try_from_str(str_value)
     }
 }
 
@@ -241,7 +256,7 @@ impl fmt::Display for Scru128Id {
 
 impl From<u128> for Scru128Id {
     fn from(value: u128) -> Self {
-        Self(value)
+        Self::from_u128(value)
     }
 }
 
@@ -254,7 +269,7 @@ impl From<Scru128Id> for u128 {
 impl From<[u8; 16]> for Scru128Id {
     /// Creates an object from a 16-byte big-endian byte array.
     fn from(value: [u8; 16]) -> Self {
-        Self(u128::from_be_bytes(value))
+        Self::from_bytes(value)
     }
 }
 
@@ -273,14 +288,68 @@ pub struct ParseError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ParseErrorKind {
-    InvalidLength,
-    InvalidDigit,
+    InvalidLength(usize),
+
+    /// Holds the invalid character as a UTF-8 byte array to work in the const context.
+    InvalidDigit([u8; 4]),
+
     OutOfU128Range,
+}
+
+impl ParseError {
+    /// Creates an `InvalidLength` variant from the actual length.
+    const fn invalid_length(len: usize) -> Self {
+        Self {
+            kind: ParseErrorKind::InvalidLength(len),
+        }
+    }
+
+    /// Creates an `InvalidDigit` variant from the entire strong and the position of invalid digit.
+    const fn invalid_digit(src: &str, position: usize) -> Self {
+        const fn is_char_boundary(utf8_bytes: &[u8], index: usize) -> bool {
+            match index {
+                0 => true,
+                i if i < utf8_bytes.len() => (utf8_bytes[i] as i8) >= -64,
+                _ => index == utf8_bytes.len(),
+            }
+        }
+
+        let bs = src.as_bytes();
+        assert!(is_char_boundary(bs, position));
+        let mut utf8_char = [bs[position], 0, 0, 0];
+
+        let mut i = 1;
+        while !is_char_boundary(bs, position + i) {
+            utf8_char[i] = bs[position + i];
+            i += 1;
+        }
+
+        Self {
+            kind: ParseErrorKind::InvalidDigit(utf8_char),
+        }
+    }
+
+    /// Creates an `OutOfU128Range` variant.
+    const fn out_of_u128_range() -> Self {
+        Self {
+            kind: ParseErrorKind::OutOfU128Range,
+        }
+    }
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "invalid string representation")
+        write!(f, "could not parse string as SCRU128 ID: ")?;
+        match self.kind {
+            ParseErrorKind::InvalidLength(n_bytes) => {
+                write!(f, "invalid length in bytes of {} (expected 25)", n_bytes)
+            }
+            ParseErrorKind::InvalidDigit(utf8_char) => {
+                let chr = str::from_utf8(&utf8_char).unwrap().chars().next().unwrap();
+                write!(f, "invalid digit '{}'", chr.escape_debug())
+            }
+            ParseErrorKind::OutOfU128Range => write!(f, "out of 128-bit value range"),
+        }
     }
 }
 
@@ -288,13 +357,12 @@ impl fmt::Display for ParseError {
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
     use super::{ParseError, Scru128Id};
-    use std::{error, str::FromStr};
 
     impl TryFrom<String> for Scru128Id {
         type Error = ParseError;
 
         fn try_from(value: String) -> Result<Self, Self::Error> {
-            Self::from_str(&value)
+            Self::try_from_str(&value)
         }
     }
 
@@ -304,7 +372,7 @@ mod std_ext {
         }
     }
 
-    impl error::Error for ParseError {}
+    impl std::error::Error for ParseError {}
 }
 
 #[cfg(test)]
@@ -396,24 +464,40 @@ mod tests {
     /// Returns error if an invalid string representation is supplied
     #[test]
     fn returns_error_if_an_invalid_string_representation_is_supplied() {
+        use super::ParseErrorKind::{self, *};
+        fn invalid_digit(c: char) -> ParseErrorKind {
+            let mut utf8_char = [0u8; 4];
+            c.encode_utf8(&mut utf8_char);
+            InvalidDigit(utf8_char)
+        }
+
         let cases = [
-            "",
-            " 036Z8PUQ4TSXSIGK6O19Y164Q",
-            "036Z8PUQ54QNY1VQ3HCBRKWEB ",
-            " 036Z8PUQ54QNY1VQ3HELIVWAX ",
-            "+036Z8PUQ54QNY1VQ3HFCV3SS0",
-            "-036Z8PUQ54QNY1VQ3HHY8U1CH",
-            "+36Z8PUQ54QNY1VQ3HJQ48D9P",
-            "-36Z8PUQ5A7J0TI08OZ6ZDRDY",
-            "036Z8PUQ5A7J0T_08P2CDZ28V",
-            "036Z8PU-5A7J0TI08P3OL8OOL",
-            "036Z8PUQ5A7J0TI08P4J 6CYA",
-            "F5LXX1ZZ5PNORYNQGLHZMSP34",
-            "ZZZZZZZZZZZZZZZZZZZZZZZZZ",
+            ("", InvalidLength(0)),
+            (" 036Z8PUQ4TSXSIGK6O19Y164Q", InvalidLength(26)),
+            ("036Z8PUQ54QNY1VQ3HCBRKWEB ", InvalidLength(26)),
+            (" 036Z8PUQ54QNY1VQ3HELIVWAX ", InvalidLength(27)),
+            ("+036Z8PUQ54QNY1VQ3HFCV3SS0", InvalidLength(26)),
+            ("-036Z8PUQ54QNY1VQ3HHY8U1CH", InvalidLength(26)),
+            ("+36Z8PUQ54QNY1VQ3HJQ48D9P", invalid_digit('+')),
+            ("-36Z8PUQ5A7J0TI08OZ6ZDRDY", invalid_digit('-')),
+            ("036Z8PUQ5A7J0T_08P2CDZ28V", invalid_digit('_')),
+            ("036Z8PU-5A7J0TI08P3OL8OOL", invalid_digit('-')),
+            ("036Z8PUQ5A7J0TI08P4J 6CYA", invalid_digit(' ')),
+            ("F5LXX1ZZ5PNORYNQGLHZMSP34", OutOfU128Range),
+            ("ZZZZZZZZZZZZZZZZZZZZZZZZZ", OutOfU128Range),
+            ("039O\tVVKLFMQLQE7FZLLZ7C7T", invalid_digit('\t')),
+            ("039ONVVKLFMQLQ漢字FGVD1", invalid_digit('漢')),
+            ("039ONVVKL🤣QE7FZR2HDOQU", invalid_digit('🤣')),
+            ("頭ONVVKLFMQLQE7FZRHTGCFZ", invalid_digit('頭')),
+            ("039ONVVKLFMQLQE7FZTFT5尾", invalid_digit('尾')),
+            ("039漢字A52XP4BVF4SN94E09CJA", InvalidLength(29)),
+            ("039OOA52XP4BV😘SN97642MWL", InvalidLength(27)),
         ];
 
         for e in cases {
-            assert!(e.parse::<Scru128Id>().is_err());
+            let result = e.0.parse::<Scru128Id>();
+            assert!(result.is_err());
+            assert_eq!(result.unwrap_err().kind, e.1);
         }
     }
 
@@ -440,6 +524,7 @@ mod tests {
         };
 
         for e in cases {
+            assert_eq!(Scru128Id::try_from_str(&e.encode()), Ok(e));
             assert_eq!(e.encode().parse::<Scru128Id>(), Ok(e));
             #[cfg(feature = "std")]
             assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
@@ -447,7 +532,7 @@ mod tests {
             assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
             assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
             assert_eq!(Scru128Id::from(u128::from(e)), e);
-            assert_eq!(Scru128Id::from(e.to_bytes()), e);
+            assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
             assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
             assert_eq!(
                 Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
@@ -554,12 +639,12 @@ mod serde_support {
         }
 
         fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
-            value.parse::<Self::Value>().map_err(de::Error::custom)
+            Self::Value::try_from_str(value).map_err(de::Error::custom)
         }
 
         fn visit_bytes<E: de::Error>(self, value: &[u8]) -> Result<Self::Value, E> {
             match <[u8; 16]>::try_from(value) {
-                Ok(array_value) => Ok(Self::Value::from(array_value)),
+                Ok(array_value) => Ok(Self::Value::from_bytes(array_value)),
                 Err(err) => match str::from_utf8(value) {
                     Ok(str_value) => self.visit_str(str_value),
                     _ => Err(de::Error::custom(err)),
@@ -568,7 +653,7 @@ mod serde_support {
         }
 
         fn visit_u128<E: de::Error>(self, value: u128) -> Result<Self::Value, E> {
-            Ok(Self::Value::from(value))
+            Ok(Self::Value::from_u128(value))
         }
     }
 
