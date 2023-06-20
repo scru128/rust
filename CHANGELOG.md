@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.8.1 - 2023-06-21
+
+### Changed
+
+- Internal representation and error messages of `ParseError`
+
 ## v2.8.0 - 2023-06-11
 
 ### Changed

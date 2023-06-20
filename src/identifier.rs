@@ -288,19 +288,22 @@ pub struct ParseError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ParseErrorKind {
-    InvalidLength(usize),
-
-    /// Holds the invalid character as a UTF-8 byte array to work in the const context.
-    InvalidDigit([u8; 4]),
-
+    InvalidLength {
+        n_bytes: usize,
+    },
+    InvalidDigit {
+        /// Holds the invalid character as a UTF-8 byte array to work in the const context.
+        utf8_char: [u8; 4],
+        position: usize,
+    },
     OutOfU128Range,
 }
 
 impl ParseError {
     /// Creates an `InvalidLength` variant from the actual length.
-    const fn invalid_length(len: usize) -> Self {
+    const fn invalid_length(n_bytes: usize) -> Self {
         Self {
-            kind: ParseErrorKind::InvalidLength(len),
+            kind: ParseErrorKind::InvalidLength { n_bytes },
         }
     }
 
@@ -325,7 +328,10 @@ impl ParseError {
         }
 
         Self {
-            kind: ParseErrorKind::InvalidDigit(utf8_char),
+            kind: ParseErrorKind::InvalidDigit {
+                utf8_char,
+                position,
+            },
         }
     }
 
@@ -341,12 +347,15 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "could not parse string as SCRU128 ID: ")?;
         match self.kind {
-            ParseErrorKind::InvalidLength(n_bytes) => {
-                write!(f, "invalid length in bytes of {} (expected 25)", n_bytes)
+            ParseErrorKind::InvalidLength { n_bytes } => {
+                write!(f, "invalid length: {} bytes (expected 25)", n_bytes)
             }
-            ParseErrorKind::InvalidDigit(utf8_char) => {
+            ParseErrorKind::InvalidDigit {
+                utf8_char,
+                position,
+            } => {
                 let chr = str::from_utf8(&utf8_char).unwrap().chars().next().unwrap();
-                write!(f, "invalid digit '{}'", chr.escape_debug())
+                write!(f, "invalid digit '{}' at {}", chr.escape_debug(), position)
             }
             ParseErrorKind::OutOfU128Range => write!(f, "out of 128-bit value range"),
         }
@@ -465,33 +474,36 @@ mod tests {
     #[test]
     fn returns_error_if_an_invalid_string_representation_is_supplied() {
         use super::ParseErrorKind::{self, *};
-        fn invalid_digit(c: char) -> ParseErrorKind {
+        fn invalid_digit(c: char, position: usize) -> ParseErrorKind {
             let mut utf8_char = [0u8; 4];
             c.encode_utf8(&mut utf8_char);
-            InvalidDigit(utf8_char)
+            InvalidDigit {
+                utf8_char,
+                position,
+            }
         }
 
         let cases = [
-            ("", InvalidLength(0)),
-            (" 036Z8PUQ4TSXSIGK6O19Y164Q", InvalidLength(26)),
-            ("036Z8PUQ54QNY1VQ3HCBRKWEB ", InvalidLength(26)),
-            (" 036Z8PUQ54QNY1VQ3HELIVWAX ", InvalidLength(27)),
-            ("+036Z8PUQ54QNY1VQ3HFCV3SS0", InvalidLength(26)),
-            ("-036Z8PUQ54QNY1VQ3HHY8U1CH", InvalidLength(26)),
-            ("+36Z8PUQ54QNY1VQ3HJQ48D9P", invalid_digit('+')),
-            ("-36Z8PUQ5A7J0TI08OZ6ZDRDY", invalid_digit('-')),
-            ("036Z8PUQ5A7J0T_08P2CDZ28V", invalid_digit('_')),
-            ("036Z8PU-5A7J0TI08P3OL8OOL", invalid_digit('-')),
-            ("036Z8PUQ5A7J0TI08P4J 6CYA", invalid_digit(' ')),
+            ("", InvalidLength { n_bytes: 0 }),
+            (" 036Z8PUQ4TSXSIGK6O19Y164Q", InvalidLength { n_bytes: 26 }),
+            ("036Z8PUQ54QNY1VQ3HCBRKWEB ", InvalidLength { n_bytes: 26 }),
+            (" 036Z8PUQ54QNY1VQ3HELIVWAX ", InvalidLength { n_bytes: 27 }),
+            ("+036Z8PUQ54QNY1VQ3HFCV3SS0", InvalidLength { n_bytes: 26 }),
+            ("-036Z8PUQ54QNY1VQ3HHY8U1CH", InvalidLength { n_bytes: 26 }),
+            ("+36Z8PUQ54QNY1VQ3HJQ48D9P", invalid_digit('+', 0)),
+            ("-36Z8PUQ5A7J0TI08OZ6ZDRDY", invalid_digit('-', 0)),
+            ("036Z8PUQ5A7J0T_08P2CDZ28V", invalid_digit('_', 14)),
+            ("036Z8PU-5A7J0TI08P3OL8OOL", invalid_digit('-', 7)),
+            ("036Z8PUQ5A7J0TI08P4J 6CYA", invalid_digit(' ', 20)),
             ("F5LXX1ZZ5PNORYNQGLHZMSP34", OutOfU128Range),
             ("ZZZZZZZZZZZZZZZZZZZZZZZZZ", OutOfU128Range),
-            ("039O\tVVKLFMQLQE7FZLLZ7C7T", invalid_digit('\t')),
-            ("039ONVVKLFMQLQ漢字FGVD1", invalid_digit('漢')),
-            ("039ONVVKL🤣QE7FZR2HDOQU", invalid_digit('🤣')),
-            ("頭ONVVKLFMQLQE7FZRHTGCFZ", invalid_digit('頭')),
-            ("039ONVVKLFMQLQE7FZTFT5尾", invalid_digit('尾')),
-            ("039漢字A52XP4BVF4SN94E09CJA", InvalidLength(29)),
-            ("039OOA52XP4BV😘SN97642MWL", InvalidLength(27)),
+            ("039O\tVVKLFMQLQE7FZLLZ7C7T", invalid_digit('\t', 4)),
+            ("039ONVVKLFMQLQ漢字FGVD1", invalid_digit('漢', 14)),
+            ("039ONVVKL🤣QE7FZR2HDOQU", invalid_digit('🤣', 9)),
+            ("頭ONVVKLFMQLQE7FZRHTGCFZ", invalid_digit('頭', 0)),
+            ("039ONVVKLFMQLQE7FZTFT5尾", invalid_digit('尾', 22)),
+            ("039漢字A52XP4BVF4SN94E09CJA", InvalidLength { n_bytes: 29 }),
+            ("039OOA52XP4BV😘SN97642MWL", InvalidLength { n_bytes: 27 }),
         ];
 
         for e in cases {
