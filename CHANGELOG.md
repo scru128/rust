@@ -9,6 +9,8 @@
   - `Scru128Id::encode_buf()`
   - `Scru128Generator#generate_core()`
   - `Scru128Generator#last_status()` and `generator::Status`
+- Dependency on `once_cell` crate
+  - `std` feature now uses `std::sync::OnceLock` (stable since Rust 1.70)
 
 ## v2.8.1 - 2023-06-21
 

@@ -1,8 +1,7 @@
 #![cfg(feature = "std")]
 
 use crate::{Scru128Generator, Scru128Id};
-use once_cell::sync::OnceCell as OnceLock;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 #[cfg(unix)]
 type GlobalGenInner = unix_fork_safety::ProcessLocalGenerator;
