@@ -160,45 +160,8 @@ impl Scru128Id {
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
     pub fn encode(&self) -> FStr<25> {
-        let mut buffer = [0u8; 25];
-        self.encode_inner(&mut buffer);
-        unsafe { FStr::from_inner_unchecked(buffer) }
-    }
-
-    /// Writes the 25-digit string representation to `buffer` as an ASCII byte array and returns
-    /// the subslice of `buffer` as a string slice.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the length of `buffer` is smaller than 25.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use scru128::Scru128Id;
-    ///
-    /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
-    ///
-    /// let mut buffer = [b'\n'; 26];
-    /// let subslice = x.encode_buf(&mut buffer);
-    ///
-    /// assert_eq!(subslice, "037D0XYE6OP48CMCE8EY4XLCF");
-    /// assert_eq!(&buffer, b"037D0XYE6OP48CMCE8EY4XLCF\n");
-    /// # Ok::<(), scru128::ParseError>(())
-    /// ```
-    #[deprecated(since = "2.3.0", note = "use `Scru128Id::encode()` instead")]
-    pub fn encode_buf<'a>(&self, buffer: &'a mut [u8]) -> &'a str {
-        let dst = buffer
-            .get_mut(..25)
-            .expect("length of `buffer` must be at least 25");
-        dst.fill(0);
-        self.encode_inner(dst);
-        str::from_utf8(dst).unwrap()
-    }
-
-    fn encode_inner(&self, dst: &mut [u8]) {
+        let mut dst = [0u8; 25];
         // implement Base36 using 56-bit words because Div<u128> is slow
-        debug_assert_eq!(dst, &[0; 25]);
         let mut min_index: isize = 99; // any number greater than size of output array
         let mut shift = 56 * 3;
         while shift > 0 {
@@ -222,6 +185,7 @@ impl Scru128Id {
             dst[i] = DIGITS[dst[i] as usize];
             i += 1;
         }
+        unsafe { FStr::from_inner_unchecked(dst) }
     }
 }
 

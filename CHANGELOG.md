@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.0.0 - unreleased
+
+### Removed
+
+- Deprecated items:
+  - `scru128()` and `scru128_string()`
+  - `Scru128Id::encode_buf()`
+  - `Scru128Generator#generate_core()`
+  - `Scru128Generator#last_status()` and `generator::Status`
+
 ## v2.8.1 - 2023-06-21
 
 ### Changed

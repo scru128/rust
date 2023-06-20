@@ -51,10 +51,6 @@ mod global_gen;
 #[cfg(feature = "std")]
 pub use global_gen::{new, new_string};
 
-#[cfg(feature = "std")]
-#[allow(deprecated)]
-pub use global_gen::{scru128, scru128_string};
-
 mod identifier;
 pub use identifier::{ParseError, Scru128Id};
 
