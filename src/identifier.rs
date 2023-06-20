@@ -6,7 +6,7 @@ use fstr::FStr;
 use std::{fmt, str};
 
 /// Digit characters used in the Base36 notation.
-const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
 /// An O(1) map from ASCII code points to Base36 digit values.
 const DECODE_MAP: [u8; 256] = [
@@ -35,8 +35,8 @@ const DECODE_MAP: [u8; 256] = [
 /// ```rust
 /// use scru128::Scru128Id;
 ///
-/// let x = "036Z968FU2TUGY7SVKFZNEWKK".parse::<Scru128Id>()?;
-/// assert_eq!(x.to_string(), "036Z968FU2TUGY7SVKFZNEWKK");
+/// let x = "036z968fu2tugy7svkfznewkk".parse::<Scru128Id>()?;
+/// assert_eq!(x.to_string(), "036z968fu2tugy7svkfznewkk");
 ///
 /// let y = Scru128Id::from(0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
 /// assert_eq!(y.to_u128(), 0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
@@ -122,8 +122,8 @@ impl Scru128Id {
     /// ```rust
     /// use scru128::Scru128Id;
     ///
-    /// let x = Scru128Id::try_from_str("037D0XYE6OP48CMCE8EY4XLCF")?;
-    /// let y = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    /// let x = Scru128Id::try_from_str("037d0xye6op48cmce8ey4xlcf")?;
+    /// let y = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
     /// assert_eq!(x, y);
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
@@ -159,10 +159,10 @@ impl Scru128Id {
     /// ```rust
     /// use scru128::Scru128Id;
     ///
-    /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    /// let x = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
     /// let y = x.encode();
-    /// assert_eq!(y, "037D0XYE6OP48CMCE8EY4XLCF");
-    /// assert_eq!(format!("{y}"), "037D0XYE6OP48CMCE8EY4XLCF");
+    /// assert_eq!(y, "037d0xye6op48cmce8ey4xlcf");
+    /// assert_eq!(format!("{y}"), "037d0xye6op48cmce8ey4xlcf");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
     pub const fn encode(&self) -> FStr<25> {
@@ -213,10 +213,10 @@ impl fmt::Display for Scru128Id {
     /// ```rust
     /// use scru128::Scru128Id;
     ///
-    /// let x = "03997FT3CKZ99O1I3F82ZAT1T".parse::<Scru128Id>()?;
-    /// assert_eq!(format!("{x}"), "03997FT3CKZ99O1I3F82ZAT1T");
-    /// assert_eq!(format!("{x:32}"), "03997FT3CKZ99O1I3F82ZAT1T       ");
-    /// assert_eq!(format!("{x:->32}"), "-------03997FT3CKZ99O1I3F82ZAT1T");
+    /// let x = "03997ft3ckz99o1i3f82zat1t".parse::<Scru128Id>()?;
+    /// assert_eq!(format!("{x}"), "03997ft3ckz99o1i3f82zat1t");
+    /// assert_eq!(format!("{x:32}"), "03997ft3ckz99o1i3f82zat1t       ");
+    /// assert_eq!(format!("{x:->32}"), "-------03997ft3ckz99o1i3f82zat1t");
     /// assert_eq!(format!("{x:.^7.5}"), ".03997.");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
@@ -426,7 +426,7 @@ mod tests {
                     ),
                     &from_fields.encode() as &str
                 ),
-                (e.0, e.1.to_uppercase().as_str())
+                (e.0, e.1.to_lowercase().as_str())
             );
             assert_eq!(
                 (
@@ -438,12 +438,12 @@ mod tests {
                     ),
                     &from_string.encode() as &str
                 ),
-                (e.0, e.1.to_uppercase().as_str())
+                (e.0, e.1.to_lowercase().as_str())
             );
             #[cfg(feature = "std")]
-            assert_eq!(from_fields.to_string(), e.1.to_uppercase());
+            assert_eq!(from_fields.to_string(), e.1.to_lowercase());
             #[cfg(feature = "std")]
-            assert_eq!(from_string.to_string(), e.1.to_uppercase());
+            assert_eq!(from_string.to_string(), e.1.to_lowercase());
         }
     }
 
@@ -462,25 +462,25 @@ mod tests {
 
         let cases = [
             ("", InvalidLength { n_bytes: 0 }),
-            (" 036Z8PUQ4TSXSIGK6O19Y164Q", InvalidLength { n_bytes: 26 }),
-            ("036Z8PUQ54QNY1VQ3HCBRKWEB ", InvalidLength { n_bytes: 26 }),
-            (" 036Z8PUQ54QNY1VQ3HELIVWAX ", InvalidLength { n_bytes: 27 }),
-            ("+036Z8PUQ54QNY1VQ3HFCV3SS0", InvalidLength { n_bytes: 26 }),
-            ("-036Z8PUQ54QNY1VQ3HHY8U1CH", InvalidLength { n_bytes: 26 }),
-            ("+36Z8PUQ54QNY1VQ3HJQ48D9P", invalid_digit('+', 0)),
-            ("-36Z8PUQ5A7J0TI08OZ6ZDRDY", invalid_digit('-', 0)),
-            ("036Z8PUQ5A7J0T_08P2CDZ28V", invalid_digit('_', 14)),
-            ("036Z8PU-5A7J0TI08P3OL8OOL", invalid_digit('-', 7)),
-            ("036Z8PUQ5A7J0TI08P4J 6CYA", invalid_digit(' ', 20)),
-            ("F5LXX1ZZ5PNORYNQGLHZMSP34", OutOfU128Range),
-            ("ZZZZZZZZZZZZZZZZZZZZZZZZZ", OutOfU128Range),
-            ("039O\tVVKLFMQLQE7FZLLZ7C7T", invalid_digit('\t', 4)),
-            ("039ONVVKLFMQLQ漢字FGVD1", invalid_digit('漢', 14)),
-            ("039ONVVKL🤣QE7FZR2HDOQU", invalid_digit('🤣', 9)),
-            ("頭ONVVKLFMQLQE7FZRHTGCFZ", invalid_digit('頭', 0)),
-            ("039ONVVKLFMQLQE7FZTFT5尾", invalid_digit('尾', 22)),
-            ("039漢字A52XP4BVF4SN94E09CJA", InvalidLength { n_bytes: 29 }),
-            ("039OOA52XP4BV😘SN97642MWL", InvalidLength { n_bytes: 27 }),
+            (" 036z8puq4tsxsigk6o19y164q", InvalidLength { n_bytes: 26 }),
+            ("036z8puq54qny1vq3hcbrkweb ", InvalidLength { n_bytes: 26 }),
+            (" 036z8puq54qny1vq3helivwax ", InvalidLength { n_bytes: 27 }),
+            ("+036z8puq54qny1vq3hfcv3ss0", InvalidLength { n_bytes: 26 }),
+            ("-036z8puq54qny1vq3hhy8u1ch", InvalidLength { n_bytes: 26 }),
+            ("+36z8puq54qny1vq3hjq48d9p", invalid_digit('+', 0)),
+            ("-36z8puq5a7j0ti08oz6zdrdy", invalid_digit('-', 0)),
+            ("036z8puq5a7j0t_08p2cdz28v", invalid_digit('_', 14)),
+            ("036z8pu-5a7j0ti08p3ol8ool", invalid_digit('-', 7)),
+            ("036z8puq5a7j0ti08p4j 6cya", invalid_digit(' ', 20)),
+            ("f5lxx1zz5pnorynqglhzmsp34", OutOfU128Range),
+            ("zzzzzzzzzzzzzzzzzzzzzzzzz", OutOfU128Range),
+            ("039o\tvvklfmqlqe7fzllz7c7t", invalid_digit('\t', 4)),
+            ("039onvvklfmqlq漢字fgvd1", invalid_digit('漢', 14)),
+            ("039onvvkl🤣qe7fzr2hdoqu", invalid_digit('🤣', 9)),
+            ("頭onvvklfmqlqe7fzrhtgcfz", invalid_digit('頭', 0)),
+            ("039onvvklfmqlqe7fztft5尾", invalid_digit('尾', 22)),
+            ("039漢字a52xp4bvf4sn94e09cja", InvalidLength { n_bytes: 29 }),
+            ("039ooa52xp4bv😘sn97642mwl", InvalidLength { n_bytes: 27 }),
         ];
 
         for e in cases {
@@ -657,49 +657,49 @@ mod serde_support {
         fn serializes_and_deserializes_prepared_cases_correctly() {
             let cases = [
                 (
-                    "037ARKZBGN93KDU9H3PW2OW2L",
+                    "037arkzbgn93kdu9h3pw2ow2l",
                     &[
                         1, 128, 178, 254, 34, 56, 72, 100, 6, 87, 159, 252, 102, 145, 202, 93,
                     ],
                 ),
                 (
-                    "037ARKZBH94JVGJMM6JTWGZTQ",
+                    "037arkzbh94jvgjmm6jtwgztq",
                     &[
                         1, 128, 178, 254, 34, 60, 72, 100, 6, 194, 191, 219, 2, 6, 125, 94,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVCJF5K4Z",
+                    "037arkzbheley7unpvcjf5k4z",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 140, 185, 18, 16, 51,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVEL8ZYP1",
+                    "037arkzbheley7unpvel8zyp1",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 141, 195, 39, 182, 101,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVGEFDINQ",
+                    "037arkzbheley7unpvgefdinq",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 142, 174, 14, 198, 182,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVHSYWHO2",
+                    "037arkzbheley7unpvhsywho2",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 143, 100, 55, 67, 114,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVJLR4OT7",
+                    "037arkzbheley7unpvjlr4ot7",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 144, 77, 179, 181, 155,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVMFM8457",
+                    "037arkzbheley7unpvmfm8457",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 145, 188, 211, 88, 251,
                     ],

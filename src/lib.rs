@@ -16,11 +16,11 @@
 //! # {
 //! // generate a new identifier object
 //! let x = scru128::new();
-//! println!("{x}"); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
+//! println!("{x}"); // e.g., "036z951mhjikzik2gsl81gr7l"
 //! println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 //!
 //! // generate a textual representation directly
-//! println!("{}", scru128::new_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
+//! println!("{}", scru128::new_string()); // e.g., "036z951mhzx67t63mq9xe6q0j"
 //! # }
 //! ```
 //!
@@ -79,7 +79,7 @@ mod tests {
     /// Generates 25-digit canonical string
     #[test]
     fn generates_25_digit_canonical_string() {
-        let re = regex::Regex::new(r"^[0-9A-Z]{25}$").unwrap();
+        let re = regex::Regex::new(r"^[0-9a-z]{25}$").unwrap();
         SAMPLES.with(|samples| {
             for e in samples {
                 assert!(re.is_match(e));
