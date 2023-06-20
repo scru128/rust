@@ -43,27 +43,28 @@ const DECODE_MAP: [u8; 256] = [
 /// # Ok::<(), scru128::ParseError>(())
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct Scru128Id(u128);
+#[repr(transparent)]
+pub struct Scru128Id([u8; 16]);
 
 impl Scru128Id {
     /// Creates an object from a 128-bit unsigned integer.
     pub const fn from_u128(int_value: u128) -> Self {
-        Self(int_value)
+        Self(int_value.to_be_bytes())
     }
 
     /// Returns the 128-bit unsigned integer representation.
     pub const fn to_u128(self) -> u128 {
-        self.0
+        u128::from_be_bytes(self.0)
     }
 
     /// Creates an object from a 16-byte big-endian byte array.
     pub const fn from_bytes(array_value: [u8; 16]) -> Self {
-        Self(u128::from_be_bytes(array_value))
+        Self(array_value)
     }
 
     /// Returns the big-endian byte array representation.
     pub const fn to_bytes(self) -> [u8; 16] {
-        self.0.to_be_bytes()
+        self.0
     }
 
     /// Creates an object from field values.
@@ -80,7 +81,7 @@ impl Scru128Id {
         if timestamp > MAX_TIMESTAMP || counter_hi > MAX_COUNTER_HI || counter_lo > MAX_COUNTER_LO {
             panic!("invalid field value");
         } else {
-            Self(
+            Self::from_u128(
                 ((timestamp as u128) << 80)
                     | ((counter_hi as u128) << 56)
                     | ((counter_lo as u128) << 32)
@@ -91,22 +92,22 @@ impl Scru128Id {
 
     /// Returns the 48-bit `timestamp` field value.
     pub const fn timestamp(&self) -> u64 {
-        (self.0 >> 80) as u64
+        (self.to_u128() >> 80) as u64
     }
 
     /// Returns the 24-bit `counter_hi` field value.
     pub const fn counter_hi(&self) -> u32 {
-        (self.0 >> 56) as u32 & MAX_COUNTER_HI
+        (self.to_u128() >> 56) as u32 & MAX_COUNTER_HI
     }
 
     /// Returns the 24-bit `counter_lo` field value.
     pub const fn counter_lo(&self) -> u32 {
-        (self.0 >> 32) as u32 & MAX_COUNTER_LO
+        (self.to_u128() >> 32) as u32 & MAX_COUNTER_LO
     }
 
     /// Returns the 32-bit `entropy` field value.
     pub const fn entropy(&self) -> u32 {
-        self.0 as u32 & u32::MAX
+        self.to_u128() as u32 & u32::MAX
     }
 
     /// Creates an object from a 25-digit string representation.
@@ -142,7 +143,7 @@ impl Scru128Id {
             };
             i += 1;
         }
-        Ok(Self(int_value))
+        Ok(Self::from_u128(int_value))
     }
 
     /// Returns the 25-digit string representation stored in a stack-allocated string-like type
@@ -160,13 +161,14 @@ impl Scru128Id {
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
     pub const fn encode(&self) -> FStr<25> {
+        let int_value = self.to_u128();
         let mut dst = [0u8; 25];
         // implement Base36 using 56-bit words because Div<u128> is slow
         let mut min_index: isize = 99; // any number greater than size of output array
         let mut shift = 56 * 3;
         while shift > 0 {
             shift -= 56;
-            let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
+            let mut carry = (int_value >> shift) as u64 & 0xff_ffff_ffff_ffff;
 
             // iterate over output array from right to left while carry != 0 but at least up to
             // place already filled

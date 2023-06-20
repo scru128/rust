@@ -12,6 +12,11 @@
 - Dependency on `once_cell` crate
   - `std` feature now uses `std::sync::OnceLock` (stable since Rust 1.70)
 
+### Changed
+
+- Internal representation of `Scru128Id` from `u128` to big-endian byte array
+  representation
+
 ### Added
 
 - `const` qualifier to `Scru128Id::encode()`
