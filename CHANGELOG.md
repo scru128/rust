@@ -12,6 +12,10 @@
 - Dependency on `once_cell` crate
   - `std` feature now uses `std::sync::OnceLock` (stable since Rust 1.70)
 
+### Added
+
+- `const` qualifier to `Scru128Id::encode()`
+
 ## v2.8.1 - 2023-06-21
 
 ### Changed

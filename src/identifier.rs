@@ -159,7 +159,7 @@ impl Scru128Id {
     /// assert_eq!(format!("{y}"), "037D0XYE6OP48CMCE8EY4XLCF");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
-    pub fn encode(&self) -> FStr<25> {
+    pub const fn encode(&self) -> FStr<25> {
         let mut dst = [0u8; 25];
         // implement Base36 using 56-bit words because Div<u128> is slow
         let mut min_index: isize = 99; // any number greater than size of output array
