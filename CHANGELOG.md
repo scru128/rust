@@ -20,6 +20,7 @@
 ### Added
 
 - `const` qualifier to `Scru128Id::encode()`
+- `Scru128Id::as_bytes()` and `impl AsRef<[u8]>` for `Scru128Id`
 
 ## v2.8.1 - 2023-06-21
 

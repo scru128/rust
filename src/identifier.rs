@@ -67,6 +67,11 @@ impl Scru128Id {
         self.0
     }
 
+    /// Returns a reference to the big-endian byte array representation.
+    pub const fn as_bytes(&self) -> &[u8; 16] {
+        &self.0
+    }
+
     /// Creates an object from field values.
     ///
     /// # Panics
@@ -243,6 +248,12 @@ impl From<Scru128Id> for [u8; 16] {
     /// Returns the big-endian byte array representation.
     fn from(object: Scru128Id) -> Self {
         object.to_bytes()
+    }
+}
+
+impl AsRef<[u8]> for Scru128Id {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
     }
 }
 
@@ -512,6 +523,7 @@ mod tests {
             assert_eq!(Scru128Id::from(u128::from(e)), e);
             assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
             assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
+            assert_eq!(Scru128Id::from_bytes(*e.as_bytes()), e);
             assert_eq!(
                 Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
                 e
