@@ -6,7 +6,7 @@ use fstr::FStr;
 use std::{fmt, str};
 
 /// Digit characters used in the Base36 notation.
-const DIGITS: &[u8; 36] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
 /// An O(1) map from ASCII code points to Base36 digit values.
 const DECODE_MAP: [u8; 256] = [
@@ -35,35 +35,41 @@ const DECODE_MAP: [u8; 256] = [
 /// ```rust
 /// use scru128::Scru128Id;
 ///
-/// let x = "036Z968FU2TUGY7SVKFZNEWKK".parse::<Scru128Id>()?;
-/// assert_eq!(x.to_string(), "036Z968FU2TUGY7SVKFZNEWKK");
+/// let x = "036z968fu2tugy7svkfznewkk".parse::<Scru128Id>()?;
+/// assert_eq!(x.to_string(), "036z968fu2tugy7svkfznewkk");
 ///
 /// let y = Scru128Id::from(0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
 /// assert_eq!(y.to_u128(), 0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
 /// # Ok::<(), scru128::ParseError>(())
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct Scru128Id(u128);
+#[repr(transparent)]
+pub struct Scru128Id([u8; 16]);
 
 impl Scru128Id {
     /// Creates an object from a 128-bit unsigned integer.
     pub const fn from_u128(int_value: u128) -> Self {
-        Self(int_value)
+        Self(int_value.to_be_bytes())
     }
 
     /// Returns the 128-bit unsigned integer representation.
     pub const fn to_u128(self) -> u128 {
-        self.0
+        u128::from_be_bytes(self.0)
     }
 
     /// Creates an object from a 16-byte big-endian byte array.
     pub const fn from_bytes(array_value: [u8; 16]) -> Self {
-        Self(u128::from_be_bytes(array_value))
+        Self(array_value)
     }
 
     /// Returns the big-endian byte array representation.
     pub const fn to_bytes(self) -> [u8; 16] {
-        self.0.to_be_bytes()
+        self.0
+    }
+
+    /// Returns a reference to the big-endian byte array representation.
+    pub const fn as_bytes(&self) -> &[u8; 16] {
+        &self.0
     }
 
     /// Creates an object from field values.
@@ -80,7 +86,7 @@ impl Scru128Id {
         if timestamp > MAX_TIMESTAMP || counter_hi > MAX_COUNTER_HI || counter_lo > MAX_COUNTER_LO {
             panic!("invalid field value");
         } else {
-            Self(
+            Self::from_u128(
                 ((timestamp as u128) << 80)
                     | ((counter_hi as u128) << 56)
                     | ((counter_lo as u128) << 32)
@@ -91,22 +97,22 @@ impl Scru128Id {
 
     /// Returns the 48-bit `timestamp` field value.
     pub const fn timestamp(&self) -> u64 {
-        (self.0 >> 80) as u64
+        (self.to_u128() >> 80) as u64
     }
 
     /// Returns the 24-bit `counter_hi` field value.
     pub const fn counter_hi(&self) -> u32 {
-        (self.0 >> 56) as u32 & MAX_COUNTER_HI
+        (self.to_u128() >> 56) as u32 & MAX_COUNTER_HI
     }
 
     /// Returns the 24-bit `counter_lo` field value.
     pub const fn counter_lo(&self) -> u32 {
-        (self.0 >> 32) as u32 & MAX_COUNTER_LO
+        (self.to_u128() >> 32) as u32 & MAX_COUNTER_LO
     }
 
     /// Returns the 32-bit `entropy` field value.
     pub const fn entropy(&self) -> u32 {
-        self.0 as u32 & u32::MAX
+        self.to_u128() as u32 & u32::MAX
     }
 
     /// Creates an object from a 25-digit string representation.
@@ -116,8 +122,8 @@ impl Scru128Id {
     /// ```rust
     /// use scru128::Scru128Id;
     ///
-    /// let x = Scru128Id::try_from_str("037D0XYE6OP48CMCE8EY4XLCF")?;
-    /// let y = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    /// let x = Scru128Id::try_from_str("037d0xye6op48cmce8ey4xlcf")?;
+    /// let y = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
     /// assert_eq!(x, y);
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
@@ -142,7 +148,7 @@ impl Scru128Id {
             };
             i += 1;
         }
-        Ok(Self(int_value))
+        Ok(Self::from_u128(int_value))
     }
 
     /// Returns the 25-digit string representation stored in a stack-allocated string-like type
@@ -153,57 +159,21 @@ impl Scru128Id {
     /// ```rust
     /// use scru128::Scru128Id;
     ///
-    /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
+    /// let x = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
     /// let y = x.encode();
-    /// assert_eq!(y, "037D0XYE6OP48CMCE8EY4XLCF");
-    /// assert_eq!(format!("{y}"), "037D0XYE6OP48CMCE8EY4XLCF");
+    /// assert_eq!(y, "037d0xye6op48cmce8ey4xlcf");
+    /// assert_eq!(format!("{y}"), "037d0xye6op48cmce8ey4xlcf");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
-    pub fn encode(&self) -> FStr<25> {
-        let mut buffer = [0u8; 25];
-        self.encode_inner(&mut buffer);
-        unsafe { FStr::from_inner_unchecked(buffer) }
-    }
-
-    /// Writes the 25-digit string representation to `buffer` as an ASCII byte array and returns
-    /// the subslice of `buffer` as a string slice.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the length of `buffer` is smaller than 25.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use scru128::Scru128Id;
-    ///
-    /// let x = "037D0XYE6OP48CMCE8EY4XLCF".parse::<Scru128Id>()?;
-    ///
-    /// let mut buffer = [b'\n'; 26];
-    /// let subslice = x.encode_buf(&mut buffer);
-    ///
-    /// assert_eq!(subslice, "037D0XYE6OP48CMCE8EY4XLCF");
-    /// assert_eq!(&buffer, b"037D0XYE6OP48CMCE8EY4XLCF\n");
-    /// # Ok::<(), scru128::ParseError>(())
-    /// ```
-    #[deprecated(since = "2.3.0", note = "use `Scru128Id::encode()` instead")]
-    pub fn encode_buf<'a>(&self, buffer: &'a mut [u8]) -> &'a str {
-        let dst = buffer
-            .get_mut(..25)
-            .expect("length of `buffer` must be at least 25");
-        dst.fill(0);
-        self.encode_inner(dst);
-        str::from_utf8(dst).unwrap()
-    }
-
-    fn encode_inner(&self, dst: &mut [u8]) {
+    pub const fn encode(&self) -> FStr<25> {
+        let int_value = self.to_u128();
+        let mut dst = [0u8; 25];
         // implement Base36 using 56-bit words because Div<u128> is slow
-        debug_assert_eq!(dst, &[0; 25]);
         let mut min_index: isize = 99; // any number greater than size of output array
         let mut shift = 56 * 3;
         while shift > 0 {
             shift -= 56;
-            let mut carry = (self.0 >> shift) as u64 & 0xff_ffff_ffff_ffff;
+            let mut carry = (int_value >> shift) as u64 & 0xff_ffff_ffff_ffff;
 
             // iterate over output array from right to left while carry != 0 but at least up to
             // place already filled
@@ -222,6 +192,7 @@ impl Scru128Id {
             dst[i] = DIGITS[dst[i] as usize];
             i += 1;
         }
+        unsafe { FStr::from_inner_unchecked(dst) }
     }
 }
 
@@ -242,10 +213,10 @@ impl fmt::Display for Scru128Id {
     /// ```rust
     /// use scru128::Scru128Id;
     ///
-    /// let x = "03997FT3CKZ99O1I3F82ZAT1T".parse::<Scru128Id>()?;
-    /// assert_eq!(format!("{x}"), "03997FT3CKZ99O1I3F82ZAT1T");
-    /// assert_eq!(format!("{x:32}"), "03997FT3CKZ99O1I3F82ZAT1T       ");
-    /// assert_eq!(format!("{x:->32}"), "-------03997FT3CKZ99O1I3F82ZAT1T");
+    /// let x = "03997ft3ckz99o1i3f82zat1t".parse::<Scru128Id>()?;
+    /// assert_eq!(format!("{x}"), "03997ft3ckz99o1i3f82zat1t");
+    /// assert_eq!(format!("{x:32}"), "03997ft3ckz99o1i3f82zat1t       ");
+    /// assert_eq!(format!("{x:->32}"), "-------03997ft3ckz99o1i3f82zat1t");
     /// assert_eq!(format!("{x:.^7.5}"), ".03997.");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
@@ -277,6 +248,12 @@ impl From<Scru128Id> for [u8; 16] {
     /// Returns the big-endian byte array representation.
     fn from(object: Scru128Id) -> Self {
         object.to_bytes()
+    }
+}
+
+impl AsRef<[u8]> for Scru128Id {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
     }
 }
 
@@ -449,7 +426,7 @@ mod tests {
                     ),
                     &from_fields.encode() as &str
                 ),
-                (e.0, e.1.to_uppercase().as_str())
+                (e.0, e.1.to_lowercase().as_str())
             );
             assert_eq!(
                 (
@@ -461,12 +438,12 @@ mod tests {
                     ),
                     &from_string.encode() as &str
                 ),
-                (e.0, e.1.to_uppercase().as_str())
+                (e.0, e.1.to_lowercase().as_str())
             );
             #[cfg(feature = "std")]
-            assert_eq!(from_fields.to_string(), e.1.to_uppercase());
+            assert_eq!(from_fields.to_string(), e.1.to_lowercase());
             #[cfg(feature = "std")]
-            assert_eq!(from_string.to_string(), e.1.to_uppercase());
+            assert_eq!(from_string.to_string(), e.1.to_lowercase());
         }
     }
 
@@ -485,25 +462,25 @@ mod tests {
 
         let cases = [
             ("", InvalidLength { n_bytes: 0 }),
-            (" 036Z8PUQ4TSXSIGK6O19Y164Q", InvalidLength { n_bytes: 26 }),
-            ("036Z8PUQ54QNY1VQ3HCBRKWEB ", InvalidLength { n_bytes: 26 }),
-            (" 036Z8PUQ54QNY1VQ3HELIVWAX ", InvalidLength { n_bytes: 27 }),
-            ("+036Z8PUQ54QNY1VQ3HFCV3SS0", InvalidLength { n_bytes: 26 }),
-            ("-036Z8PUQ54QNY1VQ3HHY8U1CH", InvalidLength { n_bytes: 26 }),
-            ("+36Z8PUQ54QNY1VQ3HJQ48D9P", invalid_digit('+', 0)),
-            ("-36Z8PUQ5A7J0TI08OZ6ZDRDY", invalid_digit('-', 0)),
-            ("036Z8PUQ5A7J0T_08P2CDZ28V", invalid_digit('_', 14)),
-            ("036Z8PU-5A7J0TI08P3OL8OOL", invalid_digit('-', 7)),
-            ("036Z8PUQ5A7J0TI08P4J 6CYA", invalid_digit(' ', 20)),
-            ("F5LXX1ZZ5PNORYNQGLHZMSP34", OutOfU128Range),
-            ("ZZZZZZZZZZZZZZZZZZZZZZZZZ", OutOfU128Range),
-            ("039O\tVVKLFMQLQE7FZLLZ7C7T", invalid_digit('\t', 4)),
-            ("039ONVVKLFMQLQ漢字FGVD1", invalid_digit('漢', 14)),
-            ("039ONVVKL🤣QE7FZR2HDOQU", invalid_digit('🤣', 9)),
-            ("頭ONVVKLFMQLQE7FZRHTGCFZ", invalid_digit('頭', 0)),
-            ("039ONVVKLFMQLQE7FZTFT5尾", invalid_digit('尾', 22)),
-            ("039漢字A52XP4BVF4SN94E09CJA", InvalidLength { n_bytes: 29 }),
-            ("039OOA52XP4BV😘SN97642MWL", InvalidLength { n_bytes: 27 }),
+            (" 036z8puq4tsxsigk6o19y164q", InvalidLength { n_bytes: 26 }),
+            ("036z8puq54qny1vq3hcbrkweb ", InvalidLength { n_bytes: 26 }),
+            (" 036z8puq54qny1vq3helivwax ", InvalidLength { n_bytes: 27 }),
+            ("+036z8puq54qny1vq3hfcv3ss0", InvalidLength { n_bytes: 26 }),
+            ("-036z8puq54qny1vq3hhy8u1ch", InvalidLength { n_bytes: 26 }),
+            ("+36z8puq54qny1vq3hjq48d9p", invalid_digit('+', 0)),
+            ("-36z8puq5a7j0ti08oz6zdrdy", invalid_digit('-', 0)),
+            ("036z8puq5a7j0t_08p2cdz28v", invalid_digit('_', 14)),
+            ("036z8pu-5a7j0ti08p3ol8ool", invalid_digit('-', 7)),
+            ("036z8puq5a7j0ti08p4j 6cya", invalid_digit(' ', 20)),
+            ("f5lxx1zz5pnorynqglhzmsp34", OutOfU128Range),
+            ("zzzzzzzzzzzzzzzzzzzzzzzzz", OutOfU128Range),
+            ("039o\tvvklfmqlqe7fzllz7c7t", invalid_digit('\t', 4)),
+            ("039onvvklfmqlq漢字fgvd1", invalid_digit('漢', 14)),
+            ("039onvvkl🤣qe7fzr2hdoqu", invalid_digit('🤣', 9)),
+            ("頭onvvklfmqlqe7fzrhtgcfz", invalid_digit('頭', 0)),
+            ("039onvvklfmqlqe7fztft5尾", invalid_digit('尾', 22)),
+            ("039漢字a52xp4bvf4sn94e09cja", InvalidLength { n_bytes: 29 }),
+            ("039ooa52xp4bv😘sn97642mwl", InvalidLength { n_bytes: 27 }),
         ];
 
         for e in cases {
@@ -546,6 +523,7 @@ mod tests {
             assert_eq!(Scru128Id::from(u128::from(e)), e);
             assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
             assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
+            assert_eq!(Scru128Id::from_bytes(*e.as_bytes()), e);
             assert_eq!(
                 Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
                 e
@@ -679,49 +657,49 @@ mod serde_support {
         fn serializes_and_deserializes_prepared_cases_correctly() {
             let cases = [
                 (
-                    "037ARKZBGN93KDU9H3PW2OW2L",
+                    "037arkzbgn93kdu9h3pw2ow2l",
                     &[
                         1, 128, 178, 254, 34, 56, 72, 100, 6, 87, 159, 252, 102, 145, 202, 93,
                     ],
                 ),
                 (
-                    "037ARKZBH94JVGJMM6JTWGZTQ",
+                    "037arkzbh94jvgjmm6jtwgztq",
                     &[
                         1, 128, 178, 254, 34, 60, 72, 100, 6, 194, 191, 219, 2, 6, 125, 94,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVCJF5K4Z",
+                    "037arkzbheley7unpvcjf5k4z",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 140, 185, 18, 16, 51,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVEL8ZYP1",
+                    "037arkzbheley7unpvel8zyp1",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 141, 195, 39, 182, 101,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVGEFDINQ",
+                    "037arkzbheley7unpvgefdinq",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 142, 174, 14, 198, 182,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVHSYWHO2",
+                    "037arkzbheley7unpvhsywho2",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 143, 100, 55, 67, 114,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVJLR4OT7",
+                    "037arkzbheley7unpvjlr4ot7",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 144, 77, 179, 181, 155,
                     ],
                 ),
                 (
-                    "037ARKZBHELEY7UNPVMFM8457",
+                    "037arkzbheley7unpvmfm8457",
                     &[
                         1, 128, 178, 254, 34, 61, 72, 100, 6, 48, 162, 145, 188, 211, 88, 251,
                     ],

@@ -17,11 +17,11 @@ decentralized, globally unique time-ordered identifiers. SCRU128 is inspired by
 ```rust
 // generate a new identifier object
 let x = scru128::new();
-println!("{x}"); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
+println!("{x}"); // e.g., "036z951mhjikzik2gsl81gr7l"
 println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 
 // generate a textual representation directly
-println!("{}", scru128::new_string()); // e.g. "036Z951MHZX67T63MQ9XE6Q0J"
+println!("{}", scru128::new_string()); // e.g., "036z951mhzx67t63mq9xe6q0j"
 ```
 
 See [SCRU128 Specification] for details.

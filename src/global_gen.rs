@@ -1,8 +1,7 @@
 #![cfg(feature = "std")]
 
 use crate::{Scru128Generator, Scru128Id};
-use once_cell::sync::OnceCell as OnceLock;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 #[cfg(unix)]
 type GlobalGenInner = unix_fork_safety::ProcessLocalGenerator;
@@ -14,7 +13,7 @@ type GlobalGenInner = Scru128Generator;
 ///
 /// This function is thread-safe; multiple threads in a process can call it concurrently without
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
-/// state when the process ID changes (i.e. upon forks) to avoid collisions across processes.
+/// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn new() -> Scru128Id {
     static G: OnceLock<Mutex<GlobalGenInner>> = OnceLock::new();
@@ -32,32 +31,18 @@ pub fn new() -> Scru128Id {
 ///
 /// This function is thread-safe; multiple threads in a process can call it concurrently without
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
-/// state when the process ID changes (i.e. upon forks) to avoid collisions across processes.
+/// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
 ///
 /// # Examples
 ///
 /// ```rust
-/// let x = scru128::new_string(); // e.g. "036Z951MHJIKZIK2GSL81GR7L"
+/// let x = scru128::new_string(); // e.g., "036z951mhjikzik2gsl81gr7l"
 ///
-/// assert!(regex::Regex::new(r"^[0-9A-Z]{25}$").unwrap().is_match(&x));
+/// assert!(regex::Regex::new(r"^[0-9a-z]{25}$").unwrap().is_match(&x));
 /// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn new_string() -> String {
     new().into()
-}
-
-/// A deprecated synonym for [`new()`].
-#[deprecated(since = "2.2.0", note = "use `scru128::new()` (synonym)")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub fn scru128() -> Scru128Id {
-    new()
-}
-
-/// A deprecated synonym for [`new_string()`].
-#[deprecated(since = "2.2.0", note = "use `scru128::new_string()` (synonym)")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub fn scru128_string() -> String {
-    new_string()
 }
 
 #[cfg(unix)]
@@ -65,7 +50,7 @@ mod unix_fork_safety {
     use super::{Scru128Generator, Scru128Id};
     use std::process;
 
-    /// A thin wrapper to reset the state when the process ID changes (i.e. upon process forks).
+    /// A thin wrapper to reset the state when the process ID changes (i.e., upon process forks).
     #[derive(Debug)]
     pub struct ProcessLocalGenerator {
         gen: Scru128Generator,
