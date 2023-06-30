@@ -387,10 +387,10 @@ mod tests_generate_or_abort {
 mod tests {
     #[cfg(not(feature = "std"))]
     pub fn no_std_rng() -> impl rand::RngCore {
-        use rand::SeedableRng as _;
+        use rand::{rngs::StdRng, SeedableRng};
         let local_var = 0u32;
         let addr_as_seed = (&local_var as *const u32) as u64;
-        rand_chacha::ChaCha12Rng::seed_from_u64(addr_as_seed)
+        StdRng::seed_from_u64(addr_as_seed)
     }
 
     /// Is iterable with for-in loop

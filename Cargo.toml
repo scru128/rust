@@ -20,7 +20,7 @@ rand_chacha = { version = "0.3", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
-rand_chacha = { version = "0.3", default-features = false }
+rand = { version = "0.8", default-features = false, features = ["std_rng"] }
 regex = { version = "1.8", default-features = false, features = ["std"] }
 serde_test = "1.0"
 
