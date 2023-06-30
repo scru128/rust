@@ -2,6 +2,18 @@
 
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
+/// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
+pub trait Scru128Rng {
+    /// Return the next random `u32`.
+    fn next_u32(&mut self) -> u32;
+}
+
+impl<T: rand::RngCore> Scru128Rng for T {
+    fn next_u32(&mut self) -> u32 {
+        self.next_u32()
+    }
+}
+
 #[cfg(feature = "std")]
 pub use default_rng::DefaultRng;
 
@@ -93,7 +105,7 @@ pub struct Scru128Generator<R = DefaultRng> {
     rng: R,
 }
 
-impl<R: rand::RngCore> Scru128Generator<R> {
+impl<R: Scru128Rng> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
     ///
@@ -201,7 +213,7 @@ impl<R: rand::RngCore> Scru128Generator<R> {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
-    use super::{Scru128Generator, Scru128Id};
+    use super::{Scru128Generator, Scru128Id, Scru128Rng};
     use std::{iter, time};
 
     /// The default timestamp rollback allowance.
@@ -222,7 +234,7 @@ mod std_ext {
             .as_millis() as u64
     }
 
-    impl<R: rand::RngCore> Scru128Generator<R> {
+    impl<R: Scru128Rng> Scru128Generator<R> {
         /// Generates a new SCRU128 ID object from the current `timestamp`, or resets the generator
         /// upon significant timestamp rollback.
         ///
@@ -266,7 +278,7 @@ mod std_ext {
     ///     println!("[{i}] {e}");
     /// }
     /// ```
-    impl<R: rand::RngCore> Iterator for Scru128Generator<R> {
+    impl<R: Scru128Rng> Iterator for Scru128Generator<R> {
         type Item = Scru128Id;
 
         fn next(&mut self) -> Option<Self::Item> {
@@ -278,7 +290,7 @@ mod std_ext {
         }
     }
 
-    impl<R: rand::RngCore> iter::FusedIterator for Scru128Generator<R> {}
+    impl<R: Scru128Rng> iter::FusedIterator for Scru128Generator<R> {}
 }
 
 #[cfg(test)]
@@ -402,6 +414,7 @@ mod tests {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod default_rng {
+    use super::Scru128Rng;
     use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng};
     use rand_chacha::ChaCha12Core;
 
@@ -430,30 +443,15 @@ mod default_rng {
         }
     }
 
-    impl rand::RngCore for DefaultRng {
+    impl Scru128Rng for DefaultRng {
         fn next_u32(&mut self) -> u32 {
             self.0.next_u32()
         }
-
-        fn next_u64(&mut self) -> u64 {
-            self.0.next_u64()
-        }
-
-        fn fill_bytes(&mut self, dest: &mut [u8]) {
-            self.0.fill_bytes(dest)
-        }
-
-        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand::Error> {
-            self.0.try_fill_bytes(dest)
-        }
     }
-
-    impl rand::CryptoRng for DefaultRng {}
 
     #[cfg(test)]
     mod tests {
-        use super::DefaultRng;
-        use rand::RngCore;
+        use super::{DefaultRng, Scru128Rng};
 
         /// Generates unbiased random numbers
         ///
