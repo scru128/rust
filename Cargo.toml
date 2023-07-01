@@ -1,6 +1,6 @@
 [package]
 name = "scru128"
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.2"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -10,17 +10,19 @@ keywords = ["identifier", "uuid", "guid", "ulid", "ksuid"]
 categories = ["algorithms"]
 
 [features]
-default = ["std"]
-std = ["fstr/std", "rand/std", "rand_chacha"]
+default = ["std", "rand", "global_gen"]
+std = ["fstr/std"]
+default_rng = ["std", "rand/std", "rand_chacha"]
+global_gen = ["default_rng"]
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
-rand = { version = "0.8", default-features = false }
+rand = { version = "0.8", default-features = false, optional = true }
 rand_chacha = { version = "0.3", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
-rand_chacha = { version = "0.3", default-features = false }
+rand = { version = "0.8", default-features = false, features = ["std_rng"] }
 regex = { version = "1.8", default-features = false, features = ["std"] }
 serde_test = "1.0"
 

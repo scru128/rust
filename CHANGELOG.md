@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.0.0-rc.1 - 2023-06-21
+## v3.0.0-rc.2 - 2023-07-01
 
 Most notably, v3 switches the letter case of generated IDs from uppercase (e.g.,
 "036Z951MHJIKZIK2GSL81GR7L") to lowercase (e.g., "036z951mhjikzik2gsl81gr7l"),
@@ -20,11 +20,16 @@ a case-insensitive scheme. Other changes include the removal of deprecated APIs.
 ### Changed
 
 - Letter case of generated IDs from uppercase to lowercase
+- `Scru128Generator`'s prerequisite from `rand::RngCore` to `Scru128Rng` to
+  relax hard dependency on `rand` crate
 - Internal representation of `Scru128Id` from `u128` to big-endian byte array
   representation
 
 ### Added
 
+- `rand` feature flag to opt out dependency on `rand` crate
+- `default_rng` feature flag to opt out default `DefaultRng`
+- `global_gen` feature flag to opt out default global generator
 - `const` qualifier to `Scru128Id::encode()`
 - `Scru128Id::as_bytes()` and `impl AsRef<[u8]>` for `Scru128Id`
 
