@@ -11,8 +11,9 @@ categories = ["algorithms"]
 
 [features]
 default = ["std", "global_gen"]
-std = ["fstr/std", "rand/std", "rand_chacha"]
-global_gen = ["std"]
+std = ["fstr/std"]
+default_rng = ["std", "rand/std", "rand_chacha"]
+global_gen = ["default_rng"]
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
