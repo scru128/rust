@@ -12,7 +12,7 @@
 //! - 80-bit three-layer randomness for global uniqueness
 //!
 //! ```rust
-//! # #[cfg(feature = "std")]
+//! # #[cfg(feature = "global_gen")]
 //! # {
 //! // generate a new identifier object
 //! let x = scru128::new();
@@ -35,10 +35,11 @@
 //!
 //! Default features:
 //!
-//! - `std` enables the primary [`new()`] and [`new_string()`] functions and configures
-//!   [`Scru128Generator`] with the system clock and default random number generator.
-//!   Without `std`, this crate provides limited functionality available under
-//!   `no_std` environments.
+//! - `std` configures [`Scru128Generator`] with the system clock and default random
+//!   number generator. Without `std`, this crate provides limited functionality
+//!   available under `no_std` environments.
+//! - `global_gen` (implies `std`) enables the process-wide default global generator
+//!   and the [`new()`] and [`new_string()`] functions.
 //!
 //! Optional features:
 //!
@@ -48,7 +49,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod global_gen;
-#[cfg(feature = "std")]
+#[cfg(feature = "global_gen")]
 pub use global_gen::{new, new_string};
 
 mod identifier;

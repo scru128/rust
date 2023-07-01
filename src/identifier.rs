@@ -375,6 +375,7 @@ mod tests {
     /// Encodes and decodes prepared cases correctly
     #[test]
     fn encodes_and_decodes_prepared_cases_correctly() {
+        #[allow(clippy::type_complexity)]
         let cases: &[((u64, u32, u32, u32), &str)] = &[
             ((0, 0, 0, 0), "0000000000000000000000000"),
             ((MAX_UINT48, 0, 0, 0), "F5LXX1ZZ5K6TP71GEEH2DB7K0"),
