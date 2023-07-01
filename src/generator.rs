@@ -14,15 +14,7 @@ impl<T: rand::RngCore> Scru128Rng for T {
     }
 }
 
-#[cfg(feature = "std")]
 pub use default_rng::DefaultRng;
-
-/// The default random number generator used by [`Scru128Generator`].
-///
-/// No default random number generator is available in `no_std` mode.
-#[cfg(not(feature = "std"))]
-#[derive(Clone, Debug)]
-pub struct DefaultRng(());
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
@@ -210,6 +202,15 @@ impl<R: Scru128Rng> Scru128Generator<R> {
     }
 }
 
+#[cfg(any(feature = "std", test))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+impl Scru128Generator {
+    /// Creates a generator object with the default random number generator.
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod std_ext {
@@ -218,13 +219,6 @@ mod std_ext {
 
     /// The default timestamp rollback allowance.
     const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
-
-    impl Scru128Generator {
-        /// Creates a generator object with the default random number generator.
-        pub fn new() -> Self {
-            Default::default()
-        }
-    }
 
     /// Returns the current Unix timestamp in milliseconds.
     fn unix_ts_ms() -> u64 {
@@ -291,6 +285,25 @@ mod std_ext {
     }
 
     impl<R: Scru128Rng> iter::FusedIterator for Scru128Generator<R> {}
+
+    #[cfg(test)]
+    mod tests {
+        /// Is iterable with for-in loop
+        #[test]
+        fn is_iterable_with_for_in_loop() {
+            use super::Scru128Generator;
+
+            let mut i = 0;
+            for e in Scru128Generator::new() {
+                assert!(e.timestamp() > 0);
+                i += 1;
+                if i > 100 {
+                    break;
+                }
+            }
+            assert_eq!(i, 101);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -301,10 +314,7 @@ mod tests_generate_or_reset {
     #[test]
     fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
-        #[cfg(not(feature = "std"))]
-        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
 
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.timestamp(), ts);
@@ -321,10 +331,7 @@ mod tests_generate_or_reset {
     #[test]
     fn breaks_increasing_order_of_ids_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
-        #[cfg(not(feature = "std"))]
-        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
 
         let mut prev = g.generate_or_reset_core(ts, 10_000);
         assert_eq!(prev.timestamp(), ts);
@@ -347,10 +354,7 @@ mod tests_generate_or_abort {
     #[test]
     fn generates_increasing_ids_even_with_decreasing_or_constant_timestamp() {
         let ts = 0x0123_4567_89abu64;
-        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
-        #[cfg(not(feature = "std"))]
-        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
 
         let mut prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.timestamp(), ts);
@@ -367,10 +371,7 @@ mod tests_generate_or_abort {
     #[test]
     fn returns_none_if_timestamp_goes_backwards_a_lot() {
         let ts = 0x0123_4567_89abu64;
-        #[cfg(feature = "std")]
         let mut g = Scru128Generator::new();
-        #[cfg(not(feature = "std"))]
-        let mut g = Scru128Generator::with_rng(super::tests::no_std_rng());
 
         let prev = g.generate_or_abort_core(ts, 10_000).unwrap();
         assert_eq!(prev.timestamp(), ts);
@@ -383,40 +384,12 @@ mod tests_generate_or_abort {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    #[cfg(not(feature = "std"))]
-    pub fn no_std_rng() -> impl rand::RngCore {
-        use rand::{rngs::StdRng, SeedableRng};
-        let local_var = 0u32;
-        let addr_as_seed = (&local_var as *const u32) as u64;
-        StdRng::seed_from_u64(addr_as_seed)
-    }
-
-    /// Is iterable with for-in loop
-    #[cfg(feature = "std")]
-    #[test]
-    fn is_iterable_with_for_in_loop() {
-        use super::Scru128Generator;
-
-        let mut i = 0;
-        for e in Scru128Generator::new() {
-            assert!(e.timestamp() > 0);
-            i += 1;
-            if i > 100 {
-                break;
-            }
-        }
-        assert_eq!(i, 101);
-    }
-}
-
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod default_rng {
-    use super::Scru128Rng;
-    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng};
-    use rand_chacha::ChaCha12Core;
+    #[cfg(feature = "std")]
+    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng as _};
+
+    #[cfg(all(not(feature = "std"), test))]
+    use rand::{rngs::StdRng, SeedableRng as _};
 
     /// The default random number generator used by [`Scru128Generator`].
     ///
@@ -433,25 +406,51 @@ mod default_rng {
     /// [`OsRng`]: rand::rngs::OsRng
     /// [`ReseedingRng`]: rand::rngs::adapter::ReseedingRng
     /// [`ThreadRng`]: https://docs.rs/rand/0.8/rand/rngs/struct.ThreadRng.html
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     #[derive(Clone, Debug)]
-    pub struct DefaultRng(ReseedingRng<ChaCha12Core, OsRng>);
+    pub struct DefaultRng {
+        _private: (),
 
-    impl Default for DefaultRng {
-        fn default() -> Self {
-            let rng = ChaCha12Core::from_rng(OsRng).expect("could not initialize DefaultRng");
-            Self(ReseedingRng::new(rng, 1024 * 64, OsRng))
+        #[cfg(feature = "std")]
+        inner: ReseedingRng<rand_chacha::ChaCha12Core, OsRng>,
+
+        #[cfg(all(not(feature = "std"), test))]
+        inner: StdRng,
+    }
+
+    #[cfg(any(feature = "std", test))]
+    impl super::Scru128Rng for DefaultRng {
+        fn next_u32(&mut self) -> u32 {
+            self.inner.next_u32()
         }
     }
 
-    impl Scru128Rng for DefaultRng {
-        fn next_u32(&mut self) -> u32 {
-            self.0.next_u32()
+    #[cfg(any(feature = "std", test))]
+    impl Default for DefaultRng {
+        fn default() -> Self {
+            Self {
+                _private: (),
+
+                #[cfg(feature = "std")]
+                inner: {
+                    let rng = rand_chacha::ChaCha12Core::from_rng(OsRng)
+                        .expect("could not initialize DefaultRng");
+                    ReseedingRng::new(rng, 1024 * 64, OsRng)
+                },
+
+                #[cfg(all(not(feature = "std"), test))]
+                inner: {
+                    let local_var = 0u32;
+                    let addr_as_seed = (&local_var as *const u32) as u64;
+                    StdRng::seed_from_u64(addr_as_seed)
+                },
+            }
         }
     }
 
     #[cfg(test)]
     mod tests {
-        use super::{DefaultRng, Scru128Rng};
+        use super::{super::Scru128Rng, DefaultRng};
 
         /// Generates unbiased random numbers
         ///
