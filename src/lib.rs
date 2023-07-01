@@ -35,9 +35,11 @@
 //!
 //! Default features:
 //!
-//! - `std` configures [`Scru128Generator`] with the system clock and default random
-//!   number generator. Without `std`, this crate provides limited functionality
-//!   available under `no_std` environments.
+//! - `rand` enables a blanket implementation for [`rand::RngCore`] to use the
+//!   conforming random number generators with [`Scru128Generator`].
+//! - `std` (implies `rand`) configures [`Scru128Generator`] with the system clock and
+//!   default random number generator. Without `std`, this crate provides limited
+//!   functionality available under `no_std` environments.
 //! - `global_gen` (implies `std`) enables the process-wide default global generator
 //!   and the [`new()`] and [`new_string()`] functions.
 //!

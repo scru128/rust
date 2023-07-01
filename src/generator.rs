@@ -8,6 +8,8 @@ pub trait Scru128Rng {
     fn next_u32(&mut self) -> u32;
 }
 
+#[cfg(feature = "rand")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
 impl<T: rand::RngCore> Scru128Rng for T {
     fn next_u32(&mut self) -> u32 {
         self.next_u32()
@@ -421,7 +423,7 @@ mod default_rng {
     #[cfg(any(feature = "std", test))]
     impl super::Scru128Rng for DefaultRng {
         fn next_u32(&mut self) -> u32 {
-            self.inner.next_u32()
+            rand::RngCore::next_u32(&mut self.inner)
         }
     }
 

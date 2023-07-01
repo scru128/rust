@@ -16,7 +16,7 @@ global_gen = ["std"]
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
-rand = { version = "0.8", default-features = false }
+rand = { version = "0.8", default-features = false, optional = true }
 rand_chacha = { version = "0.3", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 

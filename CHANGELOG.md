@@ -27,7 +27,8 @@ a case-insensitive scheme. Other changes include the removal of deprecated APIs.
 
 ### Added
 
-- `global_gen` feature flag to opt in/out default global generator
+- `rand` feature flag to opt out dependency on `rand` crate
+- `global_gen` feature flag to opt out default global generator
 - `const` qualifier to `Scru128Id::encode()`
 - `Scru128Id::as_bytes()` and `impl AsRef<[u8]>` for `Scru128Id`
 
