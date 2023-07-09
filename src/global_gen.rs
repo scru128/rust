@@ -1,13 +1,6 @@
 #![cfg(feature = "global_gen")]
 
 use crate::{Scru128Generator, Scru128Id};
-use std::sync::{Mutex, OnceLock};
-
-#[cfg(unix)]
-type GlobalGenInner = unix_fork_safety::ProcessLocalGenerator;
-
-#[cfg(not(unix))]
-type GlobalGenInner = Scru128Generator;
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///
@@ -16,8 +9,8 @@ type GlobalGenInner = Scru128Generator;
 /// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
 #[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn new() -> Scru128Id {
+    use std::sync::{Mutex, OnceLock};
     static G: OnceLock<Mutex<GlobalGenInner>> = OnceLock::new();
-
     G.get_or_init(Default::default)
         .lock()
         .expect("scru128: could not lock global generator")
@@ -45,36 +38,31 @@ pub fn new_string() -> String {
     new().into()
 }
 
-#[cfg(unix)]
-mod unix_fork_safety {
-    use super::{Scru128Generator, Scru128Id};
-    use std::process;
+/// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
+#[derive(Debug)]
+struct GlobalGenInner {
+    #[cfg(unix)]
+    pid: u32,
+    gen: Scru128Generator,
+}
 
-    /// A thin wrapper to reset the state when the process ID changes (i.e., upon process forks).
-    #[derive(Debug)]
-    pub struct ProcessLocalGenerator {
-        gen: Scru128Generator,
-        pid: u32,
-    }
-
-    impl Default for ProcessLocalGenerator {
-        fn default() -> Self {
-            Self {
-                gen: Default::default(),
-                pid: process::id(),
-            }
+impl Default for GlobalGenInner {
+    fn default() -> Self {
+        Self {
+            #[cfg(unix)]
+            pid: std::process::id(),
+            gen: Default::default(),
         }
     }
+}
 
-    impl ProcessLocalGenerator {
-        pub fn generate(&mut self) -> Scru128Id {
-            let pid = process::id();
-            if pid != self.pid {
-                self.gen = Default::default();
-                self.pid = pid;
-            }
-            self.gen.generate()
+impl GlobalGenInner {
+    fn generate(&mut self) -> Scru128Id {
+        #[cfg(unix)]
+        if self.pid != std::process::id() {
+            *self = Default::default();
         }
+        self.gen.generate()
     }
 }
 
