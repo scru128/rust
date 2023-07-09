@@ -46,21 +46,18 @@ pub use default_rng::DefaultRng;
 ///
 /// let g_shared = Arc::new(Mutex::new(Scru128Generator::new()));
 ///
-/// let mut hs = Vec::new();
-/// for i in 0..4 {
-///     let g_shared = Arc::clone(&g_shared);
-///     hs.push(std::thread::spawn(move || {
-///         let mut g_local = Scru128Generator::new();
-///         for _ in 0..4 {
-///             println!("Shared generator: {}", g_shared.lock().unwrap().generate());
-///             println!("Thread-local generator {i}: {}", g_local.generate());
-///         }
-///     }));
-/// }
-///
-/// for h in hs {
-///     let _ = h.join();
-/// }
+/// std::thread::scope(|s| {
+///     for i in 0..4 {
+///         let g_shared = Arc::clone(&g_shared);
+///         s.spawn(move || {
+///             let mut g_local = Scru128Generator::new();
+///             for _ in 0..4 {
+///                 println!("Shared generator: {}", g_shared.lock().unwrap().generate());
+///                 println!("Thread-local generator {}: {}", i, g_local.generate());
+///             }
+///         });
+///     }
+/// });
 /// # }
 /// ```
 ///
