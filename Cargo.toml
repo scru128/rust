@@ -10,9 +10,9 @@ keywords = ["identifier", "uuid", "guid", "ulid", "ksuid"]
 categories = ["algorithms"]
 
 [features]
-default = ["std", "rand", "global_gen"]
+default = ["global_gen"]
 std = ["fstr/std"]
-default_rng = ["std", "rand/std", "rand_chacha"]
+default_rng = ["std", "rand", "rand/std", "rand_chacha"]
 global_gen = ["default_rng"]
 
 [dependencies]
