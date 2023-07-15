@@ -36,17 +36,18 @@ See [SCRU128 Specification] for details.
 Default features:
 
 - `std` configures `Scru128Generator` with the system clock. Without `std`, this
-  crate provides limited functionality available under `no_std` environments.
-- `rand` enables a blanket implementation for `rand::RngCore` to use the
-  conforming random number generators with `Scru128Generator`.
-- `default_rng` (implies `std` and `rand`) configures `Scru128Generator` with
-  the default random number generator.
-- `global_gen` (implies `default_rng`) enables the process-wide default global
-  generator and the `new()` and `new_string()` functions.
+  crate provides basic SCRU128 primitives available under `no_std` environments.
+- `rand` enables a blanket implementation for `rand::RngCore` to use `rand` and
+  any other conforming random number generators with `Scru128Generator`.
+- `default_rng` (implies `std` and `rand`) provides the default random number
+  generator for `Scru128Generator` and enables the `Scru128Generator::new()`
+  constructor.
+- `global_gen` (implies `default_rng`) provides the process-wide default SCRU128
+  generator and enables the `new()` and `new_string()` functions.
 
 Optional features:
 
-- `serde` enables serialization/deserialization via serde.
+- `serde` enables serialization/deserialization of `Scru128Id` via serde.
 
 ## License
 

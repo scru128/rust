@@ -284,7 +284,7 @@ impl ParseError {
         }
     }
 
-    /// Creates an `InvalidDigit` variant from the entire strong and the position of invalid digit.
+    /// Creates an `InvalidDigit` variant from the entire string and the position of invalid digit.
     const fn invalid_digit(src: &str, position: usize) -> Self {
         const fn is_char_boundary(utf8_bytes: &[u8], index: usize) -> bool {
             match index {

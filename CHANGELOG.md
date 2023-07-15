@@ -1,11 +1,12 @@
 # Changelog
 
-## v3.0.0-rc.2 - 2023-07-01
+## v3.0.0-rc.3 - 2023-07-16
 
 Most notably, v3 switches the letter case of generated IDs from uppercase (e.g.,
 "036Z951MHJIKZIK2GSL81GR7L") to lowercase (e.g., "036z951mhjikzik2gsl81gr7l"),
 though it is technically not supposed to break existing code because SCRU128 is
-a case-insensitive scheme. Other changes include the removal of deprecated APIs.
+a case-insensitive scheme. Other changes include the removal of deprecated APIs
+and reorganization of crate feature flags.
 
 ### Removed
 
@@ -15,7 +16,7 @@ a case-insensitive scheme. Other changes include the removal of deprecated APIs.
   - `Scru128Generator#generate_core()`
   - `Scru128Generator#last_status()` and `generator::Status`
 - Dependency on `once_cell` crate
-  - `std` feature now uses `std::sync::OnceLock` (stable since Rust 1.70)
+  - `global_gen` feature now uses `std::sync::OnceLock` (stable since Rust 1.70)
 
 ### Changed
 

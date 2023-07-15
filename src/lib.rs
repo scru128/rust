@@ -36,17 +36,18 @@
 //! Default features:
 //!
 //! - `std` configures [`Scru128Generator`] with the system clock. Without `std`, this
-//!   crate provides limited functionality available under `no_std` environments.
-//! - `rand` enables a blanket implementation for [`rand::RngCore`] to use the
-//!   conforming random number generators with [`Scru128Generator`].
-//! - `default_rng` (implies `std` and `rand`) configures [`Scru128Generator`] with
-//!   the default random number generator.
-//! - `global_gen` (implies `default_rng`) enables the process-wide default global
-//!   generator and the [`new()`] and [`new_string()`] functions.
+//!   crate provides basic SCRU128 primitives available under `no_std` environments.
+//! - `rand` enables a blanket implementation for [`rand::RngCore`] to use `rand` and
+//!   any other conforming random number generators with [`Scru128Generator`].
+//! - `default_rng` (implies `std` and `rand`) provides the default random number
+//!   generator for [`Scru128Generator`] and enables the [`Scru128Generator::new()`]
+//!   constructor.
+//! - `global_gen` (implies `default_rng`) provides the process-wide default SCRU128
+//!   generator and enables the [`new()`] and [`new_string()`] functions.
 //!
 //! Optional features:
 //!
-//! - `serde` enables serialization/deserialization via serde.
+//! - `serde` enables serialization/deserialization of [`Scru128Id`] via serde.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -75,40 +76,41 @@ const MAX_COUNTER_LO: u32 = 0xff_ffff;
 mod tests {
     use crate::{Scru128Generator, Scru128Id};
 
-    thread_local!(static SAMPLES: Vec<String> = {
-        let mut g = Scru128Generator::new();
-        (0..100_000).map(|_| g.generate().into()).collect()
-    });
+    fn samples() -> &'static [String] {
+        use std::sync::OnceLock;
+        static SAMPLES: OnceLock<Vec<String>> = OnceLock::new();
+        SAMPLES.get_or_init(|| {
+            Scru128Generator::new()
+                .map(String::from)
+                .take(100_000)
+                .collect()
+        })
+    }
 
     /// Generates 25-digit canonical string
     #[test]
     fn generates_25_digit_canonical_string() {
         let re = regex::Regex::new(r"^[0-9a-z]{25}$").unwrap();
-        SAMPLES.with(|samples| {
-            for e in samples {
-                assert!(re.is_match(e));
-            }
-        });
+        for e in samples() {
+            assert!(re.is_match(e));
+        }
     }
 
     /// Generates 100k identifiers without collision
     #[test]
     fn generates_100k_identifiers_without_collision() {
         use std::collections::HashSet;
-        SAMPLES.with(|samples| {
-            let s: HashSet<&String> = samples.iter().collect();
-            assert_eq!(s.len(), samples.len());
-        });
+        let s: HashSet<&String> = samples().iter().collect();
+        assert_eq!(s.len(), samples().len());
     }
 
     /// Generates sortable string representation by creation time
     #[test]
     fn generates_sortable_string_representation_by_creation_time() {
-        SAMPLES.with(|samples| {
-            for i in 1..samples.len() {
-                assert!(samples[i - 1] < samples[i]);
-            }
-        });
+        let samples = samples();
+        for i in 1..samples.len() {
+            assert!(samples[i - 1] < samples[i]);
+        }
     }
 
     /// Encodes up-to-date timestamp
@@ -129,20 +131,19 @@ mod tests {
     /// Encodes unique sortable tuple of timestamp and counters
     #[test]
     fn encodes_unique_sortable_tuple_of_timestamp_and_counters() {
-        SAMPLES.with(|samples| {
-            let mut prev = samples[0].parse::<Scru128Id>().unwrap();
-            for e in &samples[1..] {
-                let curr = e.parse::<Scru128Id>().unwrap();
-                assert!(
-                    prev.timestamp() < curr.timestamp()
-                        || (prev.timestamp() == curr.timestamp()
-                            && prev.counter_hi() < curr.counter_hi())
-                        || (prev.timestamp() == curr.timestamp()
-                            && prev.counter_hi() == curr.counter_hi()
-                            && prev.counter_lo() < curr.counter_lo())
-                );
-                prev = curr;
-            }
-        });
+        let samples = samples();
+        let mut prev = samples[0].parse::<Scru128Id>().unwrap();
+        for e in &samples[1..] {
+            let curr = e.parse::<Scru128Id>().unwrap();
+            assert!(
+                prev.timestamp() < curr.timestamp()
+                    || (prev.timestamp() == curr.timestamp()
+                        && prev.counter_hi() < curr.counter_hi())
+                    || (prev.timestamp() == curr.timestamp()
+                        && prev.counter_hi() == curr.counter_hi()
+                        && prev.counter_lo() < curr.counter_lo())
+            );
+            prev = curr;
+        }
     }
 }
