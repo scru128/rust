@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.0.0-rc.3 - 2023-07-16
+## v3.0.1 - unreleased
 
 Most notably, v3 switches the letter case of generated IDs from uppercase (e.g.,
 "036Z951MHJIKZIK2GSL81GR7L") to lowercase (e.g., "036z951mhjikzik2gsl81gr7l"),
@@ -25,6 +25,7 @@ and reorganization of crate feature flags.
   relax hard dependency on `rand` crate
 - Internal representation of `Scru128Id` from `u128` to big-endian byte array
   representation
+- Edge case behavior of generator functions' rollback allowance handling
 
 ### Added
 
