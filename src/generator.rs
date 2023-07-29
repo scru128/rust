@@ -73,7 +73,7 @@ pub use default_rng::DefaultRng;
 /// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
 ///
 /// All of these methods return monotonically increasing IDs unless a `timestamp` provided is
-/// significantly (by default, ten seconds or more) smaller than the one embedded in the
+/// significantly (by default, more than ten seconds) smaller than the one embedded in the
 /// immediately preceding ID. If such a significant clock rollback is detected, the `generate`
 /// (or_reset) method resets the generator and returns a new ID based on the given `timestamp`,
 /// while the `or_abort` variants abort and return `None`. The `core` functions offer low-level
@@ -169,7 +169,7 @@ impl<R: Scru128Rng> Scru128Generator<R> {
         if timestamp > self.timestamp {
             self.timestamp = timestamp;
             self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
-        } else if timestamp + rollback_allowance > self.timestamp {
+        } else if timestamp + rollback_allowance >= self.timestamp {
             // go on with previous timestamp if new one is not much smaller
             self.counter_lo += 1;
             if self.counter_lo > MAX_COUNTER_LO {
@@ -325,7 +325,7 @@ mod tests_generate_or_reset {
         assert_eq!(prev.timestamp(), ts);
 
         for i in 0..100_000u64 {
-            let curr = g.generate_or_reset_core(ts - i.min(9_998), 10_000);
+            let curr = g.generate_or_reset_core(ts - i.min(9_999), 10_000);
             assert!(prev < curr);
             prev = curr;
         }
@@ -342,11 +342,15 @@ mod tests_generate_or_reset {
         assert_eq!(prev.timestamp(), ts);
 
         let mut curr = g.generate_or_reset_core(ts - 10_000, 10_000);
-        assert!(prev > curr);
-        assert_eq!(curr.timestamp(), ts - 10_000);
+        assert!(prev < curr);
 
         prev = curr;
         curr = g.generate_or_reset_core(ts - 10_001, 10_000);
+        assert!(prev > curr);
+        assert_eq!(curr.timestamp(), ts - 10_001);
+
+        prev = curr;
+        curr = g.generate_or_reset_core(ts - 10_002, 10_000);
         assert!(prev < curr);
     }
 }
@@ -365,7 +369,7 @@ mod tests_generate_or_abort {
         assert_eq!(prev.timestamp(), ts);
 
         for i in 0..100_000u64 {
-            let curr = g.generate_or_abort_core(ts - i.min(9_998), 10_000).unwrap();
+            let curr = g.generate_or_abort_core(ts - i.min(9_999), 10_000).unwrap();
             assert!(prev < curr);
             prev = curr;
         }
@@ -382,9 +386,12 @@ mod tests_generate_or_abort {
         assert_eq!(prev.timestamp(), ts);
 
         let mut curr = g.generate_or_abort_core(ts - 10_000, 10_000);
-        assert!(curr.is_none());
+        assert!(prev < curr.unwrap());
 
         curr = g.generate_or_abort_core(ts - 10_001, 10_000);
+        assert!(curr.is_none());
+
+        curr = g.generate_or_abort_core(ts - 10_002, 10_000);
         assert!(curr.is_none());
     }
 }
