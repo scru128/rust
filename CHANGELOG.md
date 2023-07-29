@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.0.1 - unreleased
+## v3.0.1 - 2023-07-29
 
 Most notably, v3 switches the letter case of generated IDs from uppercase (e.g.,
 "036Z951MHJIKZIK2GSL81GR7L") to lowercase (e.g., "036z951mhjikzik2gsl81gr7l"),
