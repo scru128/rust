@@ -196,35 +196,6 @@ impl Scru128Id {
     }
 }
 
-impl str::FromStr for Scru128Id {
-    type Err = ParseError;
-
-    /// Creates an object from a 25-digit string representation.
-    fn from_str(str_value: &str) -> Result<Self, Self::Err> {
-        Self::try_from_str(str_value)
-    }
-}
-
-impl fmt::Display for Scru128Id {
-    /// Returns the 25-digit canonical string representation.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use scru128::Scru128Id;
-    ///
-    /// let x = "03997ft3ckz99o1i3f82zat1t".parse::<Scru128Id>()?;
-    /// assert_eq!(format!("{x}"), "03997ft3ckz99o1i3f82zat1t");
-    /// assert_eq!(format!("{x:32}"), "03997ft3ckz99o1i3f82zat1t       ");
-    /// assert_eq!(format!("{x:->32}"), "-------03997ft3ckz99o1i3f82zat1t");
-    /// assert_eq!(format!("{x:.^7.5}"), ".03997.");
-    /// # Ok::<(), scru128::ParseError>(())
-    /// ```
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(self.encode().as_str(), f)
-    }
-}
-
 impl From<u128> for Scru128Id {
     fn from(value: u128) -> Self {
         Self::from_u128(value)
@@ -254,6 +225,35 @@ impl From<Scru128Id> for [u8; 16] {
 impl AsRef<[u8]> for Scru128Id {
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
+    }
+}
+
+impl str::FromStr for Scru128Id {
+    type Err = ParseError;
+
+    /// Creates an object from a 25-digit string representation.
+    fn from_str(str_value: &str) -> Result<Self, Self::Err> {
+        Self::try_from_str(str_value)
+    }
+}
+
+impl fmt::Display for Scru128Id {
+    /// Returns the 25-digit canonical string representation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use scru128::Scru128Id;
+    ///
+    /// let x = "03997ft3ckz99o1i3f82zat1t".parse::<Scru128Id>()?;
+    /// assert_eq!(format!("{x}"), "03997ft3ckz99o1i3f82zat1t");
+    /// assert_eq!(format!("{x:32}"), "03997ft3ckz99o1i3f82zat1t       ");
+    /// assert_eq!(format!("{x:->32}"), "-------03997ft3ckz99o1i3f82zat1t");
+    /// assert_eq!(format!("{x:.^7.5}"), ".03997.");
+    /// # Ok::<(), scru128::ParseError>(())
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self.encode().as_str(), f)
     }
 }
 
@@ -605,7 +605,7 @@ mod serde_support {
             if serializer.is_human_readable() {
                 serializer.serialize_str(&self.encode())
             } else {
-                serializer.serialize_bytes(&self.to_bytes())
+                serializer.serialize_bytes(self.as_bytes())
             }
         }
     }
