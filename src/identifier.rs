@@ -162,7 +162,7 @@ impl Scru128Id {
     /// let x = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
     /// let y = x.encode();
     /// assert_eq!(y, "037d0xye6op48cmce8ey4xlcf");
-    /// assert_eq!(format!("{y}"), "037d0xye6op48cmce8ey4xlcf");
+    /// assert_eq!(format!("{}", y), "037d0xye6op48cmce8ey4xlcf");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
     pub const fn encode(&self) -> FStr<25> {
@@ -246,10 +246,10 @@ impl fmt::Display for Scru128Id {
     /// use scru128::Scru128Id;
     ///
     /// let x = "03997ft3ckz99o1i3f82zat1t".parse::<Scru128Id>()?;
-    /// assert_eq!(format!("{x}"), "03997ft3ckz99o1i3f82zat1t");
-    /// assert_eq!(format!("{x:32}"), "03997ft3ckz99o1i3f82zat1t       ");
-    /// assert_eq!(format!("{x:->32}"), "-------03997ft3ckz99o1i3f82zat1t");
-    /// assert_eq!(format!("{x:.^7.5}"), ".03997.");
+    /// assert_eq!(format!("{}", x), "03997ft3ckz99o1i3f82zat1t");
+    /// assert_eq!(format!("{:32}", x), "03997ft3ckz99o1i3f82zat1t       ");
+    /// assert_eq!(format!("{:->32}", x), "-------03997ft3ckz99o1i3f82zat1t");
+    /// assert_eq!(format!("{:.^7.5}", x), ".03997.");
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

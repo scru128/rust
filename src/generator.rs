@@ -273,7 +273,7 @@ mod std_ext {
     ///
     /// let g = Scru128Generator::new();
     /// for (i, e) in g.take(8).enumerate() {
-    ///     println!("[{i}] {e}");
+    ///     println!("[{}] {}", i, e);
     /// }
     /// # }
     /// ```
