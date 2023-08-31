@@ -478,8 +478,8 @@ mod default_rng {
             let mut prev = rng.next_u32();
             let mut counts_xor = [0u32; 32];
 
-            const N: usize = 1_000_000;
-            for _ in 0..N {
+            const N_LOOPS: usize = 1_000_000;
+            for _ in 0..N_LOOPS {
                 let num = rng.next_u32();
 
                 let mut x = num;
@@ -497,13 +497,13 @@ mod default_rng {
             }
 
             // set margin based on binom dist 99.999% confidence interval
-            let margin = 4.417173 * (0.5 * 0.5 / N as f64).sqrt();
+            let margin = 4.417173 * (0.5 * 0.5 / N_LOOPS as f64).sqrt();
             assert!(counts
                 .iter()
-                .all(|e| (*e as f64 / N as f64 - 0.5).abs() < margin));
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
             assert!(counts_xor
                 .iter()
-                .all(|e| (*e as f64 / N as f64 - 0.5).abs() < margin));
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
         }
     }
 }
