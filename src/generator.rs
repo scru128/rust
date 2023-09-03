@@ -63,7 +63,7 @@ pub use default_rng::DefaultRng;
 ///
 /// # Generator functions
 ///
-/// The generator offers four different methods to generate a SCRU128 ID:
+/// The generator comes with four different methods that generate a SCRU128 ID:
 ///
 /// | Flavor                     | Timestamp | On big clock rewind |
 /// | -------------------------- | --------- | ------------------- |
@@ -72,12 +72,15 @@ pub use default_rng::DefaultRng;
 /// | [`generate_or_reset_core`] | Argument  | Resets generator    |
 /// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
 ///
-/// All of these methods return monotonically increasing IDs unless a `timestamp` provided is
-/// significantly (by default, more than ten seconds) smaller than the one embedded in the
-/// immediately preceding ID. If such a significant clock rollback is detected, the `generate`
-/// (or_reset) method resets the generator and returns a new ID based on the given `timestamp`,
-/// while the `or_abort` variants abort and return `None`. The `core` functions offer low-level
-/// primitives.
+/// All of the four return a monotonically increasing ID by reusing the previous `timestamp` even
+/// if the one provided is smaller than the immediately preceding ID's. However, when such a clock
+/// rollback is considered significant (by default, more than ten seconds):
+///
+/// 1.  `generate` (or_reset) methods reset the generator and return a new ID based on the given
+///     `timestamp`, breaking the increasing order of IDs.
+/// 2.  `or_abort` variants abort and return `None` immediately.
+///
+/// The `core` functions offer low-level primitives to customize the behavior.
 ///
 /// [`generate`]: Scru128Generator::generate
 /// [`generate_or_abort`]: Scru128Generator::generate_or_abort
