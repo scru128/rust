@@ -1,4 +1,6 @@
 //! SCRU128 generator and related items.
+//!
+//! This module is also exported as `scru128::generator` for backward compatibility.
 
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 

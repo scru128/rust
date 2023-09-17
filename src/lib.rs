@@ -56,11 +56,13 @@ mod global_gen;
 #[cfg(feature = "global_gen")]
 pub use global_gen::{new, new_string};
 
-mod identifier;
-pub use identifier::{ParseError, Scru128Id};
+mod id;
+pub use id::{ParseError, Scru128Id};
 
-pub mod generator;
-pub use generator::Scru128Generator;
+pub mod gen;
+#[doc(hidden)]
+pub use gen as generator;
+pub use gen::Scru128Generator;
 
 /// The maximum value of 48-bit `timestamp` field.
 const MAX_TIMESTAMP: u64 = 0xffff_ffff_ffff;

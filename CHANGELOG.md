@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.2 - unreleased
+
+### Changed
+
+- Name of `generator` module to `gen`
+  - `generator` remains as an alias to `gen` for backward compatibility
+
 ## v3.0.1 - 2023-07-29
 
 Most notably, v3 switches the letter case of generated IDs from uppercase (e.g.,
