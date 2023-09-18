@@ -1,4 +1,6 @@
 //! SCRU128 generator and related items.
+//!
+//! This module is also exported as `scru128::generator` for backward compatibility.
 
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
@@ -63,7 +65,7 @@ pub use default_rng::DefaultRng;
 ///
 /// # Generator functions
 ///
-/// The generator offers four different methods to generate a SCRU128 ID:
+/// The generator comes with four different methods that generate a SCRU128 ID:
 ///
 /// | Flavor                     | Timestamp | On big clock rewind |
 /// | -------------------------- | --------- | ------------------- |
@@ -72,12 +74,15 @@ pub use default_rng::DefaultRng;
 /// | [`generate_or_reset_core`] | Argument  | Resets generator    |
 /// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
 ///
-/// All of these methods return monotonically increasing IDs unless a `timestamp` provided is
-/// significantly (by default, more than ten seconds) smaller than the one embedded in the
-/// immediately preceding ID. If such a significant clock rollback is detected, the `generate`
-/// (or_reset) method resets the generator and returns a new ID based on the given `timestamp`,
-/// while the `or_abort` variants abort and return `None`. The `core` functions offer low-level
-/// primitives.
+/// All of the four return a monotonically increasing ID by reusing the previous `timestamp` even
+/// if the one provided is smaller than the immediately preceding ID's. However, when such a clock
+/// rollback is considered significant (by default, more than ten seconds):
+///
+/// 1.  `generate` (or_reset) methods reset the generator and return a new ID based on the given
+///     `timestamp`, breaking the increasing order of IDs.
+/// 2.  `or_abort` variants abort and return `None` immediately.
+///
+/// The `core` functions offer low-level primitives to customize the behavior.
 ///
 /// [`generate`]: Scru128Generator::generate
 /// [`generate_or_abort`]: Scru128Generator::generate_or_abort
@@ -273,7 +278,7 @@ mod std_ext {
     ///
     /// let g = Scru128Generator::new();
     /// for (i, e) in g.take(8).enumerate() {
-    ///     println!("[{i}] {e}");
+    ///     println!("[{}] {}", i, e);
     /// }
     /// # }
     /// ```
@@ -478,8 +483,8 @@ mod default_rng {
             let mut prev = rng.next_u32();
             let mut counts_xor = [0u32; 32];
 
-            const N: usize = 1_000_000;
-            for _ in 0..N {
+            const N_LOOPS: usize = 1_000_000;
+            for _ in 0..N_LOOPS {
                 let num = rng.next_u32();
 
                 let mut x = num;
@@ -497,13 +502,13 @@ mod default_rng {
             }
 
             // set margin based on binom dist 99.999% confidence interval
-            let margin = 4.417173 * (0.5 * 0.5 / N as f64).sqrt();
+            let margin = 4.417173 * (0.5 * 0.5 / N_LOOPS as f64).sqrt();
             assert!(counts
                 .iter()
-                .all(|e| (*e as f64 / N as f64 - 0.5).abs() < margin));
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
             assert!(counts_xor
                 .iter()
-                .all(|e| (*e as f64 / N as f64 - 0.5).abs() < margin));
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
         }
     }
 }
