@@ -1,11 +1,15 @@
 # Changelog
 
-## v3.0.2 - unreleased
+## v3.0.2 - 2023-09-18
 
 ### Changed
 
 - Name of `generator` module to `gen`
   - `generator` remains as an alias to `gen` for backward compatibility
+
+### Maintenance
+
+- Improved documentation about generator's clock rollback behavior
 
 ## v3.0.1 - 2023-07-29
 
