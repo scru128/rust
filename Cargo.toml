@@ -1,6 +1,6 @@
 [package]
 name = "scru128"
-version = "3.0.2"
+version = "3.0.3"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -23,7 +23,7 @@ serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
 rand = { version = "0.8", default-features = false, features = ["std_rng"] }
-regex = { version = "1.9", default-features = false, features = ["std"] }
+regex = { version = "1.10", default-features = false, features = ["std"] }
 serde_test = "1.0"
 
 [package.metadata.docs.rs]

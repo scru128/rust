@@ -1,11 +1,15 @@
 # Changelog
 
-## Unreleased
+## v3.0.3 - 2024-08-17
 
 ### Changed
 
 - Name of `gen` module back to `generator` to avoid forthcoming `gen` keyword
   - `gen` remains as an alias to `generator` for backward compatibility
+
+### Maintenance
+
+- Updated dev dependencies
 
 ## v3.0.2 - 2023-09-18
 
