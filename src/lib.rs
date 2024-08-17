@@ -61,7 +61,7 @@ pub use id::{ParseError, Scru128Id};
 
 pub mod generator;
 #[doc(hidden)]
-pub use generator as gen;
+pub use generator as r#gen;
 pub use generator::Scru128Generator;
 
 /// The maximum value of 48-bit `timestamp` field.
