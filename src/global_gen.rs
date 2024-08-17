@@ -43,7 +43,7 @@ pub fn new_string() -> String {
 struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
-    gen: Scru128Generator,
+    inner: Scru128Generator,
 }
 
 impl Default for GlobalGenInner {
@@ -51,7 +51,7 @@ impl Default for GlobalGenInner {
         Self {
             #[cfg(unix)]
             pid: std::process::id(),
-            gen: Default::default(),
+            inner: Default::default(),
         }
     }
 }
@@ -62,7 +62,7 @@ impl GlobalGenInner {
         if self.pid != std::process::id() {
             *self = Default::default();
         }
-        self.gen.generate()
+        self.inner.generate()
     }
 }
 
