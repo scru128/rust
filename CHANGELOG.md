@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `Scru128Generator::with_rand08()` to make integration with `rand` explicit
+
 ## v3.0.3 - 2024-08-17
 
 ### Changed
