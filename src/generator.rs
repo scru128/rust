@@ -6,7 +6,7 @@ use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
 /// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
 pub trait Scru128Rng {
-    /// Return the next random `u32`.
+    /// Returns the next random `u32`.
     fn next_u32(&mut self) -> u32;
 }
 
@@ -96,6 +96,10 @@ pub struct Scru128Generator<R = DefaultRng> {
 impl<R: Scru128Rng> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
+    ///
+    /// Use [`Scru128Generator::with_rand08()`] to create a generator with the random number
+    /// generators from `rand` crate. Although this constructor accepts [`rand::RngCore`] types for
+    /// historical reasons, such behavior is deprecated and will be removed in the future.
     pub const fn with_rng(rng: R) -> Self {
         Self {
             timestamp: 0,
@@ -334,6 +338,8 @@ pub mod with_rand08 {
         }
     }
 
+    /// This is a deprecated blanket impl retained for backward compatibility. Do not depend on
+    /// this impl; use [`Scru128Generator::with_rand08()`] instead.
     impl<T: RngCore> Scru128Rng for T {
         fn next_u32(&mut self) -> u32 {
             self.next_u32()
