@@ -6,18 +6,13 @@ use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
 /// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
 pub trait Scru128Rng {
-    /// Return the next random `u32`.
+    /// Returns the next random `u32`.
     fn next_u32(&mut self) -> u32;
 }
 
-#[cfg(feature = "rand")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
-impl<T: rand::RngCore> Scru128Rng for T {
-    fn next_u32(&mut self) -> u32 {
-        self.next_u32()
-    }
-}
+pub mod with_rand08;
 
+mod default_rng;
 pub use default_rng::DefaultRng;
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
@@ -105,17 +100,9 @@ impl<R: Scru128Rng> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
     ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # #[cfg(feature = "default_rng")]
-    /// # {
-    /// use scru128::Scru128Generator;
-    ///
-    /// let mut g = Scru128Generator::with_rng(rand::rngs::OsRng);
-    /// println!("{}", g.generate());
-    /// # }
-    /// ```
+    /// Use [`Scru128Generator::with_rand08()`] to create a generator with the random number
+    /// generators from `rand` crate. Although this constructor accepts [`rand::RngCore`] types for
+    /// historical reasons, such behavior is deprecated and will be removed in the future.
     pub const fn with_rng(rng: R) -> Self {
         Self {
             timestamp: 0,
@@ -217,7 +204,7 @@ impl Scru128Generator {
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-mod std_ext {
+mod with_std {
     use super::{Scru128Generator, Scru128Id, Scru128Rng};
     use std::{iter, time};
 
@@ -398,117 +385,5 @@ mod tests_generate_or_abort {
 
         curr = g.generate_or_abort_core(ts - 10_002, 10_000);
         assert!(curr.is_none());
-    }
-}
-
-mod default_rng {
-    #[cfg(feature = "default_rng")]
-    use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng as _};
-
-    #[cfg(all(not(feature = "default_rng"), test))]
-    use rand::{rngs::StdRng, SeedableRng as _};
-
-    /// The default random number generator used by [`Scru128Generator`].
-    ///
-    /// Currently, `DefaultRng` uses [`ChaCha12Core`] that is initially seeded and subsequently
-    /// reseeded by [`OsRng`] every 64 kiB of random data using the [`ReseedingRng`] wrapper. It is
-    /// the same strategy as that employed by [`ThreadRng`]; see the docs of `rand` crate for a
-    /// detailed discussion on the strategy.
-    ///
-    /// This structure does exist without the `default_rng` feature flag but is not able to be
-    /// instantiated or used as a random number generator.
-    ///
-    /// [`Scru128Generator`]: super::Scru128Generator
-    /// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
-    /// [`OsRng`]: rand::rngs::OsRng
-    /// [`ReseedingRng`]: rand::rngs::adapter::ReseedingRng
-    /// [`ThreadRng`]: https://docs.rs/rand/0.8/rand/rngs/struct.ThreadRng.html
-    #[cfg_attr(docsrs, doc(cfg(feature = "default_rng")))]
-    #[derive(Clone, Debug)]
-    pub struct DefaultRng {
-        _private: (),
-
-        #[cfg(feature = "default_rng")]
-        inner: ReseedingRng<rand_chacha::ChaCha12Core, OsRng>,
-
-        #[cfg(all(not(feature = "default_rng"), test))]
-        inner: StdRng,
-    }
-
-    #[cfg(any(feature = "default_rng", test))]
-    impl super::Scru128Rng for DefaultRng {
-        fn next_u32(&mut self) -> u32 {
-            rand::RngCore::next_u32(&mut self.inner)
-        }
-    }
-
-    #[cfg(any(feature = "default_rng", test))]
-    impl Default for DefaultRng {
-        fn default() -> Self {
-            Self {
-                _private: (),
-
-                #[cfg(feature = "default_rng")]
-                inner: {
-                    let rng = rand_chacha::ChaCha12Core::from_rng(OsRng)
-                        .expect("could not initialize DefaultRng");
-                    ReseedingRng::new(rng, 1024 * 64, OsRng)
-                },
-
-                #[cfg(all(not(feature = "default_rng"), test))]
-                inner: {
-                    let local_var = 0u32;
-                    let addr_as_seed = (&local_var as *const u32) as u64;
-                    StdRng::seed_from_u64(addr_as_seed)
-                },
-            }
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::{super::Scru128Rng, DefaultRng};
-
-        /// Generates unbiased random numbers
-        ///
-        /// This test may fail at a very low probability.
-        #[test]
-        fn generates_unbiased_random_numbers() {
-            let mut rng = DefaultRng::default();
-
-            // test if random bits are set to 1 at ~50% probability
-            let mut counts = [0u32; 32];
-
-            // test if XOR of two consecutive outputs is also random
-            let mut prev = rng.next_u32();
-            let mut counts_xor = [0u32; 32];
-
-            const N_LOOPS: usize = 1_000_000;
-            for _ in 0..N_LOOPS {
-                let num = rng.next_u32();
-
-                let mut x = num;
-                for e in counts.iter_mut().rev() {
-                    *e += x & 1;
-                    x >>= 1;
-                }
-
-                let mut x = prev ^ num;
-                for e in counts_xor.iter_mut().rev() {
-                    *e += x & 1;
-                    x >>= 1;
-                }
-                prev = num;
-            }
-
-            // set margin based on binom dist 99.999% confidence interval
-            let margin = 4.417173 * (0.5 * 0.5 / N_LOOPS as f64).sqrt();
-            assert!(counts
-                .iter()
-                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
-            assert!(counts_xor
-                .iter()
-                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
-        }
     }
 }

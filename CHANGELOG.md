@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.1.0 - 2024-09-07
+
+### Added
+
+- `Scru128Generator::with_rand08()` to make integration with `rand` explicit
+
+### Deprecated
+
+- Blanket implementation of `Scru128Rng` for `rand::RngCore`
+
 ## v3.0.3 - 2024-08-17
 
 ### Changed
