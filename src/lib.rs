@@ -72,8 +72,7 @@ const MAX_COUNTER_HI: u32 = 0xff_ffff;
 /// The maximum value of 24-bit `counter_lo` field.
 const MAX_COUNTER_LO: u32 = 0xff_ffff;
 
-#[cfg(feature = "std")]
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use crate::{Scru128Generator, Scru128Id};
 

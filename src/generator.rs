@@ -204,7 +204,7 @@ impl Scru128Generator {
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-mod std_ext {
+mod with_std {
     use super::{Scru128Generator, Scru128Id, Scru128Rng};
     use std::{iter, time};
 

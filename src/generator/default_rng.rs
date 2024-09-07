@@ -1,7 +1,9 @@
+#![cfg_attr(docsrs, doc(cfg(feature = "default_rng")))]
+
 #[cfg(feature = "default_rng")]
 use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng as _};
 
-#[cfg(all(not(feature = "default_rng"), test))]
+#[cfg(all(test, not(feature = "default_rng")))]
 use rand::{rngs::StdRng, SeedableRng as _};
 
 /// The default random number generator used by [`Scru128Generator`].
@@ -19,7 +21,6 @@ use rand::{rngs::StdRng, SeedableRng as _};
 /// [`OsRng`]: rand::rngs::OsRng
 /// [`ReseedingRng`]: rand::rngs::adapter::ReseedingRng
 /// [`ThreadRng`]: https://docs.rs/rand/0.8/rand/rngs/struct.ThreadRng.html
-#[cfg_attr(docsrs, doc(cfg(feature = "default_rng")))]
 #[derive(Clone, Debug)]
 pub struct DefaultRng {
     _private: (),
@@ -27,7 +28,7 @@ pub struct DefaultRng {
     #[cfg(feature = "default_rng")]
     inner: ReseedingRng<rand_chacha::ChaCha12Core, OsRng>,
 
-    #[cfg(all(not(feature = "default_rng"), test))]
+    #[cfg(all(test, not(feature = "default_rng")))]
     inner: StdRng,
 }
 
@@ -51,7 +52,7 @@ impl Default for DefaultRng {
                 ReseedingRng::new(rng, 1024 * 64, OsRng)
             },
 
-            #[cfg(all(not(feature = "default_rng"), test))]
+            #[cfg(all(test, not(feature = "default_rng")))]
             inner: {
                 let local_var = 0u32;
                 let addr_as_seed = (&local_var as *const u32) as u64;

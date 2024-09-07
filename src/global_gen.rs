@@ -1,4 +1,5 @@
 #![cfg(feature = "global_gen")]
+#![cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 
 use crate::{Scru128Generator, Scru128Id};
 
@@ -7,7 +8,6 @@ use crate::{Scru128Generator, Scru128Id};
 /// This function is thread-safe; multiple threads in a process can call it concurrently without
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
 /// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
-#[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn new() -> Scru128Id {
     use std::sync::{Mutex, OnceLock};
     static G: OnceLock<Mutex<GlobalGenInner>> = OnceLock::new();
@@ -33,7 +33,6 @@ pub fn new() -> Scru128Id {
 ///
 /// assert!(regex::Regex::new(r"^[0-9a-z]{25}$").unwrap().is_match(&x));
 /// ```
-#[cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 pub fn new_string() -> String {
     new().into()
 }
