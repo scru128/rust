@@ -69,17 +69,20 @@ impl GlobalGenInner {
 mod tests {
     /// Generates no IDs sharing same timestamp and counters under multithreading
     #[test]
-    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading() {
+    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading(
+    ) -> Result<(), Box<dyn std::error::Error>> {
         use std::{collections::HashSet, sync::mpsc, thread};
 
         let (tx, rx) = mpsc::channel();
         for _ in 0..4 {
             let tx = tx.clone();
-            thread::spawn(move || {
-                for _ in 0..10000 {
-                    tx.send(super::new()).unwrap();
-                }
-            });
+            thread::Builder::new()
+                .spawn(move || {
+                    for _ in 0..10000 {
+                        tx.send(super::new()).unwrap();
+                    }
+                })
+                .map_err(|err| format!("failed to spawn thread: {:?}", err))?;
         }
         drop(tx);
 
@@ -89,5 +92,6 @@ mod tests {
         }
 
         assert_eq!(s.len(), 4 * 10000);
+        Ok(())
     }
 }
