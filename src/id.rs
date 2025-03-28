@@ -622,7 +622,7 @@ mod with_serde {
 
     struct VisitorImpl;
 
-    impl<'de> de::Visitor<'de> for VisitorImpl {
+    impl de::Visitor<'_> for VisitorImpl {
         type Value = Scru128Id;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
