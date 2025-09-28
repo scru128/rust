@@ -11,6 +11,7 @@ pub trait Scru128Rng {
 }
 
 pub mod with_rand08;
+pub mod with_rand09;
 
 mod default_rng;
 pub use default_rng::DefaultRng;

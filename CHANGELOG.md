@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `rand09` crate feature and `Scru128Generator::with_rand09()`
+
+## Changed
+
+- The underlying crate for `DefaultRng` from `rand` v0.8 to v0.9
+
 ## v3.1.0 - 2024-09-07
 
 ### Added

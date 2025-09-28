@@ -13,18 +13,18 @@ categories = ["algorithms"]
 default = ["global_gen"]
 std = ["fstr/std"]
 rand = ["dep:rand"]
-default_rng = ["std", "rand", "rand/std", "dep:rand_chacha"]
+default_rng = ["std", "rand", "rand/default", "dep:rand_chacha"]
 global_gen = ["default_rng"]
 serde = ["dep:serde"]
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
-rand = { version = "0.8", default-features = false, optional = true }
-rand_chacha = { version = "0.3", optional = true }
+rand = { version = "0.9", default-features = false, optional = true }
+rand_chacha = { version = "0.9", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
-rand = { version = "0.8", default-features = false, features = ["std_rng"] }
+rand = { version = "0.9", default-features = false, features = ["std_rng"] }
 regex = { version = "1.10", default-features = false, features = ["std"] }
 serde_test = "1.0"
 

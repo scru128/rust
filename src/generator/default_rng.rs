@@ -1,7 +1,7 @@
 #![cfg_attr(docsrs, doc(cfg(feature = "default_rng")))]
 
 #[cfg(feature = "default_rng")]
-use rand::{rngs::adapter::ReseedingRng, rngs::OsRng, SeedableRng as _};
+use rand::{rngs::OsRng, rngs::ReseedingRng};
 
 #[cfg(all(test, not(feature = "default_rng")))]
 use rand::{rngs::StdRng, SeedableRng as _};
@@ -18,9 +18,7 @@ use rand::{rngs::StdRng, SeedableRng as _};
 ///
 /// [`Scru128Generator`]: super::Scru128Generator
 /// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
-/// [`OsRng`]: rand::rngs::OsRng
-/// [`ReseedingRng`]: rand::rngs::adapter::ReseedingRng
-/// [`ThreadRng`]: https://docs.rs/rand/0.8/rand/rngs/struct.ThreadRng.html
+/// [`ThreadRng`]: rand::rngs::ThreadRng
 #[derive(Clone, Debug)]
 pub struct DefaultRng {
     _private: (),
@@ -46,11 +44,7 @@ impl Default for DefaultRng {
             _private: (),
 
             #[cfg(feature = "default_rng")]
-            inner: {
-                let rng = rand_chacha::ChaCha12Core::from_rng(OsRng)
-                    .expect("could not initialize DefaultRng");
-                ReseedingRng::new(rng, 1024 * 64, OsRng)
-            },
+            inner: ReseedingRng::new(1024 * 64, OsRng).expect("could not initialize DefaultRng"),
 
             #[cfg(all(test, not(feature = "default_rng")))]
             inner: {
