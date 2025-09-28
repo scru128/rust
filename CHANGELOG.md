@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.2.1 - 2025-09-28
+
+## Changed
+
+- Source of `RngCore` trait used by `rand09` and `rand08` features from `rand`
+  crate to `rand_core` crate
+
 ## v3.2.0 - 2025-09-28
 
 ### Added

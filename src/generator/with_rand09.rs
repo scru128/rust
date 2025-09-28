@@ -4,7 +4,7 @@
 #![cfg_attr(docsrs, doc(cfg(feature = "rand09")))]
 
 use super::{Scru128Generator, Scru128Rng};
-use rand09::RngCore;
+use rand_core09::RngCore;
 
 /// An adapter that implements [`Scru128Rng`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]

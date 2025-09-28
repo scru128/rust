@@ -4,7 +4,7 @@
 #![cfg_attr(docsrs, doc(cfg(feature = "rand08")))]
 
 use super::{Scru128Generator, Scru128Rng};
-use rand08::RngCore;
+use rand_core06::RngCore;
 
 /// An adapter that implements [`Scru128Rng`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
@@ -20,6 +20,19 @@ impl<T: RngCore> Scru128Generator<Adapter<T>> {
     /// Creates a generator object with a specified random number generator that implements
     /// [`RngCore`] from `rand` (v0.8) crate. The specified random number generator should be
     /// cryptographically strong and securely seeded.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// # #[cfg(feature = "default_rng")]
+    /// # {
+    /// # use rand08 as rand;
+    /// use scru128::Scru128Generator;
+    ///
+    /// let mut g = Scru128Generator::with_rand08(rand::thread_rng());
+    /// println!("{}", g.generate());
+    /// # }
+    /// ```
     pub const fn with_rand08(rng: T) -> Self {
         Self::with_rng(Adapter(rng))
     }

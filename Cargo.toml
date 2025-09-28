@@ -1,6 +1,6 @@
 [package]
 name = "scru128"
-version = "3.2.0"
+version = "3.2.1"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -13,9 +13,9 @@ categories = ["algorithms"]
 [features]
 default = ["global_gen"]
 std = ["fstr/std"]
-rand08 = ["dep:rand08"]
-rand09 = ["dep:rand09"]
-default_rng = ["std", "rand", "rand09/default", "dep:rand_chacha"]
+rand08 = ["dep:rand_core06"]
+rand09 = ["dep:rand_core09"]
+default_rng = ["std", "rand", "dep:rand09", "dep:rand_chacha"]
 global_gen = ["default_rng"]
 serde = ["dep:serde"]
 
@@ -23,9 +23,10 @@ rand = ["rand08"] # Deprecated alias. This enables the deprecated blanket impl.
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
-rand08 = { package = "rand", version = "0.8", default-features = false, optional = true }
-rand09 = { package = "rand", version = "0.9", default-features = false, optional = true }
+rand09 = { package = "rand", version = "0.9", optional = true }
 rand_chacha = { version = "0.9", optional = true }
+rand_core06 = { package = "rand_core", version = "0.6", default-features = false, optional = true }
+rand_core09 = { package = "rand_core", version = "0.9", default-features = false, optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
