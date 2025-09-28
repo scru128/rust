@@ -101,9 +101,10 @@ impl<R: Scru128Rng> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
     ///
-    /// Use [`Scru128Generator::with_rand08()`] to create a generator with the random number
-    /// generators from `rand` crate. Although this constructor accepts [`rand::RngCore`] types for
-    /// historical reasons, such behavior is deprecated and will be removed in the future.
+    /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
+    /// generators from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8)
+    /// types for historical reasons, such behavior is deprecated and will be removed in the
+    /// future.
     pub const fn with_rng(rng: R) -> Self {
         Self {
             timestamp: 0,

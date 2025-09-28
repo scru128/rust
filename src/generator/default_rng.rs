@@ -1,10 +1,10 @@
 #![cfg_attr(docsrs, doc(cfg(feature = "default_rng")))]
 
 #[cfg(feature = "default_rng")]
-use rand::{rngs::OsRng, rngs::ReseedingRng};
+use rand09::{rngs::OsRng, rngs::ReseedingRng};
 
 #[cfg(all(test, not(feature = "default_rng")))]
-use rand::{rngs::StdRng, SeedableRng as _};
+use rand09::{rngs::StdRng, SeedableRng as _};
 
 /// The default random number generator used by [`Scru128Generator`].
 ///
@@ -18,7 +18,7 @@ use rand::{rngs::StdRng, SeedableRng as _};
 ///
 /// [`Scru128Generator`]: super::Scru128Generator
 /// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
-/// [`ThreadRng`]: rand::rngs::ThreadRng
+/// [`ThreadRng`]: rand09::rngs::ThreadRng
 #[derive(Clone, Debug)]
 pub struct DefaultRng {
     _private: (),
@@ -33,7 +33,7 @@ pub struct DefaultRng {
 #[cfg(any(feature = "default_rng", test))]
 impl super::Scru128Rng for DefaultRng {
     fn next_u32(&mut self) -> u32 {
-        rand::RngCore::next_u32(&mut self.inner)
+        rand09::RngCore::next_u32(&mut self.inner)
     }
 }
 

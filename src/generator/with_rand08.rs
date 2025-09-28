@@ -1,10 +1,10 @@
 //! Integration with `rand` (v0.8) crate.
 
-#![cfg(feature = "rand")]
-#![cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+#![cfg(feature = "rand08")]
+#![cfg_attr(docsrs, doc(cfg(feature = "rand08")))]
 
 use super::{Scru128Generator, Scru128Rng};
-use rand::RngCore;
+use rand08::RngCore;
 
 /// An adapter that implements [`Scru128Rng`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
@@ -27,6 +27,7 @@ impl<T: RngCore> Scru128Generator<Adapter<T>> {
 
 /// This is a deprecated blanket impl retained for backward compatibility. Do not depend on this
 /// impl; use [`Scru128Generator::with_rand08()`] instead.
+#[cfg(feature = "rand")]
 impl<T: RngCore> Scru128Rng for T {
     fn next_u32(&mut self) -> u32 {
         self.next_u32()

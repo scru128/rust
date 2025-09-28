@@ -12,19 +12,23 @@ categories = ["algorithms"]
 [features]
 default = ["global_gen"]
 std = ["fstr/std"]
-rand = ["dep:rand"]
-default_rng = ["std", "rand", "rand/default", "dep:rand_chacha"]
+rand08 = ["dep:rand08"]
+rand09 = ["dep:rand09"]
+default_rng = ["std", "rand", "rand09/default", "dep:rand_chacha"]
 global_gen = ["default_rng"]
 serde = ["dep:serde"]
 
+rand = ["rand08"] # Deprecated alias. This enables the deprecated blanket impl.
+
 [dependencies]
 fstr = { version = "0.2", default-features = false }
-rand = { version = "0.9", default-features = false, optional = true }
+rand08 = { package = "rand", version = "0.8", default-features = false, optional = true }
+rand09 = { package = "rand", version = "0.9", default-features = false, optional = true }
 rand_chacha = { version = "0.9", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
-rand = { version = "0.9", default-features = false, features = ["std_rng"] }
+rand09 = { package = "rand", version = "0.9", default-features = false, features = ["std_rng"] }
 regex = { version = "1.10", default-features = false, features = ["std"] }
 serde_test = "1.0"
 

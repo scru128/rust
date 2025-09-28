@@ -1,10 +1,10 @@
 //! Integration with `rand` (v0.9) crate.
 
-#![cfg(feature = "rand")]
-#![cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+#![cfg(feature = "rand09")]
+#![cfg_attr(docsrs, doc(cfg(feature = "rand09")))]
 
 use super::{Scru128Generator, Scru128Rng};
-use rand::RngCore;
+use rand09::RngCore;
 
 /// An adapter that implements [`Scru128Rng`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
@@ -26,6 +26,7 @@ impl<T: RngCore> Scru128Generator<Adapter<T>> {
     /// ```rust
     /// # #[cfg(feature = "default_rng")]
     /// # {
+    /// # use rand09 as rand;
     /// use scru128::Scru128Generator;
     ///
     /// let mut g = Scru128Generator::with_rand09(rand::rng());

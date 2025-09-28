@@ -37,16 +37,21 @@
 //!
 //! - `std` configures [`Scru128Generator`] with the system clock. Without `std`, this
 //!   crate provides basic SCRU128 primitives available under `no_std` environments.
-//! - `rand` enables an adapter for [`rand::RngCore`] to use `rand` and any other
-//!   conforming random number generators with [`Scru128Generator`].
 //! - `default_rng` (implies `std`) provides the default random number generator for
 //!   [`Scru128Generator`] and enables the [`Scru128Generator::new()`] constructor.
 //! - `global_gen` (implies `default_rng`) provides the process-wide default SCRU128
 //!   generator and enables the [`new()`] and [`new_string()`] functions.
+//! - `rand08`: See below.
 //!
 //! Optional features:
 //!
 //! - `serde` enables serialization/deserialization of [`Scru128Id`] via serde.
+//! - `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
+//!   other conforming random number generators with [`Scru128Generator`].
+//! - `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
+//!   other conforming random number generators with [`Scru128Generator`]. This
+//!   feature is enabled by `default_rng` for historical reasons but will be
+//!   disabled in the future. Enable `rand08` explicitly when needed.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]

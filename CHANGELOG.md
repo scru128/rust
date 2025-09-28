@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## v3.2.0 - unreleased
 
 ### Added
 
 - `rand09` crate feature and `Scru128Generator::with_rand09()`
+- `rand08` crate feature to enable `rand` v0.8 integration explicitly
 
 ## Changed
 
