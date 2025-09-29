@@ -1,7 +1,6 @@
 //! Integration with `rand` (v0.8) crate.
 
 #![cfg(feature = "rand08")]
-#![cfg_attr(docsrs, doc(cfg(feature = "rand08")))]
 
 use super::{Scru128Generator, Scru128Rng};
 use rand_core06::RngCore;

@@ -196,7 +196,6 @@ impl<R: Scru128Rng> Scru128Generator<R> {
 }
 
 #[cfg(any(feature = "default_rng", test))]
-#[cfg_attr(docsrs, doc(cfg(feature = "default_rng")))]
 impl Scru128Generator {
     /// Creates a generator object with the default random number generator.
     pub fn new() -> Self {
@@ -205,7 +204,6 @@ impl Scru128Generator {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod with_std {
     use super::{Scru128Generator, Scru128Id, Scru128Rng};
     use std::{iter, time};

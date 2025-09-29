@@ -340,7 +340,6 @@ impl fmt::Display for ParseError {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 mod with_std {
     use super::{ParseError, Scru128Id};
 
@@ -595,7 +594,6 @@ mod tests {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod with_serde {
     use super::{fmt, str, Scru128Id};
     use serde::{de, Deserializer, Serializer};

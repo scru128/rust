@@ -1,5 +1,3 @@
-#![cfg_attr(docsrs, doc(cfg(feature = "default_rng")))]
-
 #[cfg(feature = "default_rng")]
 use rand09::{rngs::OsRng, rngs::ReseedingRng};
 

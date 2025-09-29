@@ -1,5 +1,4 @@
 #![cfg(feature = "global_gen")]
-#![cfg_attr(docsrs, doc(cfg(feature = "global_gen")))]
 
 use crate::{Scru128Generator, Scru128Id};
 
