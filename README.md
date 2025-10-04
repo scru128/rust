@@ -22,6 +22,7 @@ println!("{}", x.to_u128()); // as a 128-bit unsigned integer
 
 // generate a textual representation directly
 println!("{}", scru128::new_string()); // e.g., "036z951mhzx67t63mq9xe6q0j"
+
 ```
 
 See [SCRU128 Specification] for details.

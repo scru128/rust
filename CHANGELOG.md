@@ -1,8 +1,14 @@
 # Changelog
 
+## v4.0.0 - unreleased
+
+### Changed
+
+- Edition to 2024 and rust-version to 1.85
+
 ## v3.2.1 - 2025-09-28
 
-## Changed
+### Changed
 
 - Source of `RngCore` trait used by `rand09` and `rand08` features from `rand`
   crate to `rand_core` crate
@@ -15,11 +21,11 @@
 - `rand08` crate feature to enable `rand` v0.8 integration explicitly
 - `rust-version = "1.70"` key to Cargo.toml
 
-## Changed
+### Changed
 
 - The underlying crate for `DefaultRng` from `rand` v0.8 to v0.9
 
-## Maintenance
+### Maintenance
 
 - Updated dev dependencies
 

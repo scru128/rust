@@ -2,7 +2,7 @@
 use rand09::{rngs::OsRng, rngs::ReseedingRng};
 
 #[cfg(all(test, not(feature = "default_rng")))]
-use rand09::{rngs::StdRng, SeedableRng as _};
+use rand09::{SeedableRng as _, rngs::StdRng};
 
 /// The default random number generator used by [`Scru128Generator`].
 ///
@@ -92,11 +92,15 @@ mod tests {
 
         // set margin based on binom dist 99.999% confidence interval
         let margin = 4.417173 * (0.5 * 0.5 / N_LOOPS as f64).sqrt();
-        assert!(counts
-            .iter()
-            .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
-        assert!(counts_xor
-            .iter()
-            .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
+        assert!(
+            counts
+                .iter()
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin)
+        );
+        assert!(
+            counts_xor
+                .iter()
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin)
+        );
     }
 }
