@@ -42,17 +42,14 @@ Default features:
   `Scru128Generator` and enables the `Scru128Generator::new()` constructor.
 - `global_gen` (implies `default_rng`) provides the process-wide default SCRU128
   generator and enables the `new()` and `new_string()` functions.
-- `rand08`: See below.
 
 Optional features:
 
 - `serde` enables serialization/deserialization of `Scru128Id` via serde.
-- `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
-  other conforming random number generators with `Scru128Generator`.
-- `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
-  other conforming random number generators with `Scru128Generator`. This
-  feature is enabled by `default_rng` for historical reasons but will be
-  disabled in the future. Enable `rand08` explicitly when needed.
+- `rand09` enables `Scru128Generator::with_rand09()` that integrates `rand`
+  crate (v0.9).
+- `rand08` enables `Scru128Generator::with_rand08()` that integrates `rand`
+  crate (v0.8).
 
 ## License
 

@@ -1,6 +1,4 @@
 //! SCRU128 generator and related items.
-//!
-//! This module is also exported as `scru128::gen` for backward compatibility.
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP, Scru128Id};
 
@@ -102,9 +100,7 @@ impl<R: Scru128Rng> Scru128Generator<R> {
     /// number generator should be cryptographically strong and securely seeded.
     ///
     /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
-    /// generators from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8)
-    /// types for historical reasons, such behavior is deprecated and will be removed in the
-    /// future.
+    /// generators from `rand` crate.
     pub const fn with_rng(rng: R) -> Self {
         Self {
             timestamp: 0,

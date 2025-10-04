@@ -2,6 +2,12 @@
 
 ## v4.0.0 - unreleased
 
+### Removed
+
+- `rand` and `rand08` crate features from `default`
+- blanket impl of `Scru128Rng` for `rand::RngCore` (v0.8)
+- `gen` alias to `generator` module
+
 ### Changed
 
 - Edition to 2024 and rust-version to 1.85
