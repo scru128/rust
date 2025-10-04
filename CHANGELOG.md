@@ -8,6 +8,7 @@
 - Default type parameter from `Scru128Generator`
 - blanket impl of `Scru128Rng` for `rand::RngCore` (v0.8)
 - `gen` alias to `generator` module
+- `Eq` and `PartialEq` impls from `ParseError`
 
 ### Added
 

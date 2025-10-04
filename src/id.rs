@@ -258,12 +258,12 @@ impl fmt::Display for Scru128Id {
 }
 
 /// An error parsing an invalid string representation of SCRU128 ID.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ParseError {
     kind: ParseErrorKind,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 enum ParseErrorKind {
     InvalidLength {
         n_bytes: usize,
@@ -513,12 +513,12 @@ mod tests {
         };
 
         for e in cases {
-            assert_eq!(Scru128Id::try_from_str(&e.encode()), Ok(e));
-            assert_eq!(e.encode().parse::<Scru128Id>(), Ok(e));
+            assert_eq!(Scru128Id::try_from_str(&e.encode()).unwrap(), e);
+            assert_eq!(e.encode().parse::<Scru128Id>().unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
+            assert_eq!(e.to_string().parse::<Scru128Id>().unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
+            assert_eq!(Scru128Id::try_from(String::from(e)).unwrap(), e);
             assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
             assert_eq!(Scru128Id::from(u128::from(e)), e);
             assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
