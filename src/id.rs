@@ -3,7 +3,7 @@ use core as std;
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 use fstr::FStr;
-use std::{fmt, str};
+use std::{error, fmt, str};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
@@ -339,6 +339,8 @@ impl fmt::Display for ParseError {
     }
 }
 
+impl error::Error for ParseError {}
+
 #[cfg(feature = "std")]
 mod with_std {
     use super::{ParseError, Scru128Id};
@@ -356,8 +358,6 @@ mod with_std {
             object.encode().into()
         }
     }
-
-    impl std::error::Error for ParseError {}
 }
 
 #[cfg(test)]

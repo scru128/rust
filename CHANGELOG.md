@@ -9,6 +9,10 @@
 - blanket impl of `Scru128Rng` for `rand::RngCore` (v0.8)
 - `gen` alias to `generator` module
 
+### Added
+
+- `core::error::Error` impl to `ParseError` in no_std
+
 ### Changed
 
 - Edition to 2024 and rust-version to 1.85
