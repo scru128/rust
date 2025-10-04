@@ -18,6 +18,12 @@
 
 - Edition to 2024 and rust-version to 1.85
 
+## v3.2.2 - 2025-10-04
+
+### Removed
+
+- Redundant #[doc(cfg(feature = "..."))]
+
 ## v3.2.1 - 2025-09-28
 
 ### Changed
