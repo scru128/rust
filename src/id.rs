@@ -536,13 +536,9 @@ mod tests {
     fn supports_comparison_operators() {
         #[cfg(feature = "std")]
         let hash = {
-            use std::hash::{BuildHasher, Hash, Hasher};
+            use std::hash::BuildHasher as _;
             let s = std::collections::hash_map::RandomState::new();
-            move |value: &Scru128Id| {
-                let mut hasher = s.build_hasher();
-                value.hash(&mut hasher);
-                hasher.finish()
-            }
+            move |value: &Scru128Id| s.hash_one(value)
         };
 
         let ordered = [
