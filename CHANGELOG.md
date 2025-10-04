@@ -13,10 +13,15 @@
 
 - `rand09` crate feature and `Scru128Generator::with_rand09()`
 - `rand08` crate feature to enable `rand` v0.8 integration explicitly
+- `rust-version = "1.70"` key to Cargo.toml
 
 ## Changed
 
 - The underlying crate for `DefaultRng` from `rand` v0.8 to v0.9
+
+## Maintenance
+
+- Updated dev dependencies
 
 ## v3.1.0 - 2024-09-07
 
