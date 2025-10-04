@@ -12,6 +12,7 @@ pub mod with_rand08;
 pub mod with_rand09;
 
 mod default_rng;
+#[cfg(any(feature = "default_rng", test))]
 pub use default_rng::DefaultRng;
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
@@ -188,14 +189,6 @@ impl<R: Scru128Rng> Scru128Generator<R> {
             self.counter_lo,
             self.rng.next_u32(),
         ))
-    }
-}
-
-#[cfg(any(feature = "default_rng", test))]
-impl Scru128Generator<DefaultRng> {
-    /// Creates a generator object with the default random number generator.
-    pub fn new() -> Self {
-        Default::default()
     }
 }
 

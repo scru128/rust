@@ -1,7 +1,6 @@
 #![cfg(feature = "global_gen")]
 
-use crate::Scru128Id;
-use crate::generator::{DefaultRng, Scru128Generator};
+use crate::{Scru128Generator, Scru128Id, generator::DefaultRng};
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///

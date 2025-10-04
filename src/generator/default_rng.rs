@@ -1,8 +1,12 @@
-#[cfg(feature = "default_rng")]
-use rand09::{rngs::OsRng, rngs::ReseedingRng};
+#![cfg(any(feature = "default_rng", test))]
 
-#[cfg(all(test, not(feature = "default_rng")))]
+#[cfg(feature = "default_rng")]
+use rand09::rngs::{OsRng, ReseedingRng};
+
+#[cfg(not(feature = "default_rng"))]
 use rand09::{SeedableRng as _, rngs::StdRng};
+
+use super::{Scru128Generator, Scru128Rng};
 
 /// The default random number generator used by [`Scru128Generator`].
 ///
@@ -11,38 +15,29 @@ use rand09::{SeedableRng as _, rngs::StdRng};
 /// same strategy as that employed by [`ThreadRng`]; see the docs of `rand` crate for a detailed
 /// discussion on the strategy.
 ///
-/// This structure does exist without the `default_rng` feature flag but is not able to be
-/// instantiated or used as a random number generator.
-///
-/// [`Scru128Generator`]: super::Scru128Generator
 /// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
 /// [`ThreadRng`]: rand09::rngs::ThreadRng
 #[derive(Clone, Debug)]
 pub struct DefaultRng {
-    _private: (),
-
     #[cfg(feature = "default_rng")]
     inner: ReseedingRng<rand_chacha::ChaCha12Core, OsRng>,
 
-    #[cfg(all(test, not(feature = "default_rng")))]
+    #[cfg(not(feature = "default_rng"))]
     inner: StdRng,
 }
 
-#[cfg(any(feature = "default_rng", test))]
-impl super::Scru128Rng for DefaultRng {
+impl Scru128Rng for DefaultRng {
     fn next_u32(&mut self) -> u32 {
         rand09::RngCore::next_u32(&mut self.inner)
     }
 }
 
-#[cfg(any(feature = "default_rng", test))]
 impl Default for DefaultRng {
     fn default() -> Self {
         Self {
-            _private: (),
-
             #[cfg(feature = "default_rng")]
-            inner: ReseedingRng::new(1024 * 64, OsRng).expect("could not initialize DefaultRng"),
+            inner: ReseedingRng::new(1024 * 64, OsRng)
+                .expect("scru128: could not initialize DefaultRng"),
 
             #[cfg(all(test, not(feature = "default_rng")))]
             inner: {
@@ -54,9 +49,16 @@ impl Default for DefaultRng {
     }
 }
 
+impl Scru128Generator<DefaultRng> {
+    /// Creates a generator object with the default random number generator.
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{super::Scru128Rng, DefaultRng};
+    use super::{DefaultRng, Scru128Rng};
 
     /// Generates unbiased random numbers
     ///
