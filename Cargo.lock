@@ -19,9 +19,9 @@ checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
 
 [[package]]
 name = "fstr"
-version = "0.2.13"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17e4d821c226048ee351e9f7cf8554b5f226ca41b35ffe632eddaa3a8934da2f"
+checksum = "53360f36a6b540355748cd42397b872e66105f0adc2742b59baf32f3e2233867"
 
 [[package]]
 name = "getrandom"
@@ -146,7 +146,7 @@ checksum = "caf4aa5b0f434c91fe5c7f1ecb6a5ece2130b02ad2a590589dda5146df959001"
 
 [[package]]
 name = "scru128"
-version = "3.2.1"
+version = "3.2.2"
 dependencies = [
  "fstr",
  "rand",
