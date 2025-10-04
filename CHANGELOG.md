@@ -5,6 +5,7 @@
 ### Removed
 
 - `rand` and `rand08` crate features from `default`
+- Default type parameter from `Scru128Generator`
 - blanket impl of `Scru128Rng` for `rand::RngCore` (v0.8)
 - `gen` alias to `generator` module
 

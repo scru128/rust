@@ -1,6 +1,7 @@
 #![cfg(feature = "global_gen")]
 
-use crate::{Scru128Generator, Scru128Id};
+use crate::Scru128Id;
+use crate::generator::{DefaultRng, Scru128Generator};
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///
@@ -41,7 +42,7 @@ pub fn new_string() -> String {
 struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
-    generator: Scru128Generator,
+    generator: Scru128Generator<DefaultRng>,
 }
 
 impl Default for GlobalGenInner {

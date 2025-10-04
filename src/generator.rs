@@ -83,7 +83,7 @@ pub use default_rng::DefaultRng;
 /// [`generate_or_reset_core`]: Scru128Generator::generate_or_reset_core
 /// [`generate_or_abort_core`]: Scru128Generator::generate_or_abort_core
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct Scru128Generator<R = DefaultRng> {
+pub struct Scru128Generator<R> {
     timestamp: u64,
     counter_hi: u32,
     counter_lo: u32,
@@ -192,7 +192,7 @@ impl<R: Scru128Rng> Scru128Generator<R> {
 }
 
 #[cfg(any(feature = "default_rng", test))]
-impl Scru128Generator {
+impl Scru128Generator<DefaultRng> {
     /// Creates a generator object with the default random number generator.
     pub fn new() -> Self {
         Default::default()
