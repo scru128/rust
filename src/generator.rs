@@ -1,5 +1,9 @@
 //! SCRU128 generator and related items.
 
+#[cfg(not(feature = "std"))]
+use core as std;
+use std::fmt;
+
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP, Scru128Id};
 
 /// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
@@ -83,7 +87,7 @@ pub use default_rng::DefaultRng;
 /// [`generate_or_abort`]: Scru128Generator::generate_or_abort
 /// [`generate_or_reset_core`]: Scru128Generator::generate_or_reset_core
 /// [`generate_or_abort_core`]: Scru128Generator::generate_or_abort_core
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Default)]
 pub struct Scru128Generator<R> {
     timestamp: u64,
     counter_hi: u32,
@@ -189,6 +193,12 @@ impl<R: Scru128Rng> Scru128Generator<R> {
             self.counter_lo,
             self.rng.next_u32(),
         ))
+    }
+}
+
+impl<R> fmt::Debug for Scru128Generator<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.debug_struct("Scru128Generator").finish()
     }
 }
 

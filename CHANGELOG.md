@@ -6,6 +6,7 @@
 
 - `rand` and `rand08` crate features from `default`
 - Default type parameter from `Scru128Generator`
+- `DefaultRng` type when `default_rng` feature is not enabled
 - blanket impl of `Scru128Rng` for `rand::RngCore` (v0.8)
 - `gen` alias to `generator` module
 - `Eq` and `PartialEq` impls from `ParseError`
@@ -17,6 +18,7 @@
 ### Changed
 
 - Edition to 2024 and rust-version to 1.85
+- impl `Debug` for `Scru128Generator` to conceal sensitive information
 
 ## v3.2.2 - 2025-10-04
 
