@@ -2,23 +2,21 @@
 
 ## v4.0.0 - unreleased
 
-### Removed
+### Breaking changes
 
-- `rand` and `rand08` crate features from `default`
-- Default type parameter from `Scru128Generator`
-- `DefaultRng` type when `default_rng` feature is not enabled
-- blanket impl of `Scru128Rng` for `rand::RngCore` (v0.8)
-- `gen` alias to `generator` module
-- `Eq` and `PartialEq` impls from `ParseError`
+- Removed:
+  - `rand` and `rand08` crate features from default set of features
+  - Default type parameter of `DefaultRng` from `Scru128Generator<R>`
+  - `DefaultRng` struct where `default_rng` feature is not enabled
+  - Blanket `Scru128Rng` impl for `rand::RngCore` (v0.8)
+  - Deprecated `gen` alias to `generator` module
+  - `Eq` and `PartialEq` impls from `ParseError`
 
-### Added
+### Other changes
 
-- `core::error::Error` impl to `ParseError` in no_std
-
-### Changed
-
-- Edition to 2024 and rust-version to 1.85
-- impl `Debug` for `Scru128Generator` to conceal sensitive information
+- Implemented `core::error::Error` for `ParseError` in `no_std`
+- Migrated to Edition 2024 and upgraded MSRV from 1.70 to 1.85
+- Changed impl `Debug` for `Scru128Generator` to conceal internal state
 
 ## v3.2.2 - 2025-10-04
 
