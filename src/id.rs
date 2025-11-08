@@ -166,32 +166,26 @@ impl Scru128Id {
     /// # Ok::<(), scru128::ParseError>(())
     /// ```
     pub const fn encode(&self) -> FStr<25> {
-        let int_value = self.to_u128();
-        let mut dst = [0u8; 25];
-        // implement Base36 using 56-bit words because Div<u128> is slow
-        let mut min_index: isize = 99; // any number greater than size of output array
-        let mut shift = 56 * 3;
-        while shift > 0 {
-            shift -= 56;
-            let mut carry = (int_value >> shift) as u64 & 0xff_ffff_ffff_ffff;
+        // implement Base36 using usize chunks because Div<u128> is slow
+        const N_CHUNK_DIGITS: u32 = usize::MAX.ilog(36);
+        const CHUNK_SIZE: u128 = 36u128.pow(N_CHUNK_DIGITS);
 
-            // iterate over output array from right to left while carry != 0 but at least up to
-            // place already filled
-            let mut i = dst.len() as isize - 1;
-            while carry > 0 || i > min_index {
-                carry += (dst[i as usize] as u64) << 56;
-                dst[i as usize] = (carry % 36) as u8;
-                carry /= 36;
-                i -= 1;
+        let mut dst = [b'0'; 25];
+        let mut i = dst.len();
+        let mut int_value = self.to_u128();
+        while int_value > 0 {
+            let mut j = i;
+            i = i.saturating_sub(N_CHUNK_DIGITS as usize);
+            let mut chunk = (int_value % CHUNK_SIZE) as usize;
+            int_value /= CHUNK_SIZE;
+            while chunk > 0 {
+                j -= 1;
+                dst[j] = DIGITS[chunk % 36];
+                chunk /= 36;
             }
-            min_index = i;
         }
 
-        let mut i = 0;
-        while i < dst.len() {
-            dst[i] = DIGITS[dst[i] as usize];
-            i += 1;
-        }
+        // SAFETY: All bytes in `dst` are valid ASCII characters.
         unsafe { FStr::from_inner_unchecked(dst) }
     }
 }

@@ -18,6 +18,12 @@
 - Migrated to Edition 2024 and upgraded MSRV from 1.70 to 1.85
 - Changed impl `Debug` for `Scru128Generator` to conceal internal state
 
+## v3.2.3 - 2025-11-08
+
+### Maintenance
+
+- Minor refactoring and performance improvement.
+
 ## v3.2.2 - 2025-10-04
 
 ### Removed
