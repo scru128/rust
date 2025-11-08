@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.2.3 - unreleased
+
+### Maintenance
+
+- Minor refactoring and performance improvement.
+
 ## v3.2.2 - 2025-10-04
 
 ### Removed
