@@ -37,6 +37,12 @@ impl super::Scru128Rng for DefaultRng {
 
 #[cfg(any(feature = "default_rng", test))]
 impl Default for DefaultRng {
+    /// Creates an instance of the default random number generator.
+    ///
+    /// # Panics
+    ///
+    /// Panics in the highly unlikely event where the operating system's random number generator
+    /// failed to provide secure entropy.
     fn default() -> Self {
         Self {
             _private: (),

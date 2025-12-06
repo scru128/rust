@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.2.4 - unreleased
+
+### Maintenance
+
+- Minor documentation updates
+
 ## v3.2.3 - 2025-11-08
 
 ### Maintenance

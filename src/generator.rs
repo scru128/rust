@@ -198,6 +198,10 @@ impl<R: Scru128Rng> Scru128Generator<R> {
 #[cfg(any(feature = "default_rng", test))]
 impl Scru128Generator {
     /// Creates a generator object with the default random number generator.
+    ///
+    /// # Panics
+    ///
+    /// Panics in the highly unlikely event where [`DefaultRng`] could not be initialized.
     pub fn new() -> Self {
         Default::default()
     }
