@@ -33,6 +33,12 @@ impl Scru128Rng for DefaultRng {
 }
 
 impl Default for DefaultRng {
+    /// Creates an instance of the default random number generator.
+    ///
+    /// # Panics
+    ///
+    /// Panics in the highly unlikely event where the operating system's random number generator
+    /// failed to provide secure entropy.
     fn default() -> Self {
         Self {
             #[cfg(feature = "default_rng")]
@@ -51,6 +57,10 @@ impl Default for DefaultRng {
 
 impl Scru128Generator<DefaultRng> {
     /// Creates a generator object with the default random number generator.
+    ///
+    /// # Panics
+    ///
+    /// Panics in the highly unlikely event where [`DefaultRng`] could not be initialized.
     pub fn new() -> Self {
         Default::default()
     }
