@@ -76,12 +76,12 @@ pub trait TimeSource {
 ///
 /// The generator comes with four different methods that generate a SCRU128 ID:
 ///
-/// | Flavor                     | Timestamp | On big clock rewind |
-/// | -------------------------- | --------- | ------------------- |
-/// | [`generate`]               | Now       | Resets generator    |
-/// | [`generate_or_abort`]      | Now       | Returns `None`      |
-/// | [`generate_or_reset_core`] | Argument  | Resets generator    |
-/// | [`generate_or_abort_core`] | Argument  | Returns `None`      |
+/// | Flavor                        | Timestamp | On big clock rewind |
+/// | ----------------------------- | --------- | ------------------- |
+/// | [`generate`]                  | Now       | Resets generator    |
+/// | [`generate_or_abort`]         | Now       | Returns `None`      |
+/// | [`generate_or_reset_with_ts`] | Argument  | Resets generator    |
+/// | [`generate_or_abort_with_ts`] | Argument  | Returns `None`      |
 ///
 /// All of the four return a monotonically increasing ID by reusing the previous `timestamp` even
 /// if the one provided is smaller than the immediately preceding ID's. However, when such a clock
@@ -91,13 +91,13 @@ pub trait TimeSource {
 ///     `timestamp`, breaking the increasing order of IDs.
 /// 2.  `or_abort` variants abort and return `None` immediately.
 ///
-/// The `core` functions offer low-level primitives to customize the behavior.
+/// The `with_ts` functions accepts the `timestamp` as an argument.
 ///
 /// [`generate`]: Scru128Generator::generate
 /// [`generate_or_abort`]: Scru128Generator::generate_or_abort
-/// [`generate_or_reset_core`]: Scru128Generator::generate_or_reset_core
-/// [`generate_or_abort_core`]: Scru128Generator::generate_or_abort_core
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
+/// [`generate_or_reset_with_ts`]: Scru128Generator::generate_or_reset_with_ts
+/// [`generate_or_abort_with_ts`]: Scru128Generator::generate_or_abort_with_ts
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Scru128Generator<R = DefaultRng, T = StdSystemTime> {
     timestamp: u64,
     counter_hi: u32,
@@ -111,6 +111,9 @@ pub struct Scru128Generator<R = DefaultRng, T = StdSystemTime> {
 
     /// The system clock used by the generator.
     time_source: T,
+
+    /// The amount of `timestamp` rollback that is considered significant (in milliseconds).
+    rollback_allowance: u64,
 }
 
 impl<R> Scru128Generator<R> {
@@ -137,11 +140,36 @@ impl<R, T> Scru128Generator<R, T> {
             ts_counter_hi: 0,
             rand_source,
             time_source,
+            rollback_allowance: 10_000, // 10 seconds
         }
+    }
+
+    /// Sets the `rollback_allowance` parameter of the generator.
+    ///
+    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
+    /// considered significant. The default value is `10_000` (milliseconds). See the
+    /// [`Scru128Generator`] type documentation for the treatment of the significant rollback.
+    pub fn set_rollback_allowance(&mut self, rollback_allowance: u64) {
+        if rollback_allowance > MAX_TIMESTAMP {
+            panic!("`rollback_allowance` out of reasonable range");
+        }
+        self.rollback_allowance = rollback_allowance;
     }
 }
 
 impl<R: RandSource, T> Scru128Generator<R, T> {
+    /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `timestamp` is not a 48-bit positive integer.
+    pub fn generate_or_reset_with_ts(&mut self, timestamp: u64) -> Scru128Id {
+        self.generate_or_reset_core(timestamp, self.rollback_allowance)
+    }
+
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
     /// significant timestamp rollback.
     ///
@@ -163,6 +191,18 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
             self.generate_or_abort_core(timestamp, rollback_allowance)
                 .unwrap()
         }
+    }
+
+    /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `timestamp` is not a 48-bit positive integer.
+    pub fn generate_or_abort_with_ts(&mut self, timestamp: u64) -> Option<Scru128Id> {
+        self.generate_or_abort_core(timestamp, self.rollback_allowance)
     }
 
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
@@ -222,9 +262,6 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     }
 }
 
-/// The default timestamp rollback allowance.
-const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
-
 impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
     /// Generates a new SCRU128 ID object from the current `timestamp`, or resets the generator
     /// upon significant timestamp rollback.
@@ -232,7 +269,7 @@ impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
     /// See the [`Scru128Generator`] type documentation for the description.
     pub fn generate(&mut self) -> Scru128Id {
         let timestamp = self.time_source.unix_ts_ms();
-        self.generate_or_reset_core(timestamp, DEFAULT_ROLLBACK_ALLOWANCE)
+        self.generate_or_reset_with_ts(timestamp)
     }
 
     /// Generates a new SCRU128 ID object from the current `timestamp`, or returns `None` upon
@@ -257,7 +294,7 @@ impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
     /// ```
     pub fn generate_or_abort(&mut self) -> Option<Scru128Id> {
         let timestamp = self.time_source.unix_ts_ms();
-        self.generate_or_abort_core(timestamp, DEFAULT_ROLLBACK_ALLOWANCE)
+        self.generate_or_abort_with_ts(timestamp)
     }
 }
 
@@ -290,6 +327,12 @@ impl<R: RandSource, T: TimeSource> Iterator for Scru128Generator<R, T> {
 }
 
 impl<R: RandSource, T: TimeSource> iter::FusedIterator for Scru128Generator<R, T> {}
+
+impl<R: Default, T: Default> Default for Scru128Generator<R, T> {
+    fn default() -> Self {
+        Self::with_rand_and_time_sources(R::default(), T::default())
+    }
+}
 
 /// The default time source that uses [`std::time::SystemTime`].
 #[derive(Clone, Debug, Eq, PartialEq, Default)]

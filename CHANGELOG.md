@@ -7,6 +7,11 @@
 - Generic `TimeSource` type to `Scru128Generator` to allow custom time sources
 - `Scru128Rng` as a deprecated alias for `RandSource` for backward compatibility
 - `Scru128Generator::with_rand_and_time_sources()` to allow custom time source
+- `Scru128Generator::set_rollback_allowance()` to allow adjustment of rollback
+  allowance used in generator methods
+- `generate_or_reset_with_ts` and `generate_or_abort_with_ts` to
+  `Scru128Generator`, variants of `core` generator methods that use internal
+  rollback allowance parameter
 
 ### Changed
 
