@@ -1,6 +1,10 @@
 # Changelog
 
-## v3.2.4 - unreleased
+## v3.3.0 - unreleased
+
+### Added
+
+- Generic `TimeSource` type to `Scru128Generator` to allow custom time sources
 
 ### Maintenance
 

@@ -112,7 +112,7 @@ impl Scru128Id {
 
     /// Returns the 32-bit `entropy` field value.
     pub const fn entropy(&self) -> u32 {
-        self.to_u128() as u32 & u32::MAX
+        self.to_u128() as u32
     }
 
     /// Creates an object from a 25-digit string representation.

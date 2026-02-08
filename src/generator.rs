@@ -2,6 +2,10 @@
 //!
 //! This module is also exported as `scru128::gen` for backward compatibility.
 
+#[cfg(not(feature = "std"))]
+use core as std;
+use std::iter;
+
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
 /// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
@@ -15,6 +19,12 @@ pub mod with_rand09;
 
 mod default_rng;
 pub use default_rng::DefaultRng;
+
+/// A trait that defines the minimum system clock interface for [`Scru128Generator`].
+pub trait TimeSource {
+    /// Returns the current Unix timestamp in milliseconds.
+    fn unix_ts_ms(&mut self) -> u64;
+}
 
 /// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
 /// states.
@@ -85,7 +95,7 @@ pub use default_rng::DefaultRng;
 /// [`generate_or_reset_core`]: Scru128Generator::generate_or_reset_core
 /// [`generate_or_abort_core`]: Scru128Generator::generate_or_abort_core
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
-pub struct Scru128Generator<R = DefaultRng> {
+pub struct Scru128Generator<R = DefaultRng, T = StdSystemTime> {
     timestamp: u64,
     counter_hi: u32,
     counter_lo: u32,
@@ -95,9 +105,12 @@ pub struct Scru128Generator<R = DefaultRng> {
 
     /// The random number generator used by the generator.
     rng: R,
+
+    /// The system clock used by the generator.
+    time_source: T,
 }
 
-impl<R: Scru128Rng> Scru128Generator<R> {
+impl<R> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
     ///
@@ -112,9 +125,12 @@ impl<R: Scru128Rng> Scru128Generator<R> {
             counter_lo: 0,
             ts_counter_hi: 0,
             rng,
+            time_source: StdSystemTime,
         }
     }
+}
 
+impl<R: Scru128Rng, T> Scru128Generator<R, T> {
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
     /// significant timestamp rollback.
     ///
@@ -195,6 +211,90 @@ impl<R: Scru128Rng> Scru128Generator<R> {
     }
 }
 
+/// The default timestamp rollback allowance.
+const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
+
+impl<R: Scru128Rng, T: TimeSource> Scru128Generator<R, T> {
+    /// Generates a new SCRU128 ID object from the current `timestamp`, or resets the generator
+    /// upon significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    pub fn generate(&mut self) -> Scru128Id {
+        let timestamp = self.time_source.unix_ts_ms();
+        self.generate_or_reset_core(timestamp, DEFAULT_ROLLBACK_ALLOWANCE)
+    }
+
+    /// Generates a new SCRU128 ID object from the current `timestamp`, or returns `None` upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # #[cfg(feature = "default_rng")]
+    /// # {
+    /// use scru128::Scru128Generator;
+    ///
+    /// let mut g = Scru128Generator::new();
+    /// let x = g.generate_or_abort().unwrap();
+    /// let y = g
+    ///     .generate_or_abort()
+    ///     .expect("The clock went backwards by ten seconds!");
+    /// assert!(x < y);
+    /// # }
+    /// ```
+    pub fn generate_or_abort(&mut self) -> Option<Scru128Id> {
+        let timestamp = self.time_source.unix_ts_ms();
+        self.generate_or_abort_core(timestamp, DEFAULT_ROLLBACK_ALLOWANCE)
+    }
+}
+
+/// `Scru128Generator` behaves as an infinite iterator that produces a new ID for each call of
+/// `next()`.
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(feature = "default_rng")]
+/// # {
+/// use scru128::Scru128Generator;
+///
+/// let g = Scru128Generator::new();
+/// for (i, e) in g.take(8).enumerate() {
+///     println!("[{}] {}", i, e);
+/// }
+/// # }
+/// ```
+impl<R: Scru128Rng, T: TimeSource> Iterator for Scru128Generator<R, T> {
+    type Item = Scru128Id;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.generate())
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (usize::MAX, None)
+    }
+}
+
+impl<R: Scru128Rng, T: TimeSource> iter::FusedIterator for Scru128Generator<R, T> {}
+
+/// The default time source that uses [`std::time::SystemTime`].
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct StdSystemTime;
+
+#[cfg(feature = "std")]
+impl TimeSource for StdSystemTime {
+    fn unix_ts_ms(&mut self) -> u64 {
+        use std::time;
+        time::SystemTime::now()
+            .duration_since(time::UNIX_EPOCH)
+            .expect("clock may have gone backwards")
+            .as_millis() as u64
+    }
+}
+
 #[cfg(any(feature = "default_rng", test))]
 impl Scru128Generator {
     /// Creates a generator object with the default random number generator.
@@ -204,106 +304,6 @@ impl Scru128Generator {
     /// Panics in the highly unlikely event where [`DefaultRng`] could not be initialized.
     pub fn new() -> Self {
         Default::default()
-    }
-}
-
-#[cfg(feature = "std")]
-mod with_std {
-    use super::{Scru128Generator, Scru128Id, Scru128Rng};
-    use std::{iter, time};
-
-    /// The default timestamp rollback allowance.
-    const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
-
-    /// Returns the current Unix timestamp in milliseconds.
-    fn unix_ts_ms() -> u64 {
-        time::SystemTime::now()
-            .duration_since(time::UNIX_EPOCH)
-            .expect("clock may have gone backwards")
-            .as_millis() as u64
-    }
-
-    impl<R: Scru128Rng> Scru128Generator<R> {
-        /// Generates a new SCRU128 ID object from the current `timestamp`, or resets the generator
-        /// upon significant timestamp rollback.
-        ///
-        /// See the [`Scru128Generator`] type documentation for the description.
-        pub fn generate(&mut self) -> Scru128Id {
-            self.generate_or_reset_core(unix_ts_ms(), DEFAULT_ROLLBACK_ALLOWANCE)
-        }
-
-        /// Generates a new SCRU128 ID object from the current `timestamp`, or returns `None` upon
-        /// significant timestamp rollback.
-        ///
-        /// See the [`Scru128Generator`] type documentation for the description.
-        ///
-        /// # Examples
-        ///
-        /// ```rust
-        /// # #[cfg(feature = "default_rng")]
-        /// # {
-        /// use scru128::Scru128Generator;
-        ///
-        /// let mut g = Scru128Generator::new();
-        /// let x = g.generate_or_abort().unwrap();
-        /// let y = g
-        ///     .generate_or_abort()
-        ///     .expect("The clock went backwards by ten seconds!");
-        /// assert!(x < y);
-        /// # }
-        /// ```
-        pub fn generate_or_abort(&mut self) -> Option<Scru128Id> {
-            self.generate_or_abort_core(unix_ts_ms(), DEFAULT_ROLLBACK_ALLOWANCE)
-        }
-    }
-
-    /// `Scru128Generator` behaves as an infinite iterator that produces a new ID for each call of
-    /// `next()`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # #[cfg(feature = "default_rng")]
-    /// # {
-    /// use scru128::Scru128Generator;
-    ///
-    /// let g = Scru128Generator::new();
-    /// for (i, e) in g.take(8).enumerate() {
-    ///     println!("[{}] {}", i, e);
-    /// }
-    /// # }
-    /// ```
-    impl<R: Scru128Rng> Iterator for Scru128Generator<R> {
-        type Item = Scru128Id;
-
-        fn next(&mut self) -> Option<Self::Item> {
-            Some(self.generate())
-        }
-
-        fn size_hint(&self) -> (usize, Option<usize>) {
-            (usize::MAX, None)
-        }
-    }
-
-    impl<R: Scru128Rng> iter::FusedIterator for Scru128Generator<R> {}
-
-    #[cfg(test)]
-    mod tests {
-        /// Is iterable with for-in loop
-        #[test]
-        fn is_iterable_with_for_in_loop() {
-            use super::Scru128Generator;
-
-            let mut i = 0;
-            for e in Scru128Generator::new() {
-                assert!(e.timestamp() > 0);
-                i += 1;
-                if i > 100 {
-                    break;
-                }
-            }
-            assert_eq!(i, 101);
-        }
     }
 }
 
@@ -389,5 +389,24 @@ mod tests_generate_or_abort {
 
         curr = g.generate_or_abort_core(ts - 10_002, 10_000);
         assert!(curr.is_none());
+    }
+}
+
+#[cfg(all(feature = "std", test))]
+mod tests_iterator {
+    /// Is iterable with for-in loop
+    #[test]
+    fn is_iterable_with_for_in_loop() {
+        use super::Scru128Generator;
+
+        let mut i = 0;
+        for e in Scru128Generator::new() {
+            assert!(e.timestamp() > 0);
+            i += 1;
+            if i > 100 {
+                break;
+            }
+        }
+        assert_eq!(i, 101);
     }
 }
