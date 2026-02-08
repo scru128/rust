@@ -6,6 +6,7 @@
 
 - Generic `TimeSource` type to `Scru128Generator` to allow custom time sources
 - `Scru128Rng` as a deprecated alias for `RandSource` for backward compatibility
+- `Scru128Generator::with_rand_and_time_sources()` to allow custom time source
 
 ### Changed
 

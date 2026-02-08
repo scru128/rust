@@ -122,13 +122,20 @@ impl<R> Scru128Generator<R> {
     /// types for historical reasons, such behavior is deprecated and will be removed in the
     /// future.
     pub const fn with_rng(rng: R) -> Self {
+        Self::with_rand_and_time_sources(rng, StdSystemTime)
+    }
+}
+
+impl<R, T> Scru128Generator<R, T> {
+    /// Creates a generator object with specified random number generator and system clock.
+    pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
         Self {
             timestamp: 0,
             counter_hi: 0,
             counter_lo: 0,
             ts_counter_hi: 0,
-            rand_source: rng,
-            time_source: StdSystemTime,
+            rand_source,
+            time_source,
         }
     }
 }
