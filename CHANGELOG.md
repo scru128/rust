@@ -5,6 +5,11 @@
 ### Added
 
 - Generic `TimeSource` type to `Scru128Generator` to allow custom time sources
+- `Scru128Rng` as a deprecated alias for `RandSource` for backward compatibility
+
+### Changed
+
+- Name of `Scru128Rng` trait to `RandSource` for clarity and consistency
 
 ### Maintenance
 

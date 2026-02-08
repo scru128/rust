@@ -29,7 +29,7 @@ pub struct DefaultRng {
 }
 
 #[cfg(any(feature = "default_rng", test))]
-impl super::Scru128Rng for DefaultRng {
+impl super::RandSource for DefaultRng {
     fn next_u32(&mut self) -> u32 {
         rand09::RngCore::next_u32(&mut self.inner)
     }
@@ -62,7 +62,7 @@ impl Default for DefaultRng {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::Scru128Rng, DefaultRng};
+    use super::{super::RandSource, DefaultRng};
 
     /// Generates unbiased random numbers
     ///

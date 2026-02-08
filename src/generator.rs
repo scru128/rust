@@ -9,10 +9,13 @@ use std::iter;
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
 /// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
-pub trait Scru128Rng {
+pub trait RandSource {
     /// Returns the next random `u32`.
     fn next_u32(&mut self) -> u32;
 }
+
+#[deprecated(since = "3.3.0")]
+pub use RandSource as Scru128Rng;
 
 pub mod with_rand08;
 pub mod with_rand09;
@@ -104,7 +107,7 @@ pub struct Scru128Generator<R = DefaultRng, T = StdSystemTime> {
     ts_counter_hi: u64,
 
     /// The random number generator used by the generator.
-    rng: R,
+    rand_source: R,
 
     /// The system clock used by the generator.
     time_source: T,
@@ -124,13 +127,13 @@ impl<R> Scru128Generator<R> {
             counter_hi: 0,
             counter_lo: 0,
             ts_counter_hi: 0,
-            rng,
+            rand_source: rng,
             time_source: StdSystemTime,
         }
     }
 }
 
-impl<R: Scru128Rng, T> Scru128Generator<R, T> {
+impl<R: RandSource, T> Scru128Generator<R, T> {
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
     /// significant timestamp rollback.
     ///
@@ -178,7 +181,7 @@ impl<R: Scru128Rng, T> Scru128Generator<R, T> {
 
         if timestamp > self.timestamp {
             self.timestamp = timestamp;
-            self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
+            self.counter_lo = self.rand_source.next_u32() & MAX_COUNTER_LO;
         } else if timestamp + rollback_allowance >= self.timestamp {
             // go on with previous timestamp if new one is not much smaller
             self.counter_lo += 1;
@@ -189,7 +192,7 @@ impl<R: Scru128Rng, T> Scru128Generator<R, T> {
                     self.counter_hi = 0;
                     // increment timestamp at counter overflow
                     self.timestamp += 1;
-                    self.counter_lo = self.rng.next_u32() & MAX_COUNTER_LO;
+                    self.counter_lo = self.rand_source.next_u32() & MAX_COUNTER_LO;
                 }
             }
         } else {
@@ -199,14 +202,14 @@ impl<R: Scru128Rng, T> Scru128Generator<R, T> {
 
         if self.timestamp - self.ts_counter_hi >= 1_000 || self.ts_counter_hi == 0 {
             self.ts_counter_hi = self.timestamp;
-            self.counter_hi = self.rng.next_u32() & MAX_COUNTER_HI;
+            self.counter_hi = self.rand_source.next_u32() & MAX_COUNTER_HI;
         }
 
         Some(Scru128Id::from_fields(
             self.timestamp,
             self.counter_hi,
             self.counter_lo,
-            self.rng.next_u32(),
+            self.rand_source.next_u32(),
         ))
     }
 }
@@ -214,7 +217,7 @@ impl<R: Scru128Rng, T> Scru128Generator<R, T> {
 /// The default timestamp rollback allowance.
 const DEFAULT_ROLLBACK_ALLOWANCE: u64 = 10_000; // 10 seconds
 
-impl<R: Scru128Rng, T: TimeSource> Scru128Generator<R, T> {
+impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
     /// Generates a new SCRU128 ID object from the current `timestamp`, or resets the generator
     /// upon significant timestamp rollback.
     ///
@@ -266,7 +269,7 @@ impl<R: Scru128Rng, T: TimeSource> Scru128Generator<R, T> {
 /// }
 /// # }
 /// ```
-impl<R: Scru128Rng, T: TimeSource> Iterator for Scru128Generator<R, T> {
+impl<R: RandSource, T: TimeSource> Iterator for Scru128Generator<R, T> {
     type Item = Scru128Id;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -278,7 +281,7 @@ impl<R: Scru128Rng, T: TimeSource> Iterator for Scru128Generator<R, T> {
     }
 }
 
-impl<R: Scru128Rng, T: TimeSource> iter::FusedIterator for Scru128Generator<R, T> {}
+impl<R: RandSource, T: TimeSource> iter::FusedIterator for Scru128Generator<R, T> {}
 
 /// The default time source that uses [`std::time::SystemTime`].
 #[derive(Clone, Debug, Eq, PartialEq, Default)]

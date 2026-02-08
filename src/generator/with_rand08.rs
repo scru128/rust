@@ -2,14 +2,14 @@
 
 #![cfg(feature = "rand08")]
 
-use super::{Scru128Generator, Scru128Rng};
+use super::{RandSource, Scru128Generator};
 use rand_core06::RngCore;
 
-/// An adapter that implements [`Scru128Rng`] for [`RngCore`] types.
+/// An adapter that implements [`RandSource`] for [`RngCore`] types.
 #[derive(Clone, Eq, PartialEq, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`RngCore`] type. */ pub T);
 
-impl<T: RngCore> Scru128Rng for Adapter<T> {
+impl<T: RngCore> RandSource for Adapter<T> {
     fn next_u32(&mut self) -> u32 {
         self.0.next_u32()
     }
@@ -40,7 +40,7 @@ impl<T: RngCore> Scru128Generator<Adapter<T>> {
 /// This is a deprecated blanket impl retained for backward compatibility. Do not depend on this
 /// impl; use [`Scru128Generator::with_rand08()`] instead.
 #[cfg(feature = "rand")]
-impl<T: RngCore> Scru128Rng for T {
+impl<T: RngCore> RandSource for T {
     fn next_u32(&mut self) -> u32 {
         self.next_u32()
     }
