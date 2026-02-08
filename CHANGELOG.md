@@ -20,6 +20,7 @@
 ### Deprecated
 
 - `Scru128Generator::with_rng()` to simplify API
+- `Scru128Generator::generate_or_reset_core()` and `Scru128Generator::generate_or_abort_core()`
 
 ### Maintenance
 
