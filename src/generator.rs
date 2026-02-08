@@ -121,6 +121,7 @@ impl<R> Scru128Generator<R> {
     /// generators from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8)
     /// types for historical reasons, such behavior is deprecated and will be removed in the
     /// future.
+    #[deprecated(since = "3.3.0")]
     pub const fn with_rng(rng: R) -> Self {
         Self::with_rand_and_time_sources(rng, StdSystemTime)
     }

@@ -2,7 +2,7 @@
 
 #![cfg(feature = "rand08")]
 
-use super::{RandSource, Scru128Generator};
+use super::{RandSource, Scru128Generator, StdSystemTime};
 use rand_core06::RngCore;
 
 /// An adapter that implements [`RandSource`] for [`RngCore`] types.
@@ -33,7 +33,7 @@ impl<T: RngCore> Scru128Generator<Adapter<T>> {
     /// # }
     /// ```
     pub const fn with_rand08(rng: T) -> Self {
-        Self::with_rng(Adapter(rng))
+        Self::with_rand_and_time_sources(Adapter(rng), StdSystemTime)
     }
 }
 

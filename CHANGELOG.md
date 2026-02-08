@@ -12,6 +12,10 @@
 
 - Name of `Scru128Rng` trait to `RandSource` for clarity and consistency
 
+### Deprecated
+
+- `Scru128Generator::with_rng()` to simplify API
+
 ### Maintenance
 
 - Minor documentation updates
