@@ -371,11 +371,11 @@ mod tests_generate_or_reset {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
 
-        let mut prev = g.generate_or_reset_core(ts, 10_000);
+        let mut prev = g.generate_or_reset_with_ts(ts);
         assert_eq!(prev.timestamp(), ts);
 
         for i in 0..100_000u64 {
-            let curr = g.generate_or_reset_core(ts - i.min(9_999), 10_000);
+            let curr = g.generate_or_reset_with_ts(ts - i.min(9_999));
             assert!(prev < curr);
             prev = curr;
         }
@@ -388,19 +388,19 @@ mod tests_generate_or_reset {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
 
-        let mut prev = g.generate_or_reset_core(ts, 10_000);
+        let mut prev = g.generate_or_reset_with_ts(ts);
         assert_eq!(prev.timestamp(), ts);
 
-        let mut curr = g.generate_or_reset_core(ts - 10_000, 10_000);
+        let mut curr = g.generate_or_reset_with_ts(ts - 10_000);
         assert!(prev < curr);
 
         prev = curr;
-        curr = g.generate_or_reset_core(ts - 10_001, 10_000);
+        curr = g.generate_or_reset_with_ts(ts - 10_001);
         assert!(prev > curr);
         assert_eq!(curr.timestamp(), ts - 10_001);
 
         prev = curr;
-        curr = g.generate_or_reset_core(ts - 10_002, 10_000);
+        curr = g.generate_or_reset_with_ts(ts - 10_002);
         assert!(prev < curr);
     }
 }
@@ -415,11 +415,11 @@ mod tests_generate_or_abort {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
 
-        let mut prev = g.generate_or_abort_core(ts, 10_000).unwrap();
+        let mut prev = g.generate_or_abort_with_ts(ts).unwrap();
         assert_eq!(prev.timestamp(), ts);
 
         for i in 0..100_000u64 {
-            let curr = g.generate_or_abort_core(ts - i.min(9_999), 10_000).unwrap();
+            let curr = g.generate_or_abort_with_ts(ts - i.min(9_999)).unwrap();
             assert!(prev < curr);
             prev = curr;
         }
@@ -432,16 +432,16 @@ mod tests_generate_or_abort {
         let ts = 0x0123_4567_89abu64;
         let mut g = Scru128Generator::new();
 
-        let prev = g.generate_or_abort_core(ts, 10_000).unwrap();
+        let prev = g.generate_or_abort_with_ts(ts).unwrap();
         assert_eq!(prev.timestamp(), ts);
 
-        let mut curr = g.generate_or_abort_core(ts - 10_000, 10_000);
+        let mut curr = g.generate_or_abort_with_ts(ts - 10_000);
         assert!(prev < curr.unwrap());
 
-        curr = g.generate_or_abort_core(ts - 10_001, 10_000);
+        curr = g.generate_or_abort_with_ts(ts - 10_001);
         assert!(curr.is_none());
 
-        curr = g.generate_or_abort_core(ts - 10_002, 10_000);
+        curr = g.generate_or_abort_with_ts(ts - 10_002);
         assert!(curr.is_none());
     }
 }
