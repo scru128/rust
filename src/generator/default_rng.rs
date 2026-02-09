@@ -6,7 +6,7 @@ use rand09::rngs::{OsRng, ReseedingRng};
 #[cfg(not(feature = "default_rng"))]
 use rand09::{SeedableRng as _, rngs::StdRng};
 
-use super::{Scru128Generator, Scru128Rng};
+use super::{RandSource, Scru128Generator};
 
 /// The default random number generator used by [`Scru128Generator`].
 ///
@@ -26,7 +26,7 @@ pub struct DefaultRng {
     inner: StdRng,
 }
 
-impl Scru128Rng for DefaultRng {
+impl RandSource for DefaultRng {
     fn next_u32(&mut self) -> u32 {
         rand09::RngCore::next_u32(&mut self.inner)
     }
@@ -68,7 +68,7 @@ impl Scru128Generator<DefaultRng> {
 
 #[cfg(test)]
 mod tests {
-    use super::{DefaultRng, Scru128Rng};
+    use super::{DefaultRng, RandSource};
 
     /// Generates unbiased random numbers
     ///

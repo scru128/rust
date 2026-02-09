@@ -18,11 +18,36 @@
 - Migrated to Edition 2024 and upgraded MSRV from 1.70 to 1.85
 - Changed impl `Debug` for `Scru128Generator` to conceal internal state
 
-## v3.2.4 - unreleased
+## v3.3.0 - unreleased
+
+### New features and improvements
+
+- Customizable time sources: Introduced a generic `TimeSource` trait for
+  `Scru128Generator`, allowing users to provide custom timestamp sources. This
+  enhances flexibility, especially for testing or specific environments. The
+  default implementation `StdSystemTime` uses `std::time::SystemTime`.
+- Generator-level rollback allowance: Added `set_rollback_allowance()` to
+  `Scru128Generator` to configure the maximum allowed timestamp rollback for
+  each generator instance. This dictates `generate()` and `generate_or_abort()`
+  as well as eliminates the need for the `rollback_allowance` argument of the
+  `*_core` variants, which are now superseded by the newly added `*_with_ts`
+  variants that leverage the generator-level setting.
+
+### API changes and deprecations
+
+- `RandSource` trait: Renamed `Scru128Rng` trait to `RandSource` for improved
+  clarity and consistency. A deprecated type alias `Scru128Rng` is provided for
+  backward compatibility.
+- Deprecated constructor: Deprecated `Scru128Generator::with_rng()` in favor of
+  the more explicit `Scru128Generator::with_rand_and_time_sources()`, which
+  allows specifying both random number and timestamp sources.
+- Deprecated core generator methods: Deprecated `generate_or_reset_core()` and
+  `generate_or_abort_core()` of `Scru128Generator`. Users should migrate to the
+  new `generate_or_reset_with_ts()` and `generate_or_abort_with_ts()` methods.
 
 ### Maintenance
 
-- Minor documentation updates
+- Minor documentation updates.
 
 ## v3.2.3 - 2025-11-08
 
