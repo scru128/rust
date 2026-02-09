@@ -14,7 +14,7 @@ pub trait RandSource {
     fn next_u32(&mut self) -> u32;
 }
 
-#[deprecated(since = "3.3.0")]
+#[deprecated(since = "3.3.0", note = "use `RandSource` instead")]
 pub use RandSource as Scru128Rng;
 
 pub mod with_rand08;
@@ -124,7 +124,10 @@ impl<R> Scru128Generator<R> {
     /// generators from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8)
     /// types for historical reasons, such behavior is deprecated and will be removed in the
     /// future.
-    #[deprecated(since = "3.3.0")]
+    #[deprecated(
+        since = "3.3.0",
+        note = "use `with_rand_and_time_sources()` with `StdSystemTime` instead"
+    )]
     pub const fn with_rng(rng: R) -> Self {
         Self::with_rand_and_time_sources(rng, StdSystemTime)
     }
@@ -132,6 +135,9 @@ impl<R> Scru128Generator<R> {
 
 impl<R, T> Scru128Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
+    ///
+    /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
+    /// generators from `rand` crate.
     pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
         Self {
             timestamp: 0,
@@ -181,7 +187,7 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     /// # Panics
     ///
     /// Panics if `timestamp` is not a 48-bit positive integer.
-    #[deprecated(since = "3.3.0")]
+    #[deprecated(since = "3.3.0", note = "use `generate_or_reset_with_ts()` instead")]
     pub fn generate_or_reset_core(&mut self, timestamp: u64, rollback_allowance: u64) -> Scru128Id {
         self.generate_or_reset_core_inner(timestamp, rollback_allowance)
     }
@@ -225,7 +231,7 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     /// # Panics
     ///
     /// Panics if `timestamp` is not a 48-bit positive integer.
-    #[deprecated(since = "3.3.0")]
+    #[deprecated(since = "3.3.0", note = "use `generate_or_abort_with_ts()` instead")]
     pub fn generate_or_abort_core(
         &mut self,
         timestamp: u64,
