@@ -11,6 +11,10 @@
   - Blanket `Scru128Rng` impl for `rand::RngCore` (v0.8)
   - Deprecated `gen` alias to `generator` module
   - `Eq` and `PartialEq` impls from `ParseError`
+  - Deprecated `Scru128Rng` alias to `RandSource` trait
+  - `Scru128Generator::with_rng()` constructor
+  - `Scru128Generator::generate_or_reset_core()` and
+    `Scru128Generator::generate_or_abort_core`
 
 ### Other changes
 

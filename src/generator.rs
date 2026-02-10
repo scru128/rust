@@ -12,9 +12,6 @@ pub trait RandSource {
     fn next_u32(&mut self) -> u32;
 }
 
-#[deprecated(since = "3.3.0", note = "use `RandSource` instead")]
-pub use RandSource as Scru128Rng;
-
 pub mod with_rand08;
 pub mod with_rand09;
 
@@ -115,21 +112,6 @@ pub struct Scru128Generator<R, T = StdSystemTime> {
     rollback_allowance: u64,
 }
 
-impl<R> Scru128Generator<R> {
-    /// Creates a generator object with a specified random number generator. The specified random
-    /// number generator should be cryptographically strong and securely seeded.
-    ///
-    /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
-    /// generators from `rand` crate.
-    #[deprecated(
-        since = "3.3.0",
-        note = "use `with_rand_and_time_sources()` with `StdSystemTime` instead"
-    )]
-    pub const fn with_rng(rng: R) -> Self {
-        Self::with_rand_and_time_sources(rng, StdSystemTime)
-    }
-}
-
 impl<R, T> Scru128Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
     ///
@@ -180,30 +162,6 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
         }
     }
 
-    /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
-    /// significant timestamp rollback.
-    ///
-    /// See the [`Scru128Generator`] type documentation for the description.
-    ///
-    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
-    /// considered significant. A suggested value is `10_000` (milliseconds).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `timestamp` is not a 48-bit positive integer.
-    #[deprecated(since = "3.3.0", note = "use `generate_or_reset_with_ts()` instead")]
-    pub fn generate_or_reset_core(&mut self, timestamp: u64, rollback_allowance: u64) -> Scru128Id {
-        if let Some(value) = self.generate_or_abort_core_inner(timestamp, rollback_allowance) {
-            value
-        } else {
-            // reset state and resume
-            self.timestamp = 0;
-            self.ts_counter_hi = 0;
-            self.generate_or_abort_core_inner(timestamp, rollback_allowance)
-                .unwrap()
-        }
-    }
-
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
     /// significant timestamp rollback.
     ///
@@ -213,44 +171,14 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     ///
     /// Panics if `timestamp` is not a 48-bit positive integer.
     pub fn generate_or_abort_with_ts(&mut self, timestamp: u64) -> Option<Scru128Id> {
-        self.generate_or_abort_core_inner(timestamp, self.rollback_allowance)
-    }
-
-    /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
-    /// significant timestamp rollback.
-    ///
-    /// See the [`Scru128Generator`] type documentation for the description.
-    ///
-    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
-    /// considered significant. A suggested value is `10_000` (milliseconds).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `timestamp` is not a 48-bit positive integer.
-    #[deprecated(since = "3.3.0", note = "use `generate_or_abort_with_ts()` instead")]
-    pub fn generate_or_abort_core(
-        &mut self,
-        timestamp: u64,
-        rollback_allowance: u64,
-    ) -> Option<Scru128Id> {
-        self.generate_or_abort_core_inner(timestamp, rollback_allowance)
-    }
-
-    fn generate_or_abort_core_inner(
-        &mut self,
-        timestamp: u64,
-        rollback_allowance: u64,
-    ) -> Option<Scru128Id> {
         if timestamp == 0 || timestamp > MAX_TIMESTAMP {
             panic!("`timestamp` must be a 48-bit positive integer");
-        } else if rollback_allowance > MAX_TIMESTAMP {
-            panic!("`rollback_allowance` out of reasonable range");
         }
 
         if timestamp > self.timestamp {
             self.timestamp = timestamp;
             self.counter_lo = self.rand_source.next_u32() & MAX_COUNTER_LO;
-        } else if timestamp + rollback_allowance >= self.timestamp {
+        } else if timestamp + self.rollback_allowance >= self.timestamp {
             // go on with previous timestamp if new one is not much smaller
             self.counter_lo += 1;
             if self.counter_lo > MAX_COUNTER_LO {
