@@ -173,7 +173,14 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     ///
     /// Panics if `timestamp` is not a 48-bit positive integer.
     pub fn generate_or_reset_with_ts(&mut self, timestamp: u64) -> Scru128Id {
-        self.generate_or_reset_core_inner(timestamp, self.rollback_allowance)
+        if let Some(value) = self.generate_or_abort_with_ts(timestamp) {
+            value
+        } else {
+            // reset state and resume
+            self.timestamp = 0;
+            self.ts_counter_hi = 0;
+            self.generate_or_abort_with_ts(timestamp).unwrap()
+        }
     }
 
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
@@ -189,14 +196,6 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     /// Panics if `timestamp` is not a 48-bit positive integer.
     #[deprecated(since = "3.3.0", note = "use `generate_or_reset_with_ts()` instead")]
     pub fn generate_or_reset_core(&mut self, timestamp: u64, rollback_allowance: u64) -> Scru128Id {
-        self.generate_or_reset_core_inner(timestamp, rollback_allowance)
-    }
-
-    fn generate_or_reset_core_inner(
-        &mut self,
-        timestamp: u64,
-        rollback_allowance: u64,
-    ) -> Scru128Id {
         if let Some(value) = self.generate_or_abort_core_inner(timestamp, rollback_allowance) {
             value
         } else {
