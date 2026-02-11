@@ -115,8 +115,7 @@ pub struct Scru128Generator<R, T = StdSystemTime> {
 impl<R, T> Scru128Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
     ///
-    /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
-    /// generators from `rand` crate.
+    /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate.
     pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
         Self {
             timestamp: 0,
