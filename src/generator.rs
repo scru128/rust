@@ -136,8 +136,7 @@ impl<R> Scru128Generator<R> {
 impl<R, T> Scru128Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
     ///
-    /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
-    /// generators from `rand` crate.
+    /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate.
     pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
         Self {
             timestamp: 0,
@@ -160,6 +159,35 @@ impl<R, T> Scru128Generator<R, T> {
             panic!("`rollback_allowance` out of reasonable range");
         }
         self.rollback_allowance = rollback_allowance;
+    }
+
+    /// Temporarily sets the `rollback_allowance` parameter of the generator to a specified value,
+    /// and restores the original value when the returned guard object is dropped.
+    fn with_temp_rollback_allowance(
+        &mut self,
+        temp_rollback_allowance: u64,
+    ) -> impl AsMut<Self> + '_ {
+        struct PanicGuard<'a, R, T> {
+            orig_rollback_allowance: u64,
+            inner: &'a mut Scru128Generator<R, T>,
+        }
+        impl<R, T> Drop for PanicGuard<'_, R, T> {
+            fn drop(&mut self) {
+                self.inner.rollback_allowance = self.orig_rollback_allowance;
+            }
+        }
+        impl<R, T> AsMut<Scru128Generator<R, T>> for PanicGuard<'_, R, T> {
+            fn as_mut(&mut self) -> &mut Scru128Generator<R, T> {
+                self.inner
+            }
+        }
+
+        let guard = PanicGuard {
+            orig_rollback_allowance: self.rollback_allowance,
+            inner: self,
+        };
+        guard.inner.set_rollback_allowance(temp_rollback_allowance);
+        guard
     }
 }
 
@@ -196,15 +224,9 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     /// Panics if `timestamp` is not a 48-bit positive integer.
     #[deprecated(since = "3.3.0", note = "use `generate_or_reset_with_ts()` instead")]
     pub fn generate_or_reset_core(&mut self, timestamp: u64, rollback_allowance: u64) -> Scru128Id {
-        if let Some(value) = self.generate_or_abort_core_inner(timestamp, rollback_allowance) {
-            value
-        } else {
-            // reset state and resume
-            self.timestamp = 0;
-            self.ts_counter_hi = 0;
-            self.generate_or_abort_core_inner(timestamp, rollback_allowance)
-                .unwrap()
-        }
+        self.with_temp_rollback_allowance(rollback_allowance)
+            .as_mut()
+            .generate_or_reset_with_ts(timestamp)
     }
 
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
@@ -216,44 +238,14 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     ///
     /// Panics if `timestamp` is not a 48-bit positive integer.
     pub fn generate_or_abort_with_ts(&mut self, timestamp: u64) -> Option<Scru128Id> {
-        self.generate_or_abort_core_inner(timestamp, self.rollback_allowance)
-    }
-
-    /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
-    /// significant timestamp rollback.
-    ///
-    /// See the [`Scru128Generator`] type documentation for the description.
-    ///
-    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
-    /// considered significant. A suggested value is `10_000` (milliseconds).
-    ///
-    /// # Panics
-    ///
-    /// Panics if `timestamp` is not a 48-bit positive integer.
-    #[deprecated(since = "3.3.0", note = "use `generate_or_abort_with_ts()` instead")]
-    pub fn generate_or_abort_core(
-        &mut self,
-        timestamp: u64,
-        rollback_allowance: u64,
-    ) -> Option<Scru128Id> {
-        self.generate_or_abort_core_inner(timestamp, rollback_allowance)
-    }
-
-    fn generate_or_abort_core_inner(
-        &mut self,
-        timestamp: u64,
-        rollback_allowance: u64,
-    ) -> Option<Scru128Id> {
         if timestamp == 0 || timestamp > MAX_TIMESTAMP {
             panic!("`timestamp` must be a 48-bit positive integer");
-        } else if rollback_allowance > MAX_TIMESTAMP {
-            panic!("`rollback_allowance` out of reasonable range");
         }
 
         if timestamp > self.timestamp {
             self.timestamp = timestamp;
             self.counter_lo = self.rand_source.next_u32() & MAX_COUNTER_LO;
-        } else if timestamp + rollback_allowance >= self.timestamp {
+        } else if timestamp + self.rollback_allowance >= self.timestamp {
             // go on with previous timestamp if new one is not much smaller
             self.counter_lo += 1;
             if self.counter_lo > MAX_COUNTER_LO {
@@ -282,6 +274,28 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
             self.counter_lo,
             self.rand_source.next_u32(),
         ))
+    }
+
+    /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    ///
+    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `timestamp` is not a 48-bit positive integer.
+    #[deprecated(since = "3.3.0", note = "use `generate_or_abort_with_ts()` instead")]
+    pub fn generate_or_abort_core(
+        &mut self,
+        timestamp: u64,
+        rollback_allowance: u64,
+    ) -> Option<Scru128Id> {
+        self.with_temp_rollback_allowance(rollback_allowance)
+            .as_mut()
+            .generate_or_abort_with_ts(timestamp)
     }
 }
 
