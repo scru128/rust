@@ -1,10 +1,10 @@
 [package]
 name = "scru128"
-version = "4.0.0-beta.1"
+version = "3.2.3"
 authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
-edition = "2024"
-rust-version = "1.85"
+edition = "2021"
+rust-version = "1.70"
 description = "SCRU128: Sortable, Clock and Random number-based Unique identifier"
 repository = "https://github.com/scru128/rust"
 documentation = "https://docs.rs/scru128"
@@ -16,9 +16,11 @@ default = ["global_gen"]
 std = ["fstr/std"]
 rand08 = ["dep:rand_core06"]
 rand09 = ["dep:rand_core09"]
-default_rng = ["std", "dep:rand09", "dep:rand_chacha"]
+default_rng = ["std", "rand", "dep:rand09", "dep:rand_chacha"]
 global_gen = ["default_rng"]
 serde = ["dep:serde"]
+
+rand = ["rand08"] # Deprecated alias. This enables the deprecated blanket impl.
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }

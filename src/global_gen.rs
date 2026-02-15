@@ -1,6 +1,6 @@
 #![cfg(feature = "global_gen")]
 
-use crate::{Scru128Generator, Scru128Id, generator::DefaultRng};
+use crate::{Scru128Generator, Scru128Id};
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///
@@ -41,7 +41,7 @@ pub fn new_string() -> String {
 struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
-    generator: Scru128Generator<DefaultRng>,
+    generator: Scru128Generator,
 }
 
 impl Default for GlobalGenInner {
@@ -68,8 +68,8 @@ impl GlobalGenInner {
 mod tests {
     /// Generates no IDs sharing same timestamp and counters under multithreading
     #[test]
-    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading()
-    -> Result<(), Box<dyn std::error::Error>> {
+    fn generates_no_ids_sharing_same_timestamp_and_counters_under_multithreading(
+    ) -> Result<(), Box<dyn std::error::Error>> {
         use std::{collections::HashSet, sync::mpsc, thread};
 
         let (tx, rx) = mpsc::channel();

@@ -1,10 +1,12 @@
 //! SCRU128 generator and related items.
+//!
+//! This module is also exported as `scru128::gen` for backward compatibility.
 
 #[cfg(not(feature = "std"))]
 use core as std;
-use std::{fmt, iter};
+use std::iter;
 
-use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP, Scru128Id};
+use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
 /// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
 pub trait RandSource {
@@ -12,11 +14,13 @@ pub trait RandSource {
     fn next_u32(&mut self) -> u32;
 }
 
+#[deprecated(since = "3.3.0", note = "use `RandSource` instead")]
+pub use RandSource as Scru128Rng;
+
 pub mod with_rand08;
 pub mod with_rand09;
 
 mod default_rng;
-#[cfg(any(feature = "default_rng", test))]
 pub use default_rng::DefaultRng;
 
 /// A trait that defines the minimum system clock interface for [`Scru128Generator`].
@@ -93,8 +97,8 @@ pub trait TimeSource {
 /// [`generate_or_abort`]: Scru128Generator::generate_or_abort
 /// [`generate_or_reset_with_ts`]: Scru128Generator::generate_or_reset_with_ts
 /// [`generate_or_abort_with_ts`]: Scru128Generator::generate_or_abort_with_ts
-#[derive(Clone, Eq, PartialEq)]
-pub struct Scru128Generator<R, T = StdSystemTime> {
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct Scru128Generator<R = DefaultRng, T = StdSystemTime> {
     timestamp: u64,
     counter_hi: u32,
     counter_lo: u32,
@@ -110,6 +114,23 @@ pub struct Scru128Generator<R, T = StdSystemTime> {
 
     /// The amount of `timestamp` rollback that is considered significant (in milliseconds).
     rollback_allowance: u64,
+}
+
+impl<R> Scru128Generator<R> {
+    /// Creates a generator object with a specified random number generator. The specified random
+    /// number generator should be cryptographically strong and securely seeded.
+    ///
+    /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
+    /// generators from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8)
+    /// types for historical reasons, such behavior is deprecated and will be removed in the
+    /// future.
+    #[deprecated(
+        since = "3.3.0",
+        note = "use `with_rand_and_time_sources()` with `StdSystemTime` instead"
+    )]
+    pub const fn with_rng(rng: R) -> Self {
+        Self::with_rand_and_time_sources(rng, StdSystemTime)
+    }
 }
 
 impl<R, T> Scru128Generator<R, T> {
@@ -139,6 +160,35 @@ impl<R, T> Scru128Generator<R, T> {
         }
         self.rollback_allowance = rollback_allowance;
     }
+
+    /// Temporarily sets the `rollback_allowance` parameter of the generator to a specified value,
+    /// and restores the original value when the returned guard object is dropped.
+    fn with_temp_rollback_allowance(
+        &mut self,
+        temp_rollback_allowance: u64,
+    ) -> impl AsMut<Self> + '_ {
+        struct PanicGuard<'a, R, T> {
+            orig_rollback_allowance: u64,
+            inner: &'a mut Scru128Generator<R, T>,
+        }
+        impl<R, T> Drop for PanicGuard<'_, R, T> {
+            fn drop(&mut self) {
+                self.inner.rollback_allowance = self.orig_rollback_allowance;
+            }
+        }
+        impl<R, T> AsMut<Scru128Generator<R, T>> for PanicGuard<'_, R, T> {
+            fn as_mut(&mut self) -> &mut Scru128Generator<R, T> {
+                self.inner
+            }
+        }
+
+        let guard = PanicGuard {
+            orig_rollback_allowance: self.rollback_allowance,
+            inner: self,
+        };
+        guard.inner.set_rollback_allowance(temp_rollback_allowance);
+        guard
+    }
 }
 
 impl<R: RandSource, T> Scru128Generator<R, T> {
@@ -159,6 +209,24 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
             self.ts_counter_hi = 0;
             self.generate_or_abort_with_ts(timestamp).unwrap()
         }
+    }
+
+    /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    ///
+    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `timestamp` is not a 48-bit positive integer.
+    #[deprecated(since = "3.3.0", note = "use `generate_or_reset_with_ts()` instead")]
+    pub fn generate_or_reset_core(&mut self, timestamp: u64, rollback_allowance: u64) -> Scru128Id {
+        self.with_temp_rollback_allowance(rollback_allowance)
+            .as_mut()
+            .generate_or_reset_with_ts(timestamp)
     }
 
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
@@ -206,6 +274,28 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
             self.counter_lo,
             self.rand_source.next_u32(),
         ))
+    }
+
+    /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
+    /// significant timestamp rollback.
+    ///
+    /// See the [`Scru128Generator`] type documentation for the description.
+    ///
+    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
+    /// considered significant. A suggested value is `10_000` (milliseconds).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `timestamp` is not a 48-bit positive integer.
+    #[deprecated(since = "3.3.0", note = "use `generate_or_abort_with_ts()` instead")]
+    pub fn generate_or_abort_core(
+        &mut self,
+        timestamp: u64,
+        rollback_allowance: u64,
+    ) -> Option<Scru128Id> {
+        self.with_temp_rollback_allowance(rollback_allowance)
+            .as_mut()
+            .generate_or_abort_with_ts(timestamp)
     }
 }
 
@@ -281,12 +371,6 @@ impl<R: Default, T: Default> Default for Scru128Generator<R, T> {
     }
 }
 
-impl<R> fmt::Debug for Scru128Generator<R> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.debug_struct("Scru128Generator").finish()
-    }
-}
-
 /// The default time source that uses [`std::time::SystemTime`].
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct StdSystemTime;
@@ -299,6 +383,18 @@ impl TimeSource for StdSystemTime {
             .duration_since(time::UNIX_EPOCH)
             .expect("clock may have gone backwards")
             .as_millis() as u64
+    }
+}
+
+#[cfg(any(feature = "default_rng", test))]
+impl Scru128Generator {
+    /// Creates a generator object with the default random number generator.
+    ///
+    /// # Panics
+    ///
+    /// Panics in the highly unlikely event where [`DefaultRng`] could not be initialized.
+    pub fn new() -> Self {
+        Default::default()
     }
 }
 

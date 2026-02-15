@@ -3,7 +3,7 @@ use core as std;
 
 use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 use fstr::FStr;
-use std::{error, fmt, str};
+use std::{fmt, str};
 
 /// Digit characters used in the Base36 notation.
 const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
@@ -252,12 +252,12 @@ impl fmt::Display for Scru128Id {
 }
 
 /// An error parsing an invalid string representation of SCRU128 ID.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ParseError {
     kind: ParseErrorKind,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum ParseErrorKind {
     InvalidLength {
         n_bytes: usize,
@@ -333,8 +333,6 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl error::Error for ParseError {}
-
 #[cfg(feature = "std")]
 mod with_std {
     use super::{ParseError, Scru128Id};
@@ -352,6 +350,8 @@ mod with_std {
             object.encode().into()
         }
     }
+
+    impl std::error::Error for ParseError {}
 }
 
 #[cfg(test)]
@@ -390,7 +390,7 @@ mod tests {
         ];
 
         for e in cases {
-            let from_fields = Scru128Id::from_fields(e.0.0, e.0.1, e.0.2, e.0.3);
+            let from_fields = Scru128Id::from_fields(e.0 .0, e.0 .1, e.0 .2, e.0 .3);
             let from_string = e.1.parse::<Scru128Id>().unwrap();
 
             assert_eq!(from_fields, from_string);
@@ -507,12 +507,12 @@ mod tests {
         };
 
         for e in cases {
-            assert_eq!(Scru128Id::try_from_str(&e.encode()).unwrap(), e);
-            assert_eq!(e.encode().parse::<Scru128Id>().unwrap(), e);
+            assert_eq!(Scru128Id::try_from_str(&e.encode()), Ok(e));
+            assert_eq!(e.encode().parse::<Scru128Id>(), Ok(e));
             #[cfg(feature = "std")]
-            assert_eq!(e.to_string().parse::<Scru128Id>().unwrap(), e);
+            assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
             #[cfg(feature = "std")]
-            assert_eq!(Scru128Id::try_from(String::from(e)).unwrap(), e);
+            assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
             assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
             assert_eq!(Scru128Id::from(u128::from(e)), e);
             assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
@@ -530,9 +530,13 @@ mod tests {
     fn supports_comparison_operators() {
         #[cfg(feature = "std")]
         let hash = {
-            use std::hash::BuildHasher as _;
+            use std::hash::{BuildHasher, Hash, Hasher};
             let s = std::collections::hash_map::RandomState::new();
-            move |value: &Scru128Id| s.hash_one(value)
+            move |value: &Scru128Id| {
+                let mut hasher = s.build_hasher();
+                value.hash(&mut hasher);
+                hasher.finish()
+            }
         };
 
         let ordered = [
@@ -585,8 +589,8 @@ mod tests {
 
 #[cfg(feature = "serde")]
 mod with_serde {
-    use super::{Scru128Id, fmt, str};
-    use serde::{Deserializer, Serializer, de};
+    use super::{fmt, str, Scru128Id};
+    use serde::{de, Deserializer, Serializer};
 
     impl serde::Serialize for Scru128Id {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
