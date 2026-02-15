@@ -280,10 +280,9 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon
     /// significant timestamp rollback.
     ///
-    /// See the [`Scru128Generator`] type documentation for the description.
-    ///
-    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
-    /// considered significant. A suggested value is `10_000` (milliseconds).
+    /// This method is a deprecated version of `generate_or_reset_with_ts()` that accepts the
+    /// `rollback_allowance` parameter as an argument, rather than using [the generator-level
+    /// parameter](Self::set_rollback_allowance).
     ///
     /// # Panics
     ///
@@ -298,10 +297,9 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
     /// significant timestamp rollback.
     ///
-    /// See the [`Scru128Generator`] type documentation for the description.
-    ///
-    /// The `rollback_allowance` parameter specifies the amount of `timestamp` rollback that is
-    /// considered significant. A suggested value is `10_000` (milliseconds).
+    /// This method is a deprecated version of `generate_or_abort_with_ts()` that accepts the
+    /// `rollback_allowance` parameter as an argument, rather than using [the generator-level
+    /// parameter](Self::set_rollback_allowance).
     ///
     /// # Panics
     ///
