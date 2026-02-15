@@ -358,7 +358,6 @@ mod with_std {
 mod tests {
     use super::Scru128Id;
 
-    #[cfg(feature = "std")]
     use crate::Scru128Generator;
 
     const MAX_UINT48: u64 = (1 << 48) - 1;
@@ -496,7 +495,6 @@ mod tests {
             Scru128Id::from_fields(MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32),
         ];
 
-        #[cfg(feature = "std")]
         let cases = {
             let mut v = cases.to_vec();
             let mut g = Scru128Generator::new();
@@ -551,7 +549,6 @@ mod tests {
             Scru128Id::from_fields(2, 0, 0, 0),
         ];
 
-        #[cfg(feature = "std")]
         let ordered = {
             let mut v = ordered.to_vec();
             let mut g = Scru128Generator::new();

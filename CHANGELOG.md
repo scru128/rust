@@ -29,6 +29,7 @@
 
 ### Maintenance
 
+- Test code refactoring.
 - Minor documentation updates.
 
 ## v3.2.3 - 2025-11-08
