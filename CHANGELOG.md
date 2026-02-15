@@ -27,8 +27,9 @@
   `generate_or_abort_core()` of `Scru128Generator`. Users should migrate to the
   new `generate_or_reset_with_ts()` and `generate_or_abort_with_ts()` methods.
 
-### Maintenance
+### Maintenance and other changes
 
+- Changed impl `Debug` for `Scru128Generator` to conceal internal state.
 - Test code refactoring.
 - Minor documentation updates.
 

@@ -4,7 +4,7 @@
 
 #[cfg(not(feature = "std"))]
 use core as std;
-use std::iter;
+use std::{fmt, iter};
 
 use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
 
@@ -97,7 +97,7 @@ pub trait TimeSource {
 /// [`generate_or_abort`]: Scru128Generator::generate_or_abort
 /// [`generate_or_reset_with_ts`]: Scru128Generator::generate_or_reset_with_ts
 /// [`generate_or_abort_with_ts`]: Scru128Generator::generate_or_abort_with_ts
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Scru128Generator<R = DefaultRng, T = StdSystemTime> {
     timestamp: u64,
     counter_hi: u32,
@@ -350,6 +350,16 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
 impl<R: Default, T: Default> Default for Scru128Generator<R, T> {
     fn default() -> Self {
         Self::with_rand_and_time_sources(R::default(), T::default())
+    }
+}
+
+impl<R: fmt::Debug, T: fmt::Debug> fmt::Debug for Scru128Generator<R, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.debug_struct("Scru128Generator")
+            .field("rand_source", &self.rand_source)
+            .field("time_source", &self.time_source)
+            .field("rollback_allowance", &self.rollback_allowance)
+            .finish()
     }
 }
 
