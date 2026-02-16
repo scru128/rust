@@ -1,9 +1,6 @@
 use super::*;
 use std::cell;
 
-mod generate_or_abort;
-mod generate_or_reset;
-
 #[cfg(not(feature = "default_rng"))]
 impl Scru128Generator {
     pub(crate) fn new() -> Scru128Generator<impl RandSource, impl TimeSource> {
