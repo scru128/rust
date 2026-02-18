@@ -36,7 +36,8 @@ See [SCRU128 Specification] for details.
 Default features:
 
 - `std` enables, among others, the default timestamp source for
-  `Scru128Generator` using `std::time`.
+  `Scru128Generator` using `std::time`. Without `std`, users must provide their
+  own time source implementing the `TimeSource` trait.
 - `default_rng` (implies `std`) provides the default random number generator for
   `Scru128Generator` and enables the `Scru128Generator::new()` constructor.
 - `global_gen` (implies `default_rng`) provides the process-wide default SCRU128

@@ -148,7 +148,9 @@ impl<R> Scru128Generator<R> {
 impl<R, T> Scru128Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
     ///
-    /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate.
+    /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate. Although
+    /// this constructor accepts `rand::RngCore` (v0.8) types for historical reasons, such behavior
+    /// is deprecated and will be removed in the future.
     pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
         Self {
             timestamp: 0,
@@ -157,7 +159,7 @@ impl<R, T> Scru128Generator<R, T> {
             ts_counter_hi: 0,
             rand_source,
             time_source,
-            rollback_allowance: 10_000, // 10 seconds
+            rollback_allowance: 10_000, // 10 seconds in milliseconds
         }
     }
 
@@ -382,7 +384,7 @@ impl<R: RandSource, T: TimeSource> Iterator for Scru128Generator<R, T> {
 
 impl<R: RandSource, T: TimeSource> iter::FusedIterator for Scru128Generator<R, T> {}
 
-/// The default time source that uses [`std::time::SystemTime`].
+/// The default [`TimeSource`] that uses [`std::time::SystemTime`].
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct StdSystemTime;
 
