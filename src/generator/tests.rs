@@ -181,6 +181,23 @@ fn handle_clock_rollback() {
     }
 }
 
+/// _core methods do not change generator-level rollback allowance
+#[test]
+#[allow(deprecated)]
+fn core_fns_do_not_change_rollback_allowance() {
+    let ts = new_time_source().unix_ts_ms();
+
+    let mut g = Scru128Generator::new();
+    g.set_rollback_allowance(100);
+    assert_eq!(g.rollback_allowance, 100);
+
+    g.generate_or_reset_core(ts, 1_000);
+    assert_eq!(g.rollback_allowance, 100);
+
+    g.generate_or_abort_core(ts, 1_000);
+    assert_eq!(g.rollback_allowance, 100);
+}
+
 /// Is iterable with for-in loop
 #[test]
 fn is_iterable_with_for_in_loop() {

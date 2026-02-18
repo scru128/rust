@@ -289,9 +289,16 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     /// Panics if `timestamp` is not a 48-bit positive integer.
     #[deprecated(since = "3.3.0", note = "use `generate_or_reset_with_ts()` instead")]
     pub fn generate_or_reset_core(&mut self, timestamp: u64, rollback_allowance: u64) -> Scru128Id {
-        self.with_temp_rollback_allowance(rollback_allowance)
-            .as_mut()
-            .generate_or_reset_with_ts(timestamp)
+        #[allow(deprecated)]
+        if let Some(value) = self.generate_or_abort_core(timestamp, rollback_allowance) {
+            value
+        } else {
+            // reset state and resume
+            self.timestamp = 0;
+            self.ts_counter_hi = 0;
+            self.generate_or_abort_core(timestamp, rollback_allowance)
+                .unwrap()
+        }
     }
 
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or returns `None` upon
@@ -310,17 +317,6 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
         timestamp: u64,
         rollback_allowance: u64,
     ) -> Option<Scru128Id> {
-        self.with_temp_rollback_allowance(rollback_allowance)
-            .as_mut()
-            .generate_or_abort_with_ts(timestamp)
-    }
-
-    /// Temporarily sets the `rollback_allowance` parameter of the generator to a specified value,
-    /// and restores the original value when the returned guard object is dropped.
-    fn with_temp_rollback_allowance(
-        &mut self,
-        temp_rollback_allowance: u64,
-    ) -> impl AsMut<Self> + '_ {
         struct PanicGuard<'a, R, T> {
             orig_rollback_allowance: u64,
             inner: &'a mut Scru128Generator<R, T>,
@@ -330,18 +326,13 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
                 self.inner.rollback_allowance = self.orig_rollback_allowance;
             }
         }
-        impl<R, T> AsMut<Scru128Generator<R, T>> for PanicGuard<'_, R, T> {
-            fn as_mut(&mut self) -> &mut Scru128Generator<R, T> {
-                self.inner
-            }
-        }
 
         let guard = PanicGuard {
             orig_rollback_allowance: self.rollback_allowance,
             inner: self,
         };
-        guard.inner.set_rollback_allowance(temp_rollback_allowance);
-        guard
+        guard.inner.set_rollback_allowance(rollback_allowance);
+        guard.inner.generate_or_abort_with_ts(timestamp)
     }
 }
 
