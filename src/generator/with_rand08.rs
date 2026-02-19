@@ -1,6 +1,7 @@
 //! Integration with `rand` (v0.8) crate.
 
 #![cfg(feature = "rand08")]
+#![deprecated(since = "3.3.0", note = "use a newer version of `rand` crate")]
 
 use super::{RandSource, Scru128Generator, StdSystemTime};
 use rand_core06::RngCore;

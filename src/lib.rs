@@ -53,8 +53,8 @@
 //!   other conforming random number generators with [`Scru128Generator`].
 //! - `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
 //!   other conforming random number generators with [`Scru128Generator`]. This
-//!   feature is enabled by `default_rng` for historical reasons but will be
-//!   disabled in the future. Enable `rand08` explicitly when needed.
+//!   feature is deprecated and for backward compatibility only but is enabled by
+//!   `default_rng` for historical reasons.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
