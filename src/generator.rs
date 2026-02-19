@@ -17,6 +17,7 @@ pub trait RandSource {
 #[deprecated(since = "3.3.0", note = "use `RandSource` instead")]
 pub use RandSource as Scru128Rng;
 
+pub mod with_rand010;
 pub mod with_rand08;
 pub mod with_rand09;
 
@@ -132,7 +133,7 @@ impl<R> Scru128Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
     /// number generator should be cryptographically strong and securely seeded.
     ///
-    /// Use [`Scru128Generator::with_rand09()`] to create a generator with the random number
+    /// Use [`Scru128Generator::with_rand010()`] to create a generator with the random number
     /// generators from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8)
     /// types for historical reasons, such behavior is deprecated and will be removed in the
     /// future.
@@ -148,7 +149,7 @@ impl<R> Scru128Generator<R> {
 impl<R, T> Scru128Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
     ///
-    /// Use [`with_rand09::Adapter`] to pass a random number generator from `rand` crate. Although
+    /// Use [`with_rand010::Adapter`] to pass a random number generator from `rand` crate. Although
     /// this constructor accepts `rand::RngCore` (v0.8) types for historical reasons, such behavior
     /// is deprecated and will be removed in the future.
     pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
