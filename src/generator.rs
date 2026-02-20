@@ -21,9 +21,6 @@ pub mod with_rand010;
 pub mod with_rand08;
 pub mod with_rand09;
 
-mod default_rng;
-pub use default_rng::DefaultRng;
-
 /// A trait that defines the minimum system clock interface for [`Scru128Generator`].
 pub trait TimeSource {
     /// Returns the current Unix timestamp in milliseconds.
@@ -384,6 +381,31 @@ impl<R: RandSource, T: TimeSource> Iterator for Scru128Generator<R, T> {
 }
 
 impl<R: RandSource, T: TimeSource> iter::FusedIterator for Scru128Generator<R, T> {}
+
+/// The default random number generator used by [`Scru128Generator`].
+///
+/// Currently, `DefaultRng` uses [`ChaCha12Core`] that is initially seeded and subsequently
+/// reseeded by [`OsRng`] every 64 kiB of random data using the [`ReseedingRng`] wrapper. It is the
+/// same strategy as that employed by [`ThreadRng`]; see the docs of `rand` crate for a detailed
+/// discussion on the strategy.
+///
+/// This structure does exist without the `default_rng` feature flag but is not able to be
+/// instantiated or used as a random number generator.
+///
+/// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
+/// [`ReseedingRng`]: rand09::rngs::ReseedingRng
+/// [`OsRng`]: rand09::rngs::OsRng
+/// [`ThreadRng`]: rand09::rngs::ThreadRng
+#[derive(Clone, Debug)]
+pub struct DefaultRng {
+    _private: (),
+
+    #[cfg(feature = "default_rng")]
+    inner: rand09::rngs::ReseedingRng<rand_chacha::ChaCha12Core, rand09::rngs::OsRng>,
+}
+
+#[cfg(feature = "default_rng")]
+mod default_rng;
 
 /// The default [`TimeSource`] that uses [`std::time::SystemTime`].
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
