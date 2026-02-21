@@ -172,6 +172,14 @@ impl<R, T> Scru128Generator<R, T> {
         }
         self.rollback_allowance = rollback_allowance;
     }
+
+    /// Resets the internal state of the generator.
+    fn reset_state(&mut self) {
+        self.timestamp = 0;
+        self.counter_hi = 0;
+        self.counter_lo = 0;
+        self.ts_counter_hi = 0;
+    }
 }
 
 impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
@@ -224,8 +232,7 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
             value
         } else {
             // reset state and resume
-            self.timestamp = 0;
-            self.ts_counter_hi = 0;
+            self.reset_state();
             self.generate_or_abort_with_ts(timestamp).unwrap()
         }
     }
@@ -294,8 +301,7 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
             value
         } else {
             // reset state and resume
-            self.timestamp = 0;
-            self.ts_counter_hi = 0;
+            self.reset_state();
             self.generate_or_abort_core(timestamp, rollback_allowance)
                 .unwrap()
         }
