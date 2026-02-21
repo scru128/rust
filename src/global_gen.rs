@@ -13,6 +13,7 @@ pub fn new() -> Scru128Id {
     G.get_or_init(Default::default)
         .lock()
         .expect("scru128: could not lock global generator")
+        .get_mut()
         .generate()
 }
 
@@ -55,7 +56,9 @@ impl Default for GlobalGenInner {
 }
 
 impl GlobalGenInner {
-    fn generate(&mut self) -> Scru128Id {
+    /// Returns a mutable reference to the inner [`Scru128Generator`] instance, reseting the
+    /// generator state on Unix if the process ID has changed.
+    fn get_mut(&mut self) -> &mut Scru128Generator {
         #[cfg(unix)]
         if self.pid != std::process::id() {
             self.pid = std::process::id();
@@ -64,7 +67,7 @@ impl GlobalGenInner {
                 self.generator.replace_rand_source(rng);
             }
         }
-        self.generator.generate()
+        &mut self.generator
     }
 }
 
