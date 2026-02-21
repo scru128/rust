@@ -23,7 +23,7 @@ impl Default for DefaultRng {
 }
 
 impl DefaultRng {
-    pub(super) fn try_new() -> Result<Self, impl error::Error> {
+    pub(crate) fn try_new() -> Result<Self, impl error::Error> {
         ReseedingRng::new(1024 * 64, OsRng).map(|inner| Self {
             _private: (),
             inner,

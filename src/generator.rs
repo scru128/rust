@@ -174,11 +174,17 @@ impl<R, T> Scru128Generator<R, T> {
     }
 
     /// Resets the internal state of the generator.
-    fn reset_state(&mut self) {
+    pub(crate) fn reset_state(&mut self) {
         self.timestamp = 0;
         self.counter_hi = 0;
         self.counter_lo = 0;
         self.ts_counter_hi = 0;
+    }
+
+    /// Replaces the random number generator with the argument, returning the old one.
+    #[cfg(feature = "global_gen")]
+    pub(crate) fn replace_rand_source(&mut self, rand_source: R) -> R {
+        std::mem::replace(&mut self.rand_source, rand_source)
     }
 }
 
@@ -339,16 +345,6 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
         };
         guard.inner.set_rollback_allowance(rollback_allowance);
         guard.inner.generate_or_abort_with_ts(timestamp)
-    }
-}
-
-#[cfg(feature = "global_gen")]
-impl Scru128Generator {
-    pub(crate) fn reset_and_try_reseed(&mut self) {
-        self.reset_state();
-        if let Ok(rng) = DefaultRng::try_new() {
-            self.rand_source = rng;
-        }
     }
 }
 

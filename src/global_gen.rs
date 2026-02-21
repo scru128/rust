@@ -1,6 +1,6 @@
 #![cfg(feature = "global_gen")]
 
-use crate::{Scru128Generator, Scru128Id};
+use crate::{generator::DefaultRng, Scru128Generator, Scru128Id};
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///
@@ -59,7 +59,10 @@ impl GlobalGenInner {
         #[cfg(unix)]
         if self.pid != std::process::id() {
             self.pid = std::process::id();
-            self.generator.reset_and_try_reseed();
+            self.generator.reset_state();
+            if let Ok(rng) = DefaultRng::try_new() {
+                self.generator.replace_rand_source(rng);
+            }
         }
         self.generator.generate()
     }
