@@ -1,3 +1,5 @@
+use std::error;
+
 use rand09::{rngs::OsRng, rngs::ReseedingRng, RngCore as _};
 
 use super::{DefaultRng, RandSource};
@@ -16,10 +18,16 @@ impl Default for DefaultRng {
     /// Panics in the highly unlikely event where the operating system's random number generator
     /// failed to provide secure entropy.
     fn default() -> Self {
-        Self {
+        Self::try_new().expect("could not initialize DefaultRng")
+    }
+}
+
+impl DefaultRng {
+    pub(super) fn try_new() -> Result<Self, impl error::Error> {
+        ReseedingRng::new(1024 * 64, OsRng).map(|inner| Self {
             _private: (),
-            inner: ReseedingRng::new(1024 * 64, OsRng).expect("could not initialize DefaultRng"),
-        }
+            inner,
+        })
     }
 }
 

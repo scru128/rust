@@ -58,7 +58,8 @@ impl GlobalGenInner {
     fn generate(&mut self) -> Scru128Id {
         #[cfg(unix)]
         if self.pid != std::process::id() {
-            *self = Default::default();
+            self.pid = std::process::id();
+            self.generator.reset_and_try_reseed();
         }
         self.generator.generate()
     }

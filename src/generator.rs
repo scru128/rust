@@ -342,6 +342,16 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
     }
 }
 
+#[cfg(feature = "global_gen")]
+impl Scru128Generator {
+    pub(crate) fn reset_and_try_reseed(&mut self) {
+        self.reset_state();
+        if let Ok(rng) = DefaultRng::try_new() {
+            self.rand_source = rng;
+        }
+    }
+}
+
 impl<R: Default, T: Default> Default for Scru128Generator<R, T> {
     fn default() -> Self {
         Self::with_rand_and_time_sources(R::default(), T::default())
