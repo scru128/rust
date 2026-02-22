@@ -34,7 +34,7 @@ serde = { version = "1.0", default-features = false, optional = true }
 
 [dev-dependencies]
 rand09 = { package = "rand", version = "0.9", default-features = false, features = ["std_rng"] }
-regex = { version = "1.11", default-features = false, features = ["std"] }
+regex = { version = "1.12", default-features = false, features = ["std"] }
 serde_test = "1.0"
 
 [package.metadata.docs.rs]
