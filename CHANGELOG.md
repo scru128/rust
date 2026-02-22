@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.4.0 - unreleased
+
+- Migrated to Edition 2024 and upgraded MSRV to 1.85.
+
 ## v3.3.1 - 2026-02-21
 
 ### New features and improvements

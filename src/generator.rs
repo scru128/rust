@@ -6,7 +6,7 @@
 use core as std;
 use std::{fmt, iter};
 
-use crate::{Scru128Id, MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP};
+use crate::{MAX_COUNTER_HI, MAX_COUNTER_LO, MAX_TIMESTAMP, Scru128Id};
 
 /// A trait that defines the minimum random number generator interface for [`Scru128Generator`].
 pub trait RandSource {

@@ -389,7 +389,7 @@ mod tests {
         ];
 
         for e in cases {
-            let from_fields = Scru128Id::from_fields(e.0 .0, e.0 .1, e.0 .2, e.0 .3);
+            let from_fields = Scru128Id::from_fields(e.0.0, e.0.1, e.0.2, e.0.3);
             let from_string = e.1.parse::<Scru128Id>().unwrap();
 
             assert_eq!(from_fields, from_string);
@@ -586,8 +586,8 @@ mod tests {
 
 #[cfg(feature = "serde")]
 mod with_serde {
-    use super::{fmt, str, Scru128Id};
-    use serde::{de, Deserializer, Serializer};
+    use super::{Scru128Id, fmt, str};
+    use serde::{Deserializer, Serializer, de};
 
     impl serde::Serialize for Scru128Id {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {

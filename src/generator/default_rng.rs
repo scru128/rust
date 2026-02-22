@@ -1,6 +1,6 @@
 use std::error;
 
-use rand09::{rngs::OsRng, rngs::ReseedingRng, RngCore as _};
+use rand09::{RngCore as _, rngs::OsRng, rngs::ReseedingRng};
 
 use super::{DefaultRng, RandSource};
 
@@ -69,11 +69,15 @@ mod tests {
 
         // set margin based on binom dist 99.999% confidence interval
         let margin = 4.417173 * (0.5 * 0.5 / N_LOOPS as f64).sqrt();
-        assert!(counts
-            .iter()
-            .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
-        assert!(counts_xor
-            .iter()
-            .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin));
+        assert!(
+            counts
+                .iter()
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin)
+        );
+        assert!(
+            counts_xor
+                .iter()
+                .all(|e| (*e as f64 / N_LOOPS as f64 - 0.5).abs() < margin)
+        );
     }
 }

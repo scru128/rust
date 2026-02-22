@@ -14,7 +14,7 @@ fn new_rand_source() -> impl RandSource {
 
     #[cfg(not(feature = "default_rng"))]
     {
-        use rand09::{rngs::StdRng, RngCore as _, SeedableRng as _};
+        use rand09::{RngCore as _, SeedableRng as _, rngs::StdRng};
 
         struct MockRandSource(StdRng);
         impl RandSource for MockRandSource {
