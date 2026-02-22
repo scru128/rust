@@ -83,24 +83,22 @@ const MAX_COUNTER_LO: u32 = 0xff_ffff;
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
+    use std::{collections, sync, time};
+
     use crate::{Scru128Generator, Scru128Id};
 
-    fn samples() -> &'static [String] {
-        use std::sync::OnceLock;
-        static SAMPLES: OnceLock<Vec<String>> = OnceLock::new();
-        SAMPLES.get_or_init(|| {
-            Scru128Generator::new()
-                .map(String::from)
-                .take(100_000)
-                .collect()
-        })
-    }
+    static SAMPLES: sync::LazyLock<Vec<String>> = sync::LazyLock::new(|| {
+        Scru128Generator::new()
+            .map(String::from)
+            .take(100_000)
+            .collect()
+    });
 
     /// Generates 25-digit canonical string
     #[test]
     fn generates_25_digit_canonical_string() {
         let re = regex::Regex::new(r"^[0-9a-z]{25}$").unwrap();
-        for e in samples() {
+        for e in &SAMPLES[..] {
             assert!(re.is_match(e));
         }
     }
@@ -108,28 +106,25 @@ mod tests {
     /// Generates 100k identifiers without collision
     #[test]
     fn generates_100k_identifiers_without_collision() {
-        use std::collections::HashSet;
-        let s: HashSet<&String> = samples().iter().collect();
-        assert_eq!(s.len(), samples().len());
+        let s: collections::HashSet<&String> = SAMPLES.iter().collect();
+        assert_eq!(s.len(), SAMPLES.len());
     }
 
     /// Generates sortable string representation by creation time
     #[test]
     fn generates_sortable_string_representation_by_creation_time() {
-        let samples = samples();
-        for i in 1..samples.len() {
-            assert!(samples[i - 1] < samples[i]);
+        for i in 1..SAMPLES.len() {
+            assert!(SAMPLES[i - 1] < SAMPLES[i]);
         }
     }
 
     /// Encodes up-to-date timestamp
     #[test]
     fn encodes_up_to_date_timestamp() {
-        use std::time::{SystemTime, UNIX_EPOCH};
         let mut g = Scru128Generator::new();
         for _ in 0..10_000 {
-            let ts_now = (SystemTime::now()
-                .duration_since(UNIX_EPOCH)
+            let ts_now = (time::SystemTime::now()
+                .duration_since(time::UNIX_EPOCH)
                 .expect("clock may have gone backwards")
                 .as_millis()) as i64;
             let timestamp = g.generate().timestamp() as i64;
@@ -140,9 +135,8 @@ mod tests {
     /// Encodes unique sortable tuple of timestamp and counters
     #[test]
     fn encodes_unique_sortable_tuple_of_timestamp_and_counters() {
-        let samples = samples();
-        let mut prev = samples[0].parse::<Scru128Id>().unwrap();
-        for e in &samples[1..] {
+        let mut prev = SAMPLES[0].parse::<Scru128Id>().unwrap();
+        for e in &SAMPLES[1..] {
             let curr = e.parse::<Scru128Id>().unwrap();
             assert!(
                 prev.timestamp() < curr.timestamp()

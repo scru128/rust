@@ -8,10 +8,9 @@ use crate::{Scru128Generator, Scru128Id, generator::DefaultRng};
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
 /// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
 pub fn new() -> Scru128Id {
-    use std::sync::{Mutex, OnceLock};
-    static G: OnceLock<Mutex<GlobalGenInner>> = OnceLock::new();
-    G.get_or_init(Default::default)
-        .lock()
+    use std::sync::{LazyLock, Mutex};
+    static G: LazyLock<Mutex<GlobalGenInner>> = LazyLock::new(Default::default);
+    G.lock()
         .expect("scru128: could not lock global generator")
         .get_mut()
         .generate()
