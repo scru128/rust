@@ -27,8 +27,11 @@ pub trait TimeSource {
     fn unix_ts_ms(&mut self) -> u64;
 }
 
-/// Represents a SCRU128 ID generator that encapsulates the monotonic counters and other internal
-/// states.
+/// Represents a SCRU128 ID generator that encapsulates the counters and other internal state and
+/// guarantees the monotonic order of IDs generated within the same millisecond.
+///
+/// This type provides the interface to customize the random number generator, system clock, and
+/// clock rollback handling of a SCRU128 ID generator.
 ///
 /// # Examples
 ///
@@ -39,34 +42,9 @@ pub trait TimeSource {
 ///
 /// let mut g = Scru128Generator::new();
 /// println!("{}", g.generate());
-/// println!("{}", g.generate().to_u128());
-/// # }
-/// ```
-///
-/// Each generator instance generates monotonically ordered IDs, but multiple generators called
-/// concurrently may produce unordered results unless explicitly synchronized. Use Rust's
-/// synchronization mechanisms to control the scope of guaranteed monotonicity:
-///
-/// ```rust
-/// # #[cfg(feature = "default_rng")]
-/// # {
-/// use scru128::Scru128Generator;
-/// use std::sync::{Arc, Mutex};
-///
-/// let g_shared = Arc::new(Mutex::new(Scru128Generator::new()));
-///
-/// std::thread::scope(|s| {
-///     for i in 0..4 {
-///         let g_shared = Arc::clone(&g_shared);
-///         s.spawn(move || {
-///             let mut g_local = Scru128Generator::new();
-///             for _ in 0..4 {
-///                 println!("Shared generator: {}", g_shared.lock().unwrap().generate());
-///                 println!("Thread-local generator {}: {}", i, g_local.generate());
-///             }
-///         });
-///     }
-/// });
+/// if let Some(value) = g.generate_or_abort() {
+///     println!("{}", value);
+/// }
 /// # }
 /// ```
 ///
