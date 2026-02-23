@@ -83,15 +83,41 @@ impl Scru128Id {
         counter_lo: u32,
         entropy: u32,
     ) -> Self {
+        match Self::try_from_fields_inner(timestamp, counter_hi, counter_lo, entropy) {
+            Ok(value) => value,
+            Err(_) => panic!("invalid field value(s)"),
+        }
+    }
+
+    /// Creates an object from field values.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` if any argument is out of the value range of the field.
+    pub const fn try_from_fields(
+        timestamp: u64,
+        counter_hi: u32,
+        counter_lo: u32,
+        entropy: u32,
+    ) -> Result<Self, impl error::Error> {
+        Self::try_from_fields_inner(timestamp, counter_hi, counter_lo, entropy)
+    }
+
+    const fn try_from_fields_inner(
+        timestamp: u64,
+        counter_hi: u32,
+        counter_lo: u32,
+        entropy: u32,
+    ) -> Result<Self, FieldError> {
         if timestamp > MAX_TIMESTAMP || counter_hi > MAX_COUNTER_HI || counter_lo > MAX_COUNTER_LO {
-            panic!("invalid field value");
+            Err(FieldError)
         } else {
-            Self::from_u128(
+            Ok(Self::from_u128(
                 ((timestamp as u128) << 80)
                     | ((counter_hi as u128) << 56)
                     | ((counter_lo as u128) << 32)
                     | (entropy as u128),
-            )
+            ))
         }
     }
 
@@ -334,6 +360,18 @@ impl fmt::Display for ParseError {
 }
 
 impl error::Error for ParseError {}
+
+/// An error creating a SCRU128 ID from invalid field value(s).
+#[derive(Debug)]
+struct FieldError;
+
+impl fmt::Display for FieldError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid field value(s)")
+    }
+}
+
+impl error::Error for FieldError {}
 
 #[cfg(feature = "std")]
 mod with_std {

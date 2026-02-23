@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## v3.5.0 - unreleased
 
+- Added `try_from_fields()` constructor to `Scru128Id`.
 - Minor documentation updates.
 
 ## v3.4.0 - 2026-02-22
