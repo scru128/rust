@@ -1,6 +1,8 @@
+//! Default generator and entry point functions.
+
 #![cfg(feature = "global_gen")]
 
-use crate::{Scru128Generator, Scru128Id, generator::DefaultRng};
+use crate::{Scru128Generator, Scru128Id};
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///
@@ -36,12 +38,14 @@ pub fn new_string() -> String {
     new().into()
 }
 
+use crate::generator::DefaultRng as GlobalGenRng;
+
 /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
 #[derive(Debug)]
 struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
-    generator: Scru128Generator,
+    generator: Scru128Generator<GlobalGenRng>,
 }
 
 impl Default for GlobalGenInner {
@@ -49,7 +53,10 @@ impl Default for GlobalGenInner {
         Self {
             #[cfg(unix)]
             pid: std::process::id(),
-            generator: Default::default(),
+            generator: Scru128Generator::with_rand_and_time_sources(
+                GlobalGenRng::try_new().expect("scru128: could not initialize global generator"),
+                Default::default(),
+            ),
         }
     }
 }
@@ -62,7 +69,7 @@ impl GlobalGenInner {
         if self.pid != std::process::id() {
             self.pid = std::process::id();
             self.generator.reset_state();
-            if let Ok(rng) = DefaultRng::try_new() {
+            if let Ok(rng) = GlobalGenRng::try_new() {
                 self.generator.replace_rand_source(rng);
             }
         }
@@ -83,7 +90,7 @@ mod tests {
             let tx = tx.clone();
             thread::Builder::new()
                 .spawn(move || {
-                    for _ in 0..10000 {
+                    for _ in 0..10_000 {
                         tx.send(super::new()).unwrap();
                     }
                 })
@@ -96,7 +103,7 @@ mod tests {
             s.insert((e.timestamp(), e.counter_hi(), e.counter_lo()));
         }
 
-        assert_eq!(s.len(), 4 * 10000);
+        assert_eq!(s.len(), 4 * 10_000);
         Ok(())
     }
 }
