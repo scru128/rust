@@ -110,7 +110,7 @@ impl Scru128Id {
         entropy: u32,
     ) -> Result<Self, FieldError> {
         if timestamp > MAX_TIMESTAMP || counter_hi > MAX_COUNTER_HI || counter_lo > MAX_COUNTER_LO {
-            Err(FieldError)
+            Err(FieldError(()))
         } else {
             Ok(Self::from_u128(
                 ((timestamp as u128) << 80)
@@ -363,7 +363,7 @@ impl error::Error for ParseError {}
 
 /// An error creating a SCRU128 ID from invalid field value(s).
 #[derive(Debug)]
-struct FieldError;
+struct FieldError(());
 
 impl fmt::Display for FieldError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
