@@ -85,7 +85,7 @@ impl Scru128Id {
         counter_lo: u32,
         entropy: u32,
     ) -> Self {
-        match Self::try_from_fields_inner(timestamp, counter_hi, counter_lo, entropy) {
+        match Self::try_from_fields(timestamp, counter_hi, counter_lo, entropy) {
             Ok(value) => value,
             Err(_) => panic!("invalid field value(s)"),
         }
@@ -101,18 +101,9 @@ impl Scru128Id {
         counter_hi: u32,
         counter_lo: u32,
         entropy: u32,
-    ) -> Result<Self, impl error::Error> {
-        Self::try_from_fields_inner(timestamp, counter_hi, counter_lo, entropy)
-    }
-
-    const fn try_from_fields_inner(
-        timestamp: u64,
-        counter_hi: u32,
-        counter_lo: u32,
-        entropy: u32,
     ) -> Result<Self, FieldError> {
         if timestamp > MAX_TIMESTAMP || counter_hi > MAX_COUNTER_HI || counter_lo > MAX_COUNTER_LO {
-            Err(FieldError(()))
+            Err(FieldError { _private: () })
         } else {
             Ok(Self::from_u128(
                 ((timestamp as u128) << 80)
@@ -365,7 +356,9 @@ impl error::Error for ParseError {}
 
 /// An error creating a SCRU128 ID from invalid field value(s).
 #[derive(Debug)]
-struct FieldError(());
+pub struct FieldError {
+    _private: (),
+}
 
 impl fmt::Display for FieldError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
