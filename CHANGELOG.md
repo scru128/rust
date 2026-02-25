@@ -2,6 +2,9 @@
 
 ## v3.5.0 - unreleased
 
+- Exposed `id` module.
+- Deprecated the top-level re-export of `ParseError` in favor of
+  `id::ParseError`.
 - Added `try_from_fields()` constructor to `Scru128Id`.
 - Minor documentation updates.
 

@@ -64,8 +64,10 @@ mod global_gen;
 #[cfg(feature = "global_gen")]
 pub use global_gen::{new, new_string};
 
-mod id;
-pub use id::{ParseError, Scru128Id};
+pub mod id;
+#[doc(hidden)]
+pub use id::ParseError;
+pub use id::Scru128Id;
 
 pub mod generator;
 #[doc(hidden)]

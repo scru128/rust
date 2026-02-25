@@ -1,3 +1,5 @@
+//! SCRU128 identifier and error types.
+
 #[cfg(not(feature = "std"))]
 use core as std;
 
@@ -40,7 +42,7 @@ const DECODE_MAP: [u8; 256] = [
 ///
 /// let y = Scru128Id::from(0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
 /// assert_eq!(y.to_u128(), 0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
-/// # Ok::<(), scru128::ParseError>(())
+/// # Ok::<(), scru128::id::ParseError>(())
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[repr(transparent)]
@@ -151,7 +153,7 @@ impl Scru128Id {
     /// let x = Scru128Id::try_from_str("037d0xye6op48cmce8ey4xlcf")?;
     /// let y = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
     /// assert_eq!(x, y);
-    /// # Ok::<(), scru128::ParseError>(())
+    /// # Ok::<(), scru128::id::ParseError>(())
     /// ```
     pub const fn try_from_str(str_value: &str) -> Result<Self, ParseError> {
         if str_value.len() != 25 {
@@ -189,7 +191,7 @@ impl Scru128Id {
     /// let y = x.encode();
     /// assert_eq!(y, "037d0xye6op48cmce8ey4xlcf");
     /// assert_eq!(format!("{}", y), "037d0xye6op48cmce8ey4xlcf");
-    /// # Ok::<(), scru128::ParseError>(())
+    /// # Ok::<(), scru128::id::ParseError>(())
     /// ```
     pub const fn encode(&self) -> FStr<25> {
         // implement Base36 using usize chunks because Div<u128> is slow
@@ -270,7 +272,7 @@ impl fmt::Display for Scru128Id {
     /// assert_eq!(format!("{:32}", x), "03997ft3ckz99o1i3f82zat1t       ");
     /// assert_eq!(format!("{:->32}", x), "-------03997ft3ckz99o1i3f82zat1t");
     /// assert_eq!(format!("{:.^7.5}", x), ".03997.");
-    /// # Ok::<(), scru128::ParseError>(())
+    /// # Ok::<(), scru128::id::ParseError>(())
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self.encode().as_str(), f)
