@@ -2,11 +2,21 @@
 
 ## v3.5.0 - unreleased
 
-- Exposed `id` module.
-- Deprecated the top-level re-export of `ParseError` in favor of
-  `id::ParseError`.
-- Added `try_from_fields()` constructor to `Scru128Id`.
-- Minor documentation updates.
+### Added
+
+- `Scru128Id::try_from_fields()` constructor that validates input ranges and
+  returns a `Result<Scru128Id, FieldError>`, offering a safer alternative to the
+  panicking `from_fields()`.
+- `id` module that provides access to `ParseError` and the newly added
+  `FieldError`.
+
+### Deprecated
+
+- The top-level re-export of `ParseError` in favor of `scru128::id::ParseError`.
+
+### Maintenance
+
+- Minor refactoring and documentation updates.
 
 ## v3.4.0 - 2026-02-22
 
