@@ -50,6 +50,9 @@
 //! - `serde` enables serialization/deserialization of [`Scru128Id`] via serde.
 //! - `rand010` enables an adapter for `rand::Rng` to use `rand` (v0.10) and any
 //!   other conforming random number generators with [`Scru128Generator`].
+//!
+//! Deprecated optional features:
+//!
 //! - `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
 //!   other conforming random number generators with [`Scru128Generator`].
 //! - `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
