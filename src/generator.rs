@@ -338,7 +338,7 @@ impl<R: fmt::Debug, T: fmt::Debug> fmt::Debug for Scru128Generator<R, T> {
             .field("rand_source", &self.rand_source)
             .field("time_source", &self.time_source)
             .field("rollback_allowance", &self.rollback_allowance)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

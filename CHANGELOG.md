@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.5.1 - unreleased
+
+- Tweaked the `Debug` representation of `Scru128Generator`.
+
 ## v3.5.0 - 2026-03-03
 
 ### Added
