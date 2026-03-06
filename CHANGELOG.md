@@ -4,6 +4,7 @@
 
 - Deprecated `rand09` cargo feature and the integration of `rand` crate v0.9.
 - Tweaked the `Debug` representation of `Scru128Generator`.
+- Minor refactoring.
 
 ## v3.5.0 - 2026-03-03
 

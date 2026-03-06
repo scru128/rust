@@ -64,7 +64,7 @@ impl Default for GlobalGenInner {
 impl GlobalGenInner {
     /// Returns a mutable reference to the inner [`Scru128Generator`] instance, reseting the
     /// generator state on Unix if the process ID has changed.
-    fn get_mut(&mut self) -> &mut Scru128Generator {
+    fn get_mut(&mut self) -> &mut Scru128Generator<GlobalGenRng> {
         #[cfg(unix)]
         if self.pid != std::process::id() {
             self.pid = std::process::id();

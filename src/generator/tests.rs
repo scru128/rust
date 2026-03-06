@@ -2,7 +2,7 @@ use super::*;
 use std::cell;
 
 #[cfg(not(feature = "default_rng"))]
-impl Scru128Generator {
+impl Scru128Generator<()> {
     pub(crate) fn new() -> Scru128Generator<impl RandSource, impl TimeSource> {
         Scru128Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
     }
