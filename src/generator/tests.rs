@@ -1,9 +1,12 @@
 use super::*;
 use std::cell;
 
-#[cfg(not(feature = "default_rng"))]
 impl Scru128Generator<()> {
-    pub(crate) fn new() -> Scru128Generator<impl RandSource, impl TimeSource> {
+    pub(crate) fn for_testing() -> Scru128Generator<impl RandSource, impl TimeSource> {
+        #[cfg(feature = "default_rng")]
+        return Scru128Generator::new();
+
+        #[cfg(not(feature = "default_rng"))]
         Scru128Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
     }
 }
@@ -187,7 +190,7 @@ fn handle_clock_rollback() {
 fn core_fns_do_not_change_rollback_allowance() {
     let ts = new_time_source().unix_ts_ms();
 
-    let mut g = Scru128Generator::new();
+    let mut g = Scru128Generator::for_testing();
     g.set_rollback_allowance(100);
     assert_eq!(g.rollback_allowance, 100);
 
@@ -202,7 +205,7 @@ fn core_fns_do_not_change_rollback_allowance() {
 #[test]
 fn is_iterable_with_for_in_loop() {
     let mut i = 0;
-    for e in Scru128Generator::new() {
+    for e in Scru128Generator::for_testing() {
         assert!(e.timestamp() > 0);
         i += 1;
         if i > 100 {

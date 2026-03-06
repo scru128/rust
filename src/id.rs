@@ -530,7 +530,7 @@ mod tests {
 
         let cases = {
             let mut v = cases.to_vec();
-            let mut g = Scru128Generator::new();
+            let mut g = Scru128Generator::for_testing();
             for _ in 0..1000 {
                 v.push(g.generate());
             }
@@ -580,7 +580,7 @@ mod tests {
 
         let ordered = {
             let mut v = ordered.to_vec();
-            let mut g = Scru128Generator::new();
+            let mut g = Scru128Generator::for_testing();
             for _ in 0..1000 {
                 v.push(g.generate());
             }

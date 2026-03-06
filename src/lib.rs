@@ -93,7 +93,7 @@ mod tests {
     use crate::{Scru128Generator, Scru128Id};
 
     static SAMPLES: sync::LazyLock<Vec<String>> = sync::LazyLock::new(|| {
-        Scru128Generator::new()
+        Scru128Generator::for_testing()
             .map(String::from)
             .take(100_000)
             .collect()
@@ -126,7 +126,7 @@ mod tests {
     /// Encodes up-to-date timestamp
     #[test]
     fn encodes_up_to_date_timestamp() {
-        let mut g = Scru128Generator::new();
+        let mut g = Scru128Generator::for_testing();
         for _ in 0..10_000 {
             let ts_now = (time::SystemTime::now()
                 .duration_since(time::UNIX_EPOCH)
