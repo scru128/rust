@@ -94,6 +94,7 @@ mod tests {
 
     static SAMPLES: sync::LazyLock<Vec<String>> = sync::LazyLock::new(|| {
         Scru128Generator::for_testing()
+            .iter()
             .map(String::from)
             .take(100_000)
             .collect()
