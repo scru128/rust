@@ -538,12 +538,12 @@ mod tests {
         };
 
         for e in cases {
-            assert_eq!(Scru128Id::try_from_str(&e.encode()), Ok(e));
-            assert_eq!(e.encode().parse::<Scru128Id>(), Ok(e));
+            assert_eq!(Scru128Id::try_from_str(&e.encode()).unwrap(), e);
+            assert_eq!(e.encode().parse::<Scru128Id>().unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(e.to_string().parse::<Scru128Id>(), Ok(e));
+            assert_eq!(e.to_string().parse::<Scru128Id>().unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(Scru128Id::try_from(String::from(e)), Ok(e));
+            assert_eq!(Scru128Id::try_from(String::from(e)).unwrap(), e);
             assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
             assert_eq!(Scru128Id::from(u128::from(e)), e);
             assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
