@@ -1,8 +1,10 @@
 # Changelog
 
-## v3.5.1 - unreleased
+## v3.6.0 - unreleased
 
 - Deprecated `rand09` cargo feature and the integration of `rand` crate v0.9.
+- Added `Scru128Generator::iter()` to supersede the direct `Iterator`
+  implementation for `Scru128Generator`.
 - Tweaked the `Debug` representation of `Scru128Generator`.
 - Minor refactoring.
 

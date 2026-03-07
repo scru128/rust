@@ -200,6 +200,25 @@ impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
         let timestamp = self.time_source.unix_ts_ms();
         self.generate_or_abort_with_ts(timestamp)
     }
+
+    /// Returns an infinite iterator that produces a new ID for each call of `next()`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # #[cfg(feature = "default_rng")]
+    /// # {
+    /// use scru128::Scru128Generator;
+    ///
+    /// let mut g = Scru128Generator::new();
+    /// for (i, e) in g.iter().take(8).enumerate() {
+    ///     println!("[{}] {}", i, e);
+    /// }
+    /// # }
+    /// ```
+    pub fn iter(&mut self) -> impl Iterator<Item = Scru128Id> {
+        iter::from_fn(|| Some(self.generate()))
+    }
 }
 
 impl<R: RandSource, T> Scru128Generator<R, T> {
@@ -343,7 +362,7 @@ impl<R: fmt::Debug, T: fmt::Debug> fmt::Debug for Scru128Generator<R, T> {
 }
 
 /// `Scru128Generator` behaves as an infinite iterator that produces a new ID for each call of
-/// `next()`.
+/// `next()`. This implementation is deprecated; use [`iter()`](Scru128Generator::iter) instead.
 ///
 /// # Examples
 ///
