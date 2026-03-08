@@ -22,12 +22,14 @@ impl<T: Rng> Scru128Generator<Adapter<T>> {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// # use rand010 as rand;
+    /// ```rust
+    /// # #[cfg(feature = "std")]
+    /// # {
     /// use scru128::Scru128Generator;
     ///
     /// let mut g = Scru128Generator::with_rand010(rand::rng());
     /// println!("{}", g.generate());
+    /// # }
     /// ```
     pub const fn with_rand010(rng: T) -> Self {
         Self::with_rand_and_time_sources(Adapter(rng), StdSystemTime)

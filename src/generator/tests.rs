@@ -2,35 +2,31 @@ use super::*;
 use std::cell;
 
 impl Scru128Generator<()> {
+    #[cfg(feature = "default_rng")]
     pub(crate) fn for_testing() -> Scru128Generator<impl RandSource, impl TimeSource> {
-        #[cfg(feature = "default_rng")]
-        return Scru128Generator::new();
+        Scru128Generator::new()
+    }
 
-        #[cfg(not(feature = "default_rng"))]
+    #[cfg(not(feature = "default_rng"))]
+    pub(crate) fn for_testing() -> Scru128Generator<impl RandSource, impl TimeSource> {
         Scru128Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
     }
 }
 
+#[cfg(feature = "default_rng")]
 fn new_rand_source() -> impl RandSource {
-    #[cfg(feature = "default_rng")]
-    return DefaultRng::default();
+    DefaultRng::default()
+}
 
-    #[cfg(not(feature = "default_rng"))]
-    {
-        use rand09::{RngCore as _, SeedableRng as _, rngs::StdRng};
-
-        struct MockRandSource(StdRng);
-        impl RandSource for MockRandSource {
-            fn next_u32(&mut self) -> u32 {
-                self.0.next_u32()
-            }
+#[cfg(not(feature = "default_rng"))]
+fn new_rand_source() -> impl RandSource {
+    struct MockRandSource;
+    impl RandSource for MockRandSource {
+        fn next_u32(&mut self) -> u32 {
+            rand::random()
         }
-
-        let local_var = 0u32;
-        let mut addr_as_seed = (&local_var as *const u32) as u64;
-        addr_as_seed ^= new_time_source().unix_ts_ms();
-        MockRandSource(StdRng::seed_from_u64(addr_as_seed))
     }
+    MockRandSource
 }
 
 fn new_time_source() -> impl TimeSource {

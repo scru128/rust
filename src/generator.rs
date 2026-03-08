@@ -35,12 +35,15 @@ pub trait TimeSource {
 ///
 /// # Examples
 ///
+/// This structure is typically instantiated with a random number generator from `rand` crate via
+/// the adapters enabled by the corresponding cargo features.
+///
 /// ```rust
-/// # #[cfg(feature = "default_rng")]
+/// # #[cfg(all(feature = "std", feature = "rand010"))]
 /// # {
 /// use scru128::Scru128Generator;
 ///
-/// let mut g = Scru128Generator::new();
+/// let mut g = Scru128Generator::with_rand010(rand::rng());
 /// println!("{}", g.generate());
 /// if let Some(value) = g.generate_or_abort() {
 ///     println!("{}", value);
@@ -184,11 +187,11 @@ impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
     /// # Examples
     ///
     /// ```rust
-    /// # #[cfg(feature = "default_rng")]
+    /// # #[cfg(all(feature = "std", feature = "rand010"))]
     /// # {
     /// use scru128::Scru128Generator;
     ///
-    /// let mut g = Scru128Generator::new();
+    /// let mut g = Scru128Generator::with_rand010(rand::rng());
     /// let x = g.generate_or_abort().unwrap();
     /// let y = g
     ///     .generate_or_abort()
@@ -206,11 +209,11 @@ impl<R: RandSource, T: TimeSource> Scru128Generator<R, T> {
     /// # Examples
     ///
     /// ```rust
-    /// # #[cfg(feature = "default_rng")]
+    /// # #[cfg(all(feature = "std", feature = "rand010"))]
     /// # {
     /// use scru128::Scru128Generator;
     ///
-    /// let mut g = Scru128Generator::new();
+    /// let mut g = Scru128Generator::with_rand010(rand::rng());
     /// for (i, e) in g.iter().take(8).enumerate() {
     ///     println!("[{}] {}", i, e);
     /// }
@@ -370,11 +373,11 @@ impl<R: fmt::Debug, T: fmt::Debug> fmt::Debug for Scru128Generator<R, T> {
 /// # Examples
 ///
 /// ```rust
-/// # #[cfg(feature = "default_rng")]
+/// # #[cfg(all(feature = "std", feature = "rand010"))]
 /// # {
 /// use scru128::Scru128Generator;
 ///
-/// let g = Scru128Generator::new();
+/// let g = Scru128Generator::with_rand010(rand::rng());
 /// for (i, e) in g.take(8).enumerate() {
 ///     println!("[{}] {}", i, e);
 /// }

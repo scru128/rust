@@ -8,6 +8,7 @@
 - Added `Scru128Generator::iter()` to supersede the direct `Iterator`
   implementation for `Scru128Generator`.
 - Tweaked the `Debug` representation of `Scru128Generator`.
+- Upgraded the dev dependency on `rand` from v0.9 to v0.10.
 - Minor refactoring.
 
 ## v3.5.0 - 2026-03-03
