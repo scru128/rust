@@ -279,12 +279,15 @@ impl<R: RandSource, T> Scru128Generator<R, T> {
             self.counter_hi = self.rand_source.next_u32() & MAX_COUNTER_HI;
         }
 
-        Some(Scru128Id::from_fields(
-            self.timestamp,
-            self.counter_hi,
-            self.counter_lo,
-            self.rand_source.next_u32(),
-        ))
+        Some(
+            Scru128Id::try_from_fields(
+                self.timestamp,
+                self.counter_hi,
+                self.counter_lo,
+                self.rand_source.next_u32(),
+            )
+            .unwrap(),
+        )
     }
 
     /// Generates a new SCRU128 ID object from the `timestamp` passed, or resets the generator upon

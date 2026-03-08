@@ -3,6 +3,8 @@
 ## v3.6.0 - unreleased
 
 - Deprecated `rand09` cargo feature and the integration of `rand` crate v0.9.
+- Deprecated `Scru128Id::from_fields()` constructor in favor of
+  `try_from_fields()`.
 - Added `Scru128Generator::iter()` to supersede the direct `Iterator`
   implementation for `Scru128Generator`.
 - Tweaked the `Debug` representation of `Scru128Generator`.

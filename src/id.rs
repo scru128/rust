@@ -79,6 +79,7 @@ impl Scru128Id {
     /// # Panics
     ///
     /// Panics if any argument is out of the value range of the field.
+    #[deprecated(since = "3.6.0", note = "use `try_from_fields()` instead")]
     pub const fn from_fields(
         timestamp: u64,
         counter_hi: u32,
@@ -422,7 +423,7 @@ mod tests {
         ];
 
         for e in cases {
-            let from_fields = Scru128Id::from_fields(e.0.0, e.0.1, e.0.2, e.0.3);
+            let from_fields = Scru128Id::try_from_fields(e.0.0, e.0.1, e.0.2, e.0.3).unwrap();
             let from_string = e.1.parse::<Scru128Id>().unwrap();
 
             assert_eq!(from_fields, from_string);
@@ -520,12 +521,12 @@ mod tests {
     #[test]
     fn has_symmetric_converters_from_to_various_values() {
         let cases = [
-            Scru128Id::from_fields(0, 0, 0, 0),
-            Scru128Id::from_fields(MAX_UINT48, 0, 0, 0),
-            Scru128Id::from_fields(0, MAX_UINT24, 0, 0),
-            Scru128Id::from_fields(0, 0, MAX_UINT24, 0),
-            Scru128Id::from_fields(0, 0, 0, MAX_UINT32),
-            Scru128Id::from_fields(MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32),
+            Scru128Id::try_from_fields(0, 0, 0, 0).unwrap(),
+            Scru128Id::try_from_fields(MAX_UINT48, 0, 0, 0).unwrap(),
+            Scru128Id::try_from_fields(0, MAX_UINT24, 0, 0).unwrap(),
+            Scru128Id::try_from_fields(0, 0, MAX_UINT24, 0).unwrap(),
+            Scru128Id::try_from_fields(0, 0, 0, MAX_UINT32).unwrap(),
+            Scru128Id::try_from_fields(MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32).unwrap(),
         ];
 
         let cases = {
@@ -550,7 +551,13 @@ mod tests {
             assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
             assert_eq!(Scru128Id::from_bytes(*e.as_bytes()), e);
             assert_eq!(
-                Scru128Id::from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy()),
+                Scru128Id::try_from_fields(
+                    e.timestamp(),
+                    e.counter_hi(),
+                    e.counter_lo(),
+                    e.entropy()
+                )
+                .unwrap(),
                 e
             );
         }
@@ -567,15 +574,15 @@ mod tests {
         };
 
         let ordered = [
-            Scru128Id::from_fields(0, 0, 0, 0),
-            Scru128Id::from_fields(0, 0, 0, 1),
-            Scru128Id::from_fields(0, 0, 0, MAX_UINT32),
-            Scru128Id::from_fields(0, 0, 1, 0),
-            Scru128Id::from_fields(0, 0, MAX_UINT24, 0),
-            Scru128Id::from_fields(0, 1, 0, 0),
-            Scru128Id::from_fields(0, MAX_UINT24, 0, 0),
-            Scru128Id::from_fields(1, 0, 0, 0),
-            Scru128Id::from_fields(2, 0, 0, 0),
+            Scru128Id::try_from_fields(0, 0, 0, 0).unwrap(),
+            Scru128Id::try_from_fields(0, 0, 0, 1).unwrap(),
+            Scru128Id::try_from_fields(0, 0, 0, MAX_UINT32).unwrap(),
+            Scru128Id::try_from_fields(0, 0, 1, 0).unwrap(),
+            Scru128Id::try_from_fields(0, 0, MAX_UINT24, 0).unwrap(),
+            Scru128Id::try_from_fields(0, 1, 0, 0).unwrap(),
+            Scru128Id::try_from_fields(0, MAX_UINT24, 0, 0).unwrap(),
+            Scru128Id::try_from_fields(1, 0, 0, 0).unwrap(),
+            Scru128Id::try_from_fields(2, 0, 0, 0).unwrap(),
         ];
 
         let ordered = {
