@@ -4,6 +4,7 @@ use std::cell;
 impl Scru128Generator<()> {
     #[cfg(feature = "default_rng")]
     pub(crate) fn for_testing() -> Scru128Generator<impl RandSource, impl TimeSource> {
+        #[allow(deprecated)]
         Scru128Generator::new()
     }
 
@@ -15,6 +16,7 @@ impl Scru128Generator<()> {
 
 #[cfg(feature = "default_rng")]
 fn new_rand_source() -> impl RandSource {
+    #[allow(deprecated)]
     DefaultRng::default()
 }
 

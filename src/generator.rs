@@ -77,6 +77,7 @@ pub trait TimeSource {
 /// [`generate_or_reset_with_ts`]: Scru128Generator::generate_or_reset_with_ts
 /// [`generate_or_abort_with_ts`]: Scru128Generator::generate_or_abort_with_ts
 #[derive(Clone, Eq, PartialEq)]
+#[allow(deprecated)]
 pub struct Scru128Generator<R = DefaultRng, T = StdSystemTime> {
     timestamp: u64,
     counter_hi: u32,
@@ -102,6 +103,10 @@ impl Scru128Generator {
     /// # Panics
     ///
     /// Panics in the highly unlikely event where [`DefaultRng`] could not be initialized.
+    #[deprecated(
+        since = "3.6.0",
+        note = "use `with_rand010()` instead. `DefaultRng` and the default type parameter `R` of `Scru128Generator` are deprecated and will be removed in the future."
+    )]
     pub fn new() -> Self {
         Default::default()
     }
@@ -412,6 +417,10 @@ impl<R: RandSource, T: TimeSource> iter::FusedIterator for Scru128Generator<R, T
 /// [`OsRng`]: rand09::rngs::OsRng
 /// [`ThreadRng`]: rand09::rngs::ThreadRng
 #[derive(Clone, Debug)]
+#[deprecated(
+    since = "3.6.0",
+    note = "this structure and the default type parameter `R` of `Scru128Generator` are deprecated and will be removed in the future. Use RNGs provided by `rand` crate."
+)]
 pub struct DefaultRng {
     _private: (),
 
@@ -420,6 +429,7 @@ pub struct DefaultRng {
 }
 
 #[cfg(feature = "default_rng")]
+#[allow(deprecated)]
 mod default_rng;
 
 /// The default [`TimeSource`] that uses [`std::time::SystemTime`].

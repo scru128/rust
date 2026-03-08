@@ -38,6 +38,7 @@ pub fn new_string() -> String {
     new().into()
 }
 
+#[allow(deprecated)]
 use crate::generator::DefaultRng as GlobalGenRng;
 
 /// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
@@ -45,6 +46,7 @@ use crate::generator::DefaultRng as GlobalGenRng;
 struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
+    #[allow(deprecated)]
     generator: Scru128Generator<GlobalGenRng>,
 }
 
@@ -53,6 +55,7 @@ impl Default for GlobalGenInner {
         Self {
             #[cfg(unix)]
             pid: std::process::id(),
+            #[allow(deprecated)]
             generator: Scru128Generator::with_rand_and_time_sources(
                 GlobalGenRng::try_new().expect("scru128: could not initialize global generator"),
                 Default::default(),
@@ -64,6 +67,7 @@ impl Default for GlobalGenInner {
 impl GlobalGenInner {
     /// Returns a mutable reference to the inner [`Scru128Generator`] instance, reseting the
     /// generator state on Unix if the process ID has changed.
+    #[allow(deprecated)]
     fn get_mut(&mut self) -> &mut Scru128Generator<GlobalGenRng> {
         #[cfg(unix)]
         if self.pid != std::process::id() {
