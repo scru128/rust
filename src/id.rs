@@ -190,8 +190,8 @@ impl Scru128Id {
         const N_CHUNK_DIGITS: u32 = usize::MAX.ilog(36);
         const CHUNK_SIZE: u128 = 36u128.pow(N_CHUNK_DIGITS);
 
-        let mut dst = [b'0'; 25];
-        let mut i = dst.len();
+        let mut buffer = [b'0'; 25];
+        let mut i = buffer.len();
         let mut int_value = self.to_u128();
         while int_value > 0 {
             let mut j = i;
@@ -200,13 +200,13 @@ impl Scru128Id {
             int_value /= CHUNK_SIZE;
             while chunk > 0 {
                 j -= 1;
-                dst[j] = DIGITS[chunk % 36];
+                buffer[j] = DIGITS[chunk % 36];
                 chunk /= 36;
             }
         }
 
-        // SAFETY: All bytes in `dst` are valid ASCII characters.
-        unsafe { FStr::from_inner_unchecked(dst) }
+        // SAFETY: ok because buffer consists of ASCII bytes
+        unsafe { FStr::from_inner_unchecked(buffer) }
     }
 }
 
