@@ -15,6 +15,7 @@ pub trait RandSource {
 }
 
 #[deprecated(since = "3.3.0", note = "use `RandSource` instead")]
+#[doc(hidden)]
 pub use RandSource as Scru128Rng;
 
 pub mod with_rand010;
