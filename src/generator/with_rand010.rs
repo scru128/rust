@@ -2,7 +2,7 @@
 
 #![cfg(feature = "rand010")]
 
-use super::{RandSource, Scru128Generator, StdSystemTime};
+use super::{Generator, RandSource, StdSystemTime};
 use rand_core010::Rng;
 
 /// An adapter that implements [`RandSource`] for [`Rng`] types.
@@ -15,7 +15,7 @@ impl<T: Rng> RandSource for Adapter<T> {
     }
 }
 
-impl<T: Rng> Scru128Generator<Adapter<T>> {
+impl<T: Rng> Generator<Adapter<T>> {
     /// Creates a generator object with a specified random number generator that implements [`Rng`]
     /// from `rand` (v0.10) crate. The specified random number generator should be
     /// cryptographically strong and securely seeded.
@@ -25,9 +25,7 @@ impl<T: Rng> Scru128Generator<Adapter<T>> {
     /// ```rust
     /// # #[cfg(feature = "std")]
     /// # {
-    /// use scru128::Scru128Generator;
-    ///
-    /// let mut g = Scru128Generator::with_rand010(rand::rng());
+    /// let mut g = scru128::Generator::with_rand010(rand::rng());
     /// println!("{}", g.generate());
     /// # }
     /// ```

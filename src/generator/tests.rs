@@ -1,16 +1,16 @@
 use super::*;
 use std::cell;
 
-impl Scru128Generator<()> {
+impl Generator<()> {
     #[cfg(feature = "default_rng")]
-    pub(crate) fn for_testing() -> Scru128Generator<impl RandSource, impl TimeSource> {
+    pub(crate) fn for_testing() -> Generator<impl RandSource, impl TimeSource> {
         #[allow(deprecated)]
-        Scru128Generator::new()
+        Generator::new()
     }
 
     #[cfg(not(feature = "default_rng"))]
-    pub(crate) fn for_testing() -> Scru128Generator<impl RandSource, impl TimeSource> {
-        Scru128Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
+    pub(crate) fn for_testing() -> Generator<impl RandSource, impl TimeSource> {
+        Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
     }
 }
 
@@ -61,7 +61,7 @@ fn reads_timestamp_from_time_source() {
 
     let ts = cell::Cell::default();
     let time_source = PeekableTimeSource(&ts, new_time_source());
-    let mut g = Scru128Generator::with_rand_and_time_sources(new_rand_source(), time_source);
+    let mut g = Generator::with_rand_and_time_sources(new_rand_source(), time_source);
 
     assert_eq!(g.generate().timestamp(), ts.get());
     assert_eq!(g.generate().timestamp(), ts.get());
@@ -89,12 +89,12 @@ fn handle_clock_rollback() {
     for rollback_allowance in [DEFAULT_ROLLBACK_ALLOWANCE, 5_000, 20_000] {
         let ts = cell::Cell::new(0);
         let [mut g0, mut g1, mut g2, mut g3, mut g4, mut g5] = [
-            Scru128Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
-            Scru128Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
-            Scru128Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
-            Scru128Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
-            Scru128Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
-            Scru128Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
         ];
 
         if rollback_allowance != DEFAULT_ROLLBACK_ALLOWANCE {
@@ -105,7 +105,7 @@ fn handle_clock_rollback() {
         }
 
         #[allow(deprecated)]
-        let methods: [(&mut dyn FnMut() -> Option<Scru128Id>, bool); 6] = [
+        let methods: [(&mut dyn FnMut() -> Option<Id>, bool); 6] = [
             (&mut || Some(g0.generate()), true),
             (&mut || g1.generate_or_abort(), false),
             (&mut || Some(g2.generate_or_reset_with_ts(ts.get())), true),
@@ -188,7 +188,7 @@ fn handle_clock_rollback() {
 fn core_fns_do_not_change_rollback_allowance() {
     let ts = new_time_source().unix_ts_ms();
 
-    let mut g = Scru128Generator::for_testing();
+    let mut g = Generator::for_testing();
     g.set_rollback_allowance(100);
     assert_eq!(g.rollback_allowance, 100);
 
@@ -203,7 +203,7 @@ fn core_fns_do_not_change_rollback_allowance() {
 #[test]
 fn is_iterable_with_for_in_loop() {
     let mut i = 0;
-    for e in Scru128Generator::for_testing() {
+    for e in Generator::for_testing() {
         assert!(e.timestamp() > 0);
         i += 1;
         if i > 100 {

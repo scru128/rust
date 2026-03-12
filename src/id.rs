@@ -35,20 +35,22 @@ const DECODE_MAP: [u8; 256] = [
 /// # Examples
 ///
 /// ```rust
-/// use scru128::Scru128Id;
-///
-/// let x = "036z968fu2tugy7svkfznewkk".parse::<Scru128Id>()?;
+/// let x = "036z968fu2tugy7svkfznewkk".parse::<scru128::Id>()?;
 /// assert_eq!(x.to_string(), "036z968fu2tugy7svkfznewkk");
 ///
-/// let y = Scru128Id::from(0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
+/// let y = scru128::Id::from(0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
 /// assert_eq!(y.to_u128(), 0x017fa1de51a80fd992f9e8cc2d5eb88eu128);
 /// # Ok::<(), scru128::id::ParseError>(())
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[repr(transparent)]
-pub struct Scru128Id([u8; 16]);
+pub struct Id([u8; 16]);
 
-impl Scru128Id {
+#[deprecated(since = "3.6.0", note = "use `Id` instead")]
+#[doc(hidden)]
+pub use Id as Scru128Id;
+
+impl Id {
     /// Creates an object from a 128-bit unsigned integer.
     pub const fn from_u128(int_value: u128) -> Self {
         Self(int_value.to_be_bytes())
@@ -140,10 +142,8 @@ impl Scru128Id {
     /// # Examples
     ///
     /// ```rust
-    /// use scru128::Scru128Id;
-    ///
-    /// let x = Scru128Id::try_from_str("037d0xye6op48cmce8ey4xlcf")?;
-    /// let y = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
+    /// let x = scru128::Id::try_from_str("037d0xye6op48cmce8ey4xlcf")?;
+    /// let y = "037d0xye6op48cmce8ey4xlcf".parse::<scru128::Id>()?;
     /// assert_eq!(x, y);
     /// # Ok::<(), scru128::id::ParseError>(())
     /// ```
@@ -177,9 +177,7 @@ impl Scru128Id {
     /// # Examples
     ///
     /// ```rust
-    /// use scru128::Scru128Id;
-    ///
-    /// let x = "037d0xye6op48cmce8ey4xlcf".parse::<Scru128Id>()?;
+    /// let x = "037d0xye6op48cmce8ey4xlcf".parse::<scru128::Id>()?;
     /// let y = x.encode();
     /// assert_eq!(y, "037d0xye6op48cmce8ey4xlcf");
     /// assert_eq!(format!("{}", y), "037d0xye6op48cmce8ey4xlcf");
@@ -210,39 +208,39 @@ impl Scru128Id {
     }
 }
 
-impl From<u128> for Scru128Id {
+impl From<u128> for Id {
     fn from(value: u128) -> Self {
         Self::from_u128(value)
     }
 }
 
-impl From<Scru128Id> for u128 {
-    fn from(object: Scru128Id) -> Self {
+impl From<Id> for u128 {
+    fn from(object: Id) -> Self {
         object.to_u128()
     }
 }
 
-impl From<[u8; 16]> for Scru128Id {
+impl From<[u8; 16]> for Id {
     /// Creates an object from a 16-byte big-endian byte array.
     fn from(value: [u8; 16]) -> Self {
         Self::from_bytes(value)
     }
 }
 
-impl From<Scru128Id> for [u8; 16] {
+impl From<Id> for [u8; 16] {
     /// Returns the big-endian byte array representation.
-    fn from(object: Scru128Id) -> Self {
+    fn from(object: Id) -> Self {
         object.to_bytes()
     }
 }
 
-impl AsRef<[u8]> for Scru128Id {
+impl AsRef<[u8]> for Id {
     fn as_ref(&self) -> &[u8] {
         self.as_bytes()
     }
 }
 
-impl str::FromStr for Scru128Id {
+impl str::FromStr for Id {
     type Err = ParseError;
 
     /// Creates an object from a 25-digit string representation.
@@ -251,15 +249,13 @@ impl str::FromStr for Scru128Id {
     }
 }
 
-impl fmt::Display for Scru128Id {
+impl fmt::Display for Id {
     /// Returns the 25-digit canonical string representation.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// use scru128::Scru128Id;
-    ///
-    /// let x = "03997ft3ckz99o1i3f82zat1t".parse::<Scru128Id>()?;
+    /// let x = "03997ft3ckz99o1i3f82zat1t".parse::<scru128::Id>()?;
     /// assert_eq!(format!("{}", x), "03997ft3ckz99o1i3f82zat1t");
     /// assert_eq!(format!("{:32}", x), "03997ft3ckz99o1i3f82zat1t       ");
     /// assert_eq!(format!("{:->32}", x), "-------03997ft3ckz99o1i3f82zat1t");
@@ -371,9 +367,9 @@ impl error::Error for FieldError {}
 
 #[cfg(feature = "std")]
 mod with_std {
-    use super::{ParseError, Scru128Id};
+    use super::{Id, ParseError};
 
-    impl TryFrom<String> for Scru128Id {
+    impl TryFrom<String> for Id {
         type Error = ParseError;
 
         fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -381,8 +377,8 @@ mod with_std {
         }
     }
 
-    impl From<Scru128Id> for String {
-        fn from(object: Scru128Id) -> Self {
+    impl From<Id> for String {
+        fn from(object: Id) -> Self {
             object.encode().into()
         }
     }
@@ -390,9 +386,9 @@ mod with_std {
 
 #[cfg(test)]
 mod tests {
-    use super::Scru128Id;
+    use super::Id;
 
-    use crate::Scru128Generator;
+    use crate::Generator;
 
     const MAX_UINT48: u64 = (1 << 48) - 1;
     const MAX_UINT24: u32 = (1 << 24) - 1;
@@ -423,8 +419,8 @@ mod tests {
         ];
 
         for e in cases {
-            let from_fields = Scru128Id::try_from_fields(e.0.0, e.0.1, e.0.2, e.0.3).unwrap();
-            let from_string = e.1.parse::<Scru128Id>().unwrap();
+            let from_fields = Id::try_from_fields(e.0.0, e.0.1, e.0.2, e.0.3).unwrap();
+            let from_string = e.1.parse::<Id>().unwrap();
 
             assert_eq!(from_fields, from_string);
             assert_eq!(
@@ -511,7 +507,7 @@ mod tests {
         ];
 
         for e in cases {
-            let result = e.0.parse::<Scru128Id>();
+            let result = e.0.parse::<Id>();
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().kind, e.1);
         }
@@ -521,17 +517,17 @@ mod tests {
     #[test]
     fn has_symmetric_converters_from_to_various_values() {
         let cases = [
-            Scru128Id::try_from_fields(0, 0, 0, 0).unwrap(),
-            Scru128Id::try_from_fields(MAX_UINT48, 0, 0, 0).unwrap(),
-            Scru128Id::try_from_fields(0, MAX_UINT24, 0, 0).unwrap(),
-            Scru128Id::try_from_fields(0, 0, MAX_UINT24, 0).unwrap(),
-            Scru128Id::try_from_fields(0, 0, 0, MAX_UINT32).unwrap(),
-            Scru128Id::try_from_fields(MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32).unwrap(),
+            Id::try_from_fields(0, 0, 0, 0).unwrap(),
+            Id::try_from_fields(MAX_UINT48, 0, 0, 0).unwrap(),
+            Id::try_from_fields(0, MAX_UINT24, 0, 0).unwrap(),
+            Id::try_from_fields(0, 0, MAX_UINT24, 0).unwrap(),
+            Id::try_from_fields(0, 0, 0, MAX_UINT32).unwrap(),
+            Id::try_from_fields(MAX_UINT48, MAX_UINT24, MAX_UINT24, MAX_UINT32).unwrap(),
         ];
 
         let cases = {
             let mut v = cases.to_vec();
-            let mut g = Scru128Generator::for_testing();
+            let mut g = Generator::for_testing();
             for _ in 0..1000 {
                 v.push(g.generate());
             }
@@ -539,25 +535,20 @@ mod tests {
         };
 
         for e in cases {
-            assert_eq!(Scru128Id::try_from_str(&e.encode()).unwrap(), e);
-            assert_eq!(e.encode().parse::<Scru128Id>().unwrap(), e);
+            assert_eq!(Id::try_from_str(&e.encode()).unwrap(), e);
+            assert_eq!(e.encode().parse::<Id>().unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(e.to_string().parse::<Scru128Id>().unwrap(), e);
+            assert_eq!(e.to_string().parse::<Id>().unwrap(), e);
             #[cfg(feature = "std")]
-            assert_eq!(Scru128Id::try_from(String::from(e)).unwrap(), e);
-            assert_eq!(Scru128Id::from_u128(e.to_u128()), e);
-            assert_eq!(Scru128Id::from(u128::from(e)), e);
-            assert_eq!(Scru128Id::from_bytes(e.to_bytes()), e);
-            assert_eq!(Scru128Id::from(<[u8; 16]>::from(e)), e);
-            assert_eq!(Scru128Id::from_bytes(*e.as_bytes()), e);
+            assert_eq!(Id::try_from(String::from(e)).unwrap(), e);
+            assert_eq!(Id::from_u128(e.to_u128()), e);
+            assert_eq!(Id::from(u128::from(e)), e);
+            assert_eq!(Id::from_bytes(e.to_bytes()), e);
+            assert_eq!(Id::from(<[u8; 16]>::from(e)), e);
+            assert_eq!(Id::from_bytes(*e.as_bytes()), e);
             assert_eq!(
-                Scru128Id::try_from_fields(
-                    e.timestamp(),
-                    e.counter_hi(),
-                    e.counter_lo(),
-                    e.entropy()
-                )
-                .unwrap(),
+                Id::try_from_fields(e.timestamp(), e.counter_hi(), e.counter_lo(), e.entropy())
+                    .unwrap(),
                 e
             );
         }
@@ -570,24 +561,24 @@ mod tests {
         let hash = {
             use std::hash::BuildHasher as _;
             let s = std::collections::hash_map::RandomState::new();
-            move |value: &Scru128Id| s.hash_one(value)
+            move |value: &Id| s.hash_one(value)
         };
 
         let ordered = [
-            Scru128Id::try_from_fields(0, 0, 0, 0).unwrap(),
-            Scru128Id::try_from_fields(0, 0, 0, 1).unwrap(),
-            Scru128Id::try_from_fields(0, 0, 0, MAX_UINT32).unwrap(),
-            Scru128Id::try_from_fields(0, 0, 1, 0).unwrap(),
-            Scru128Id::try_from_fields(0, 0, MAX_UINT24, 0).unwrap(),
-            Scru128Id::try_from_fields(0, 1, 0, 0).unwrap(),
-            Scru128Id::try_from_fields(0, MAX_UINT24, 0, 0).unwrap(),
-            Scru128Id::try_from_fields(1, 0, 0, 0).unwrap(),
-            Scru128Id::try_from_fields(2, 0, 0, 0).unwrap(),
+            Id::try_from_fields(0, 0, 0, 0).unwrap(),
+            Id::try_from_fields(0, 0, 0, 1).unwrap(),
+            Id::try_from_fields(0, 0, 0, MAX_UINT32).unwrap(),
+            Id::try_from_fields(0, 0, 1, 0).unwrap(),
+            Id::try_from_fields(0, 0, MAX_UINT24, 0).unwrap(),
+            Id::try_from_fields(0, 1, 0, 0).unwrap(),
+            Id::try_from_fields(0, MAX_UINT24, 0, 0).unwrap(),
+            Id::try_from_fields(1, 0, 0, 0).unwrap(),
+            Id::try_from_fields(2, 0, 0, 0).unwrap(),
         ];
 
         let ordered = {
             let mut v = ordered.to_vec();
-            let mut g = Scru128Generator::for_testing();
+            let mut g = Generator::for_testing();
             for _ in 0..1000 {
                 v.push(g.generate());
             }
@@ -622,10 +613,10 @@ mod tests {
 
 #[cfg(feature = "serde")]
 mod with_serde {
-    use super::{Scru128Id, fmt, str};
+    use super::{Id, fmt, str};
     use serde::{Deserializer, Serializer, de};
 
-    impl serde::Serialize for Scru128Id {
+    impl serde::Serialize for Id {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             if serializer.is_human_readable() {
                 serializer.serialize_str(&self.encode())
@@ -635,7 +626,7 @@ mod with_serde {
         }
     }
 
-    impl<'de> serde::Deserialize<'de> for Scru128Id {
+    impl<'de> serde::Deserialize<'de> for Id {
         fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
             if deserializer.is_human_readable() {
                 deserializer.deserialize_str(VisitorImpl)
@@ -648,7 +639,7 @@ mod with_serde {
     struct VisitorImpl;
 
     impl de::Visitor<'_> for VisitorImpl {
-        type Value = Scru128Id;
+        type Value = Id;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(formatter, "a SCRU128 ID representation")
@@ -675,7 +666,7 @@ mod with_serde {
 
     #[cfg(test)]
     mod tests {
-        use super::Scru128Id;
+        use super::Id;
         use serde_test::{Configure, Token};
 
         /// Serializes and deserializes prepared cases correctly
@@ -733,7 +724,7 @@ mod with_serde {
             ];
 
             for (text, bytes) in cases {
-                let e = text.parse::<Scru128Id>().unwrap();
+                let e = text.parse::<Id>().unwrap();
                 serde_test::assert_tokens(&e.readable(), &[Token::Str(text)]);
                 serde_test::assert_tokens(&e.compact(), &[Token::Bytes(bytes)]);
 

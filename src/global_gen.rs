@@ -2,14 +2,14 @@
 
 #![cfg(feature = "global_gen")]
 
-use crate::{Scru128Generator, Scru128Id};
+use crate::{Generator, Id};
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///
 /// This function is thread-safe; multiple threads in a process can call it concurrently without
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
 /// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
-pub fn new() -> Scru128Id {
+pub fn new() -> Id {
     use std::sync::{LazyLock, Mutex};
     static G: LazyLock<Mutex<GlobalGenInner>> = LazyLock::new(Default::default);
     G.lock()
@@ -47,7 +47,7 @@ struct GlobalGenInner {
     #[cfg(unix)]
     pid: u32,
     #[allow(deprecated)]
-    generator: Scru128Generator<GlobalGenRng>,
+    generator: Generator<GlobalGenRng>,
 }
 
 impl Default for GlobalGenInner {
@@ -56,7 +56,7 @@ impl Default for GlobalGenInner {
             #[cfg(unix)]
             pid: std::process::id(),
             #[allow(deprecated)]
-            generator: Scru128Generator::with_rand_and_time_sources(
+            generator: Generator::with_rand_and_time_sources(
                 GlobalGenRng::try_new().expect("scru128: could not initialize global generator"),
                 Default::default(),
             ),
@@ -65,10 +65,10 @@ impl Default for GlobalGenInner {
 }
 
 impl GlobalGenInner {
-    /// Returns a mutable reference to the inner [`Scru128Generator`] instance, reseting the
-    /// generator state on Unix if the process ID has changed.
+    /// Returns a mutable reference to the inner [`Generator`] instance, reseting the generator
+    /// state on Unix if the process ID has changed.
     #[allow(deprecated)]
-    fn get_mut(&mut self) -> &mut Scru128Generator<GlobalGenRng> {
+    fn get_mut(&mut self) -> &mut Generator<GlobalGenRng> {
         #[cfg(unix)]
         if self.pid != std::process::id() {
             self.pid = std::process::id();

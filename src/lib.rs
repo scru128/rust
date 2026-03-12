@@ -36,29 +36,29 @@
 //!
 //! Default features:
 //!
-//! - `std` enables, among others, the default timestamp source for
-//!   [`Scru128Generator`] using [`std::time`]. Without `std`, users must provide their
-//!   own time source implementing the [`TimeSource`](generator::TimeSource) trait.
+//! - `std` enables, among others, the default timestamp source for [`Generator`]
+//!   using [`std::time`]. Without `std`, users must provide their own time source
+//!   implementing the [`TimeSource`](generator::TimeSource) trait.
 //! - `default_rng` (implies `std`) provides the default random number generator for
-//!   [`Scru128Generator`] and enables the [`Scru128Generator::new()`] constructor.
+//!   [`Generator`] and enables the [`Generator::new()`] constructor.
 //! - `global_gen` (implies `default_rng`) provides the process-wide default SCRU128
 //!   generator and enables the [`new()`] and [`new_string()`] functions.
 //! - `rand08`: See below.
 //!
 //! Optional features:
 //!
-//! - `serde` enables serialization/deserialization of [`Scru128Id`] via serde.
+//! - `serde` enables serialization/deserialization of [`Id`] via serde.
 //! - `rand010` enables an adapter for `rand::Rng` to use `rand` (v0.10) and any
-//!   other conforming random number generators with [`Scru128Generator`].
+//!   other conforming random number generators with [`Generator`].
 //!
 //! Deprecated optional features:
 //!
 //! - `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
-//!   other conforming random number generators with [`Scru128Generator`].
+//!   other conforming random number generators with [`Generator`].
 //! - `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
-//!   other conforming random number generators with [`Scru128Generator`]. This
-//!   feature is deprecated and for backward compatibility only but is enabled by
-//!   `default_rng` for historical reasons.
+//!   other conforming random number generators with [`Generator`]. This feature is
+//!   deprecated and for backward compatibility only but is enabled by `default_rng`
+//!   for historical reasons.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -68,14 +68,14 @@ mod global_gen;
 pub use global_gen::{new, new_string};
 
 pub mod id;
+pub use id::Id;
 #[doc(hidden)]
-pub use id::ParseError;
-pub use id::Scru128Id;
+pub use id::{Id as Scru128Id, ParseError};
 
 pub mod generator;
+pub use generator::Generator;
 #[doc(hidden)]
-pub use generator as r#gen;
-pub use generator::Scru128Generator;
+pub use generator::{self as r#gen, Generator as Scru128Generator};
 
 /// The maximum value of 48-bit `timestamp` field.
 const MAX_TIMESTAMP: u64 = 0xffff_ffff_ffff;
@@ -90,10 +90,10 @@ const MAX_COUNTER_LO: u32 = 0xff_ffff;
 mod tests {
     use std::{collections, sync, time};
 
-    use crate::{Scru128Generator, Scru128Id};
+    use crate::{Generator, Id};
 
     static SAMPLES: sync::LazyLock<Vec<String>> = sync::LazyLock::new(|| {
-        Scru128Generator::for_testing()
+        Generator::for_testing()
             .iter()
             .map(String::from)
             .take(100_000)
@@ -127,7 +127,7 @@ mod tests {
     /// Encodes up-to-date timestamp
     #[test]
     fn encodes_up_to_date_timestamp() {
-        let mut g = Scru128Generator::for_testing();
+        let mut g = Generator::for_testing();
         for _ in 0..10_000 {
             let ts_now = (time::SystemTime::now()
                 .duration_since(time::UNIX_EPOCH)
@@ -141,9 +141,9 @@ mod tests {
     /// Encodes unique sortable tuple of timestamp and counters
     #[test]
     fn encodes_unique_sortable_tuple_of_timestamp_and_counters() {
-        let mut prev = SAMPLES[0].parse::<Scru128Id>().unwrap();
+        let mut prev = SAMPLES[0].parse::<Id>().unwrap();
         for e in &SAMPLES[1..] {
-            let curr = e.parse::<Scru128Id>().unwrap();
+            let curr = e.parse::<Id>().unwrap();
             assert!(
                 prev.timestamp() < curr.timestamp()
                     || (prev.timestamp() == curr.timestamp()

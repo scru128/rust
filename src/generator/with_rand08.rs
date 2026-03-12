@@ -3,7 +3,7 @@
 #![cfg(feature = "rand08")]
 #![deprecated(since = "3.3.0", note = "use a newer version of `rand` crate")]
 
-use super::{RandSource, Scru128Generator, StdSystemTime};
+use super::{Generator, RandSource, StdSystemTime};
 use rand_core06::RngCore;
 
 /// An adapter that implements [`RandSource`] for [`RngCore`] types.
@@ -16,7 +16,7 @@ impl<T: RngCore> RandSource for Adapter<T> {
     }
 }
 
-impl<T: RngCore> Scru128Generator<Adapter<T>> {
+impl<T: RngCore> Generator<Adapter<T>> {
     /// Creates a generator object with a specified random number generator that implements
     /// [`RngCore`] from `rand` (v0.8) crate. The specified random number generator should be
     /// cryptographically strong and securely seeded.
@@ -25,9 +25,7 @@ impl<T: RngCore> Scru128Generator<Adapter<T>> {
     ///
     /// ```ignore
     /// # use rand08 as rand;
-    /// use scru128::Scru128Generator;
-    ///
-    /// let mut g = Scru128Generator::with_rand08(rand::thread_rng());
+    /// let mut g = scru128::Generator::with_rand08(rand::thread_rng());
     /// println!("{}", g.generate());
     /// ```
     pub const fn with_rand08(rng: T) -> Self {
@@ -36,7 +34,7 @@ impl<T: RngCore> Scru128Generator<Adapter<T>> {
 }
 
 /// This is a deprecated blanket impl retained for backward compatibility. Do not depend on this
-/// impl; use [`Scru128Generator::with_rand08()`] instead.
+/// impl; use [`Generator::with_rand08()`] instead.
 #[cfg(feature = "rand")]
 impl<T: RngCore> RandSource for T {
     fn next_u32(&mut self) -> u32 {
