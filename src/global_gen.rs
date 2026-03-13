@@ -11,7 +11,17 @@ use crate::{Generator, Id};
 /// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
 pub fn new() -> Id {
     use std::sync::{LazyLock, Mutex};
-    static G: LazyLock<Mutex<GlobalGenInner>> = LazyLock::new(Default::default);
+    static G: LazyLock<Mutex<GlobalGenInner>> = LazyLock::new(|| {
+        Mutex::new(GlobalGenInner {
+            #[cfg(unix)]
+            pid: std::process::id(),
+            #[allow(deprecated)]
+            generator: Generator::with_rand_and_time_sources(
+                GlobalGenRng::try_new().expect("scru128: could not initialize global generator"),
+                Default::default(),
+            ),
+        })
+    });
     G.lock()
         .expect("scru128: could not lock global generator")
         .get_mut()
@@ -48,20 +58,6 @@ struct GlobalGenInner {
     pid: u32,
     #[allow(deprecated)]
     generator: Generator<GlobalGenRng>,
-}
-
-impl Default for GlobalGenInner {
-    fn default() -> Self {
-        Self {
-            #[cfg(unix)]
-            pid: std::process::id(),
-            #[allow(deprecated)]
-            generator: Generator::with_rand_and_time_sources(
-                GlobalGenRng::try_new().expect("scru128: could not initialize global generator"),
-                Default::default(),
-            ),
-        }
-    }
 }
 
 impl GlobalGenInner {
