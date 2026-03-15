@@ -2,25 +2,11 @@ use super::*;
 use std::cell;
 
 impl Generator<()> {
-    #[cfg(feature = "default_rng")]
-    pub(crate) fn for_testing() -> Generator<impl RandSource, impl TimeSource> {
-        #[allow(deprecated)]
-        Generator::new()
-    }
-
-    #[cfg(not(feature = "default_rng"))]
     pub(crate) fn for_testing() -> Generator<impl RandSource, impl TimeSource> {
         Generator::with_rand_and_time_sources(new_rand_source(), new_time_source())
     }
 }
 
-#[cfg(feature = "default_rng")]
-fn new_rand_source() -> impl RandSource {
-    #[allow(deprecated)]
-    DefaultRng::default()
-}
-
-#[cfg(not(feature = "default_rng"))]
 fn new_rand_source() -> impl RandSource {
     struct MockRandSource;
     impl RandSource for MockRandSource {

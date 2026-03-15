@@ -39,9 +39,7 @@
 //! - `std` enables, among others, the default timestamp source for [`Generator`]
 //!   using [`std::time`]. Without `std`, users must provide their own time source
 //!   implementing the [`TimeSource`](generator::TimeSource) trait.
-//! - `default_rng` (implies `std`) provides the default random number generator for
-//!   [`Generator`] and enables the [`Generator::new()`] constructor.
-//! - `global_gen` (implies `default_rng`) provides the process-wide default SCRU128
+//! - `global_gen` (implies `std`) provides the process-wide default SCRU128
 //!   generator and enables the [`new()`] and [`new_string()`] functions.
 //!
 //! Optional features:

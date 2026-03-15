@@ -8,8 +8,15 @@ This version streamlines the API by removing many features and methods that were
 deprecated in v3.x.
 
 - Feature removals:
+  - Removed the `default_rng` feature and related APIs, including the
+    `DefaultRng` type and the `Scru128Generator::new()` constructor. To use
+    `Scru128Generator`, enable the `rand010` feature and provide a random number
+    generator from the `rand` crate.
   - Removed the `rand08` feature and related APIs, including the `rand` feature
     alias and the blanket `RandSource` implementation for `rand::RngCore` v0.8.
+- `Scru128Generator` cleanups:
+  - Removed the default concrete type of `DefaultRng` from the generic type `R`.
+  - Removed the `new()` constructor.
 
 ## v3.6.0 - 2026-03-14
 
