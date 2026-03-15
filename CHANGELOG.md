@@ -9,27 +9,29 @@ deprecated in v3.x.
 
 - Feature removals:
   - Removed the `default_rng` feature and related APIs, including the
-    `DefaultRng` type and the `Scru128Generator::new()` constructor. To use
-    `Scru128Generator`, enable the `rand010` feature and provide a random number
-    generator from the `rand` crate.
+    `DefaultRng` type and the `Generator::new()` constructor. To use `Generator`,
+    enable the `rand010` feature and provide a random number generator from the
+    `rand` crate.
   - Removed the `rand08` feature and related APIs, including the `rand` feature
     alias and the blanket `RandSource` implementation for `rand::RngCore` v0.8.
   - Hid the `rand09` feature from documentation. This may be removed in a future
     minor update.
-- `Scru128Generator` cleanups:
+- `Generator` cleanups:
   - Removed the default concrete type of `DefaultRng` from the generic type `R`.
   - Removed `new()` and `with_rng()` constructors.
   - Removed the direct `Iterator` implementation; use the `iter()` method to get
     an infinite iterator instead.
   - Removed `generate_or_reset_core()` and `generate_or_abort_core()` methods.
-  - Removed the deprecated `Scru128Rng` trait alias; use `RandSource` instead.
-  - Removed `Eq` and `PartialEq` implementations from `Scru128Generator`,
+  - Removed `Eq` and `PartialEq` implementations from `Generator`,
     `StdSystemTime`, and `with_rand*::Adapter`s.
-- Top-level alias removals:
+- Deprecated alias removals:
   - Removed the `gen` module alias to `generator`.
   - Removed the top-level re-export of `ParseError`; use `id::ParseError`.
+  - Removed the `Scru128Generator` alias; use `Generator` instead.
+  - Removed the `Scru128Id` alias; use `Id` instead.
+  - Removed the `Scru128Rng` trait alias; use `RandSource` instead.
 - Other breaking changes:
-  - Removed `Scru128Id::from_fields()` in favor of the safer `try_from_fields()`.
+  - Removed `Id::from_fields()` in favor of the safer `try_from_fields()`.
   - Removed `Clone`, `Eq`, and `PartialEq` implementations from `ParseError`.
 
 ### Maintenance
