@@ -46,10 +46,6 @@ const DECODE_MAP: [u8; 256] = [
 #[repr(transparent)]
 pub struct Id([u8; 16]);
 
-#[deprecated(since = "3.6.0", note = "use `Id` instead")]
-#[doc(hidden)]
-pub use Id as Scru128Id;
-
 impl Id {
     /// Creates an object from a 128-bit unsigned integer.
     pub const fn from_u128(int_value: u128) -> Self {
@@ -74,24 +70,6 @@ impl Id {
     /// Returns a reference to the big-endian byte array representation.
     pub const fn as_bytes(&self) -> &[u8; 16] {
         &self.0
-    }
-
-    /// Creates an object from field values.
-    ///
-    /// # Panics
-    ///
-    /// Panics if any argument is out of the value range of the field.
-    #[deprecated(since = "3.6.0", note = "use `try_from_fields()` instead")]
-    pub const fn from_fields(
-        timestamp: u64,
-        counter_hi: u32,
-        counter_lo: u32,
-        entropy: u32,
-    ) -> Self {
-        match Self::try_from_fields(timestamp, counter_hi, counter_lo, entropy) {
-            Ok(value) => value,
-            Err(_) => panic!("invalid field value(s)"),
-        }
     }
 
     /// Creates an object from field values.
