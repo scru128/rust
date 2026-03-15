@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.0.0 - unreleased
+
+### Breaking changes
+
+This version streamlines the API by removing many features and methods that were
+deprecated in v3.x.
+
+- Feature removals:
+  - Removed the `rand08` feature and related APIs, including the `rand` feature
+    alias and the blanket `RandSource` implementation for `rand::RngCore` v0.8.
+
 ## v3.6.0 - 2026-03-14
 
 - Renamed `Scru128Generator` and `Scru128Id` to `Generator` and `Id`,
