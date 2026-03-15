@@ -27,6 +27,10 @@ deprecated in v3.x.
 - Other breaking changes:
   - Removed `Scru128Id::from_fields()` in favor of the safer `try_from_fields()`.
 
+### Maintenance
+
+- Upgraded the `rand` crate used by `global_gen` from v0.9 to v0.10.
+
 ## v3.6.0 - 2026-03-14
 
 - Renamed `Scru128Generator` and `Scru128Id` to `Generator` and `Id`,

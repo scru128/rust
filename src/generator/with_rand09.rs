@@ -23,13 +23,10 @@ impl<T: RngCore> Generator<Adapter<T>> {
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// # #[cfg(feature = "global_gen")]
-    /// # {
+    /// ```ignore
     /// # use rand09 as rand;
     /// let mut g = scru128::Generator::with_rand09(rand::rng());
     /// println!("{}", g.generate());
-    /// # }
     /// ```
     pub const fn with_rand09(rng: T) -> Self {
         Self::with_rand_and_time_sources(Adapter(rng), StdSystemTime)

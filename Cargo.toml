@@ -16,12 +16,12 @@ default = ["global_gen"]
 std = ["fstr/std"]
 rand09 = ["dep:rand_core09"]
 rand010 = ["dep:rand_core010"]
-global_gen = ["std", "dep:rand09"]
+global_gen = ["std", "dep:rand"]
 serde = ["dep:serde"]
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
-rand09 = { package = "rand", version = "0.9", optional = true }
+rand = { version = "0.10", default-features = false, features = ["std", "std_rng", "sys_rng"], optional = true }
 rand_core09 = { package = "rand_core", version = "0.9", default-features = false, optional = true }
 rand_core010 = { package = "rand_core", version = "0.10", default-features = false, optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
