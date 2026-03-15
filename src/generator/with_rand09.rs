@@ -24,7 +24,7 @@ impl<T: RngCore> Generator<Adapter<T>> {
     /// # Examples
     ///
     /// ```rust
-    /// # #[cfg(feature = "default_rng")]
+    /// # #[cfg(feature = "global_gen")]
     /// # {
     /// # use rand09 as rand;
     /// let mut g = scru128::Generator::with_rand09(rand::rng());

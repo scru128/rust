@@ -75,8 +75,7 @@ pub trait TimeSource {
 /// [`generate_or_reset_with_ts`]: Generator::generate_or_reset_with_ts
 /// [`generate_or_abort_with_ts`]: Generator::generate_or_abort_with_ts
 #[derive(Clone, Eq, PartialEq)]
-#[allow(deprecated)]
-pub struct Generator<R = DefaultRng, T = StdSystemTime> {
+pub struct Generator<R, T = StdSystemTime> {
     timestamp: u64,
     counter_hi: u32,
     counter_lo: u32,
@@ -97,22 +96,6 @@ pub struct Generator<R = DefaultRng, T = StdSystemTime> {
 #[deprecated(since = "3.6.0", note = "use `Generator` instead")]
 #[doc(hidden)]
 pub use Generator as Scru128Generator;
-
-#[cfg(feature = "default_rng")]
-impl Generator {
-    /// Creates a generator object with the default random number generator.
-    ///
-    /// # Panics
-    ///
-    /// Panics in the highly unlikely event where [`DefaultRng`] could not be initialized.
-    #[deprecated(
-        since = "3.6.0",
-        note = "use `with_rand010()` instead. `DefaultRng` and the default type parameter `R` of `Generator` are deprecated and will be removed in the future."
-    )]
-    pub fn new() -> Self {
-        Default::default()
-    }
-}
 
 impl<R> Generator<R> {
     /// Creates a generator object with a specified random number generator. The specified random
@@ -393,36 +376,6 @@ impl<R: RandSource, T: TimeSource> Iterator for Generator<R, T> {
 }
 
 impl<R: RandSource, T: TimeSource> iter::FusedIterator for Generator<R, T> {}
-
-/// The default random number generator used by [`Generator`].
-///
-/// Currently, `DefaultRng` uses [`ChaCha12Core`] that is initially seeded and subsequently
-/// reseeded by [`OsRng`] every 64 kiB of random data using the [`ReseedingRng`] wrapper. It is the
-/// same strategy as that employed by [`ThreadRng`]; see the docs of `rand` crate for a detailed
-/// discussion on the strategy.
-///
-/// This structure does exist without the `default_rng` feature flag but is not able to be
-/// instantiated or used as a random number generator.
-///
-/// [`ChaCha12Core`]: rand_chacha::ChaCha12Core
-/// [`ReseedingRng`]: rand09::rngs::ReseedingRng
-/// [`OsRng`]: rand09::rngs::OsRng
-/// [`ThreadRng`]: rand09::rngs::ThreadRng
-#[derive(Clone, Debug)]
-#[deprecated(
-    since = "3.6.0",
-    note = "this structure and the default type parameter `R` of `Generator` are deprecated and will be removed in the future. Use RNGs provided by `rand` crate."
-)]
-pub struct DefaultRng {
-    _private: (),
-
-    #[cfg(feature = "default_rng")]
-    inner: rand09::rngs::ReseedingRng<rand_chacha::ChaCha12Core, rand09::rngs::OsRng>,
-}
-
-#[cfg(feature = "default_rng")]
-#[allow(deprecated)]
-mod default_rng;
 
 /// The default [`TimeSource`] that uses [`std::time::SystemTime`].
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
