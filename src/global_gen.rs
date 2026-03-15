@@ -70,7 +70,7 @@ impl GlobalGenInner {
 }
 
 mod global_gen_rng {
-    use rand09::{RngCore as _, SeedableRng as _, rngs::OsRng as SysRng, rngs::StdRng};
+    use rand::{Rng as _, SeedableRng as _, rngs::StdRng, rngs::SysRng};
 
     use crate::generator::RandSource;
 
@@ -112,7 +112,7 @@ mod global_gen_rng {
     #[cfg(test)]
     #[test]
     fn reseeded_after_64kib() {
-        let seed = rand09::TryRngCore::try_next_u64(&mut SysRng).unwrap();
+        let seed = rand::TryRng::try_next_u64(&mut SysRng).unwrap();
         let mut g1 = StdRng::seed_from_u64(seed);
         let mut g2 = GlobalGenRng {
             counter: 0,
