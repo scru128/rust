@@ -47,11 +47,6 @@ Optional features:
 - `rand010` enables an adapter for `rand::Rng` to use `rand` (v0.10) and any
   other conforming random number generators with `Generator`.
 
-Deprecated optional features:
-
-- `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
-  other conforming random number generators with `Generator`.
-
 ## License
 
 Licensed under the Apache License, Version 2.0.

@@ -14,6 +14,8 @@ deprecated in v3.x.
     generator from the `rand` crate.
   - Removed the `rand08` feature and related APIs, including the `rand` feature
     alias and the blanket `RandSource` implementation for `rand::RngCore` v0.8.
+  - Hid the `rand09` feature from documentation. This may be removed in a future
+    minor update.
 - `Scru128Generator` cleanups:
   - Removed the default concrete type of `DefaultRng` from the generic type `R`.
   - Removed `new()` and `with_rng()` constructors.
