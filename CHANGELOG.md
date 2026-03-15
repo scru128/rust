@@ -16,7 +16,16 @@ deprecated in v3.x.
     alias and the blanket `RandSource` implementation for `rand::RngCore` v0.8.
 - `Scru128Generator` cleanups:
   - Removed the default concrete type of `DefaultRng` from the generic type `R`.
-  - Removed the `new()` constructor.
+  - Removed `new()` and `with_rng()` constructors.
+  - Removed the direct `Iterator` implementation; use the `iter()` method to get
+    an infinite iterator instead.
+  - Removed `generate_or_reset_core()` and `generate_or_abort_core()` methods.
+  - Removed the deprecated `Scru128Rng` trait alias; use `RandSource` instead.
+- Top-level alias removals:
+  - Removed the `gen` module alias to `generator`.
+  - Removed the top-level re-export of `ParseError`; use `id::ParseError`.
+- Other breaking changes:
+  - Removed `Scru128Id::from_fields()` in favor of the safer `try_from_fields()`.
 
 ## v3.6.0 - 2026-03-14
 

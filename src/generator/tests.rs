@@ -74,9 +74,7 @@ fn handle_clock_rollback() {
 
     for rollback_allowance in [DEFAULT_ROLLBACK_ALLOWANCE, 5_000, 20_000] {
         let ts = cell::Cell::new(0);
-        let [mut g0, mut g1, mut g2, mut g3, mut g4, mut g5] = [
-            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
-            Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
+        let [mut g0, mut g1, mut g2, mut g3] = [
             Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
             Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
             Generator::with_rand_and_time_sources(new_rand_source(), CellTimeSource(&ts)),
@@ -90,20 +88,11 @@ fn handle_clock_rollback() {
             g3.set_rollback_allowance(rollback_allowance);
         }
 
-        #[allow(deprecated)]
-        let methods: [(&mut dyn FnMut() -> Option<Id>, bool); 6] = [
+        let methods: [(&mut dyn FnMut() -> Option<Id>, bool); 4] = [
             (&mut || Some(g0.generate()), true),
             (&mut || g1.generate_or_abort(), false),
             (&mut || Some(g2.generate_or_reset_with_ts(ts.get())), true),
             (&mut || g3.generate_or_abort_with_ts(ts.get()), false),
-            (
-                &mut || Some(g4.generate_or_reset_core(ts.get(), rollback_allowance)),
-                true,
-            ),
-            (
-                &mut || g5.generate_or_abort_core(ts.get(), rollback_allowance),
-                false,
-            ),
         ];
 
         for (generate, is_reset) in methods {
@@ -166,35 +155,4 @@ fn handle_clock_rollback() {
             }
         }
     }
-}
-
-/// _core methods do not change generator-level rollback allowance
-#[test]
-#[allow(deprecated)]
-fn core_fns_do_not_change_rollback_allowance() {
-    let ts = new_time_source().unix_ts_ms();
-
-    let mut g = Generator::for_testing();
-    g.set_rollback_allowance(100);
-    assert_eq!(g.rollback_allowance, 100);
-
-    g.generate_or_reset_core(ts, 1_000);
-    assert_eq!(g.rollback_allowance, 100);
-
-    g.generate_or_abort_core(ts, 1_000);
-    assert_eq!(g.rollback_allowance, 100);
-}
-
-/// Is iterable with for-in loop
-#[test]
-fn is_iterable_with_for_in_loop() {
-    let mut i = 0;
-    for e in Generator::for_testing() {
-        assert!(e.timestamp() > 0);
-        i += 1;
-        if i > 100 {
-            break;
-        }
-    }
-    assert_eq!(i, 101);
 }
