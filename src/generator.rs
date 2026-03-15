@@ -68,7 +68,7 @@ pub trait TimeSource {
 /// [`generate_or_abort`]: Generator::generate_or_abort
 /// [`generate_or_reset_with_ts`]: Generator::generate_or_reset_with_ts
 /// [`generate_or_abort_with_ts`]: Generator::generate_or_abort_with_ts
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone)]
 pub struct Generator<R, T = StdSystemTime> {
     timestamp: u64,
     counter_hi: u32,
@@ -268,7 +268,7 @@ impl<R: fmt::Debug, T: fmt::Debug> fmt::Debug for Generator<R, T> {
 }
 
 /// The default [`TimeSource`] that uses [`std::time::SystemTime`].
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct StdSystemTime;
 
 #[cfg(feature = "std")]

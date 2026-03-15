@@ -21,11 +21,14 @@ deprecated in v3.x.
     an infinite iterator instead.
   - Removed `generate_or_reset_core()` and `generate_or_abort_core()` methods.
   - Removed the deprecated `Scru128Rng` trait alias; use `RandSource` instead.
+  - Removed `Eq` and `PartialEq` implementations from `Scru128Generator`,
+    `StdSystemTime`, and `with_rand*::Adapter`s.
 - Top-level alias removals:
   - Removed the `gen` module alias to `generator`.
   - Removed the top-level re-export of `ParseError`; use `id::ParseError`.
 - Other breaking changes:
   - Removed `Scru128Id::from_fields()` in favor of the safer `try_from_fields()`.
+  - Removed `Clone`, `Eq`, and `PartialEq` implementations from `ParseError`.
 
 ### Maintenance
 

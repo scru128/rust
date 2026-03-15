@@ -7,7 +7,7 @@ use super::{Generator, RandSource, StdSystemTime};
 use rand_core09::RngCore;
 
 /// An adapter that implements [`RandSource`] for [`RngCore`] types.
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`RngCore`] type. */ pub T);
 
 impl<T: RngCore> RandSource for Adapter<T> {
