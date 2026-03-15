@@ -246,12 +246,12 @@ impl fmt::Display for Id {
 }
 
 /// An error parsing an invalid string representation of SCRU128 ID.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct ParseError {
     kind: ParseErrorKind,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 enum ParseErrorKind {
     InvalidLength {
         n_bytes: usize,

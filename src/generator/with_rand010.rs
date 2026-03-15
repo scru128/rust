@@ -6,7 +6,7 @@ use super::{Generator, RandSource, StdSystemTime};
 use rand_core010::Rng;
 
 /// An adapter that implements [`RandSource`] for [`Rng`] types.
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Adapter<T>(/** The wrapped [`Rng`] type. */ pub T);
 
 impl<T: Rng> RandSource for Adapter<T> {
