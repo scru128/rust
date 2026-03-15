@@ -19,7 +19,6 @@ pub trait RandSource {
 pub use RandSource as Scru128Rng;
 
 pub mod with_rand010;
-pub mod with_rand08;
 pub mod with_rand09;
 
 /// A trait that defines the minimum system clock interface for [`Generator`].
@@ -120,8 +119,7 @@ impl<R> Generator<R> {
     /// number generator should be cryptographically strong and securely seeded.
     ///
     /// Use [`Generator::with_rand010()`] to create a generator with the random number generators
-    /// from `rand` crate. Although this constructor accepts `rand::RngCore` (v0.8) types for
-    /// historical reasons, such behavior is deprecated and will be removed in the future.
+    /// from `rand` crate.
     #[deprecated(
         since = "3.3.0",
         note = "use `with_rand_and_time_sources()` with `StdSystemTime` instead"
@@ -134,9 +132,7 @@ impl<R> Generator<R> {
 impl<R, T> Generator<R, T> {
     /// Creates a generator object with specified random number generator and system clock.
     ///
-    /// Use [`with_rand010::Adapter`] to pass a random number generator from `rand` crate. Although
-    /// this constructor accepts `rand::RngCore` (v0.8) types for historical reasons, such behavior
-    /// is deprecated and will be removed in the future.
+    /// Use [`with_rand010::Adapter`] to pass a random number generator from `rand` crate.
     pub const fn with_rand_and_time_sources(rand_source: R, time_source: T) -> Self {
         Self {
             timestamp: 0,

@@ -43,7 +43,6 @@
 //!   [`Generator`] and enables the [`Generator::new()`] constructor.
 //! - `global_gen` (implies `default_rng`) provides the process-wide default SCRU128
 //!   generator and enables the [`new()`] and [`new_string()`] functions.
-//! - `rand08`: See below.
 //!
 //! Optional features:
 //!
@@ -55,10 +54,6 @@
 //!
 //! - `rand09` enables an adapter for `rand::RngCore` to use `rand` (v0.9) and any
 //!   other conforming random number generators with [`Generator`].
-//! - `rand08` enables an adapter for `rand::RngCore` to use `rand` (v0.8) and any
-//!   other conforming random number generators with [`Generator`]. This feature is
-//!   deprecated and for backward compatibility only but is enabled by `default_rng`
-//!   for historical reasons.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
