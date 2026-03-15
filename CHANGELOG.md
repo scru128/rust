@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.6.0 - unreleased
+## v3.6.0 - 2026-03-14
 
 - Renamed `Scru128Generator` and `Scru128Id` to `Generator` and `Id`,
   respectively, so they can be used as `scru128::Generator` and `scru128::Id`.
