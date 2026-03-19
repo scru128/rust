@@ -170,7 +170,7 @@ impl<R, T> Generator<R, T> {
     }
 
     /// Returns a mutable reference to the inner random number source.
-    #[cfg(all(unix, feature = "global_gen"))]
+    #[cfg(feature = "global_gen")]
     pub(crate) fn rand_source_mut(&mut self) -> &mut R {
         &mut self.rand_source
     }

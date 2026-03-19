@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Separated the fork detection functionality of the global generator as an
+  independent `forkguard` crate.
+
 ## v3.6.0 - 2026-03-14
 
 - Renamed `Scru128Generator` and `Scru128Id` to `Generator` and `Id`,

@@ -8,13 +8,12 @@ use crate::{Generator, Id};
 ///
 /// This function is thread-safe; multiple threads in a process can call it concurrently without
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
-/// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
+/// state when a process fork is detected to avoid collisions across processes.
 pub fn new() -> Id {
     use std::sync::{LazyLock, Mutex};
     static G: LazyLock<Mutex<GlobalGenInner>> = LazyLock::new(|| {
         Mutex::new(GlobalGenInner {
-            #[cfg(unix)]
-            pid: std::process::id(),
+            guard: forkguard::new(),
             #[allow(deprecated)]
             generator: Generator::with_rand_and_time_sources(
                 GlobalGenRng::try_new().expect("scru128: could not initialize global generator"),
@@ -35,7 +34,7 @@ pub fn new() -> Id {
 ///
 /// This function is thread-safe; multiple threads in a process can call it concurrently without
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
-/// state when the process ID changes (i.e., upon forks) to avoid collisions across processes.
+/// state when a process fork is detected to avoid collisions across processes.
 ///
 /// # Examples
 ///
@@ -51,23 +50,20 @@ pub fn new_string() -> String {
 #[allow(deprecated)]
 use crate::generator::DefaultRng as GlobalGenRng;
 
-/// A thin wrapper to reset the state when the process ID changes (i.e., upon Unix forks).
+/// A thin wrapper to reset the state when a process fork is detected.
 #[derive(Debug)]
 struct GlobalGenInner {
-    #[cfg(unix)]
-    pid: u32,
+    guard: forkguard::Guard,
     #[allow(deprecated)]
     generator: Generator<GlobalGenRng>,
 }
 
 impl GlobalGenInner {
     /// Returns a mutable reference to the inner [`Generator`] instance, reseting the generator
-    /// state on Unix if the process ID has changed.
+    /// state on Unix if a process fork is detected.
     #[allow(deprecated)]
     fn get_mut(&mut self) -> &mut Generator<GlobalGenRng> {
-        #[cfg(unix)]
-        if self.pid != std::process::id() {
-            self.pid = std::process::id();
+        if self.guard.detected_fork() {
             self.generator.reset_state();
             if let Ok(rng) = GlobalGenRng::try_new() {
                 *self.generator.rand_source_mut() = rng;

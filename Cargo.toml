@@ -18,13 +18,14 @@ rand08 = ["dep:rand_core06"]
 rand09 = ["dep:rand_core09"]
 rand010 = ["dep:rand_core010"]
 default_rng = ["std", "rand", "dep:rand09", "dep:rand_chacha"]
-global_gen = ["default_rng"]
+global_gen = ["default_rng", "dep:forkguard"]
 serde = ["dep:serde"]
 
 rand = ["rand08"] # Deprecated alias. This enables the deprecated blanket impl.
 
 [dependencies]
 fstr = { version = "0.2", default-features = false }
+forkguard = { version = "0.1", optional = true }
 rand09 = { package = "rand", version = "0.9", optional = true }
 rand_chacha = { version = "0.9", optional = true }
 rand_core06 = { package = "rand_core", version = "0.6", default-features = false, optional = true }
