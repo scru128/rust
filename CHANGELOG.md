@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v3.6.1 - 2026-03-20
 
 - Separated the fork detection functionality of the global generator as an
   independent `forkguard` crate.
