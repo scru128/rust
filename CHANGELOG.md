@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Minor refactoring.
+
 ## v4.0.0 - 2026-03-20
 
 ### Breaking changes
