@@ -2,7 +2,12 @@
 
 #![cfg(feature = "global_gen")]
 
-use crate::{Generator, Id};
+use std::{error, sync};
+
+use rand::{Rng as _, rngs};
+use reseeding_rng::ReseedingRng;
+
+use crate::{Generator, Id, generator::RandSource};
 
 /// Generates a new SCRU128 ID object using the global generator.
 ///
@@ -10,9 +15,8 @@ use crate::{Generator, Id};
 /// breaking the monotonic order of generated IDs. On Unix, this function resets the generator
 /// state when a process fork is detected to avoid collisions across processes.
 pub fn new() -> Id {
-    use std::sync::{LazyLock, Mutex};
-    static G: LazyLock<Mutex<GlobalGenInner>> = LazyLock::new(|| {
-        Mutex::new(GlobalGenInner {
+    static G: sync::LazyLock<sync::Mutex<GlobalGenInner>> = sync::LazyLock::new(|| {
+        sync::Mutex::new(GlobalGenInner {
             guard: forkguard::new(),
             generator: Generator::with_rand_and_time_sources(
                 GlobalGenRng::try_new().expect("scru128: could not initialize global generator"),
@@ -46,8 +50,6 @@ pub fn new_string() -> String {
     new().into()
 }
 
-use global_gen_rng::GlobalGenRng;
-
 /// A thin wrapper to reset the state when a process fork is detected.
 #[derive(Debug)]
 struct GlobalGenInner {
@@ -67,30 +69,24 @@ impl GlobalGenInner {
     }
 }
 
-mod global_gen_rng {
-    use rand::{Rng as _, rngs::StdRng, rngs::SysRng};
-    use reseeding_rng::ReseedingRng;
+/// A reseeding pseudorandom number generator.
+#[derive(Debug)]
+struct GlobalGenRng(ReseedingRng<rngs::StdRng, rngs::SysRng>);
 
-    use crate::generator::RandSource;
+impl RandSource for GlobalGenRng {
+    fn next_u32(&mut self) -> u32 {
+        self.0.next_u32()
+    }
+}
 
-    #[derive(Debug)]
-    pub struct GlobalGenRng(ReseedingRng<StdRng, SysRng>);
-
-    impl RandSource for GlobalGenRng {
-        fn next_u32(&mut self) -> u32 {
-            self.0.next_u32()
-        }
+impl GlobalGenRng {
+    fn try_new() -> Result<Self, impl error::Error> {
+        ReseedingRng::try_new(1024 * 64, rngs::SysRng).map(Self)
     }
 
-    impl GlobalGenRng {
-        pub fn try_new() -> Result<Self, impl std::error::Error> {
-            ReseedingRng::try_new(1024 * 64, SysRng).map(Self)
-        }
-
-        #[cold]
-        pub fn try_reseed(&mut self) -> Result<(), impl std::error::Error> {
-            self.0.try_reseed()
-        }
+    #[cold]
+    fn try_reseed(&mut self) -> Result<(), impl error::Error> {
+        self.0.try_reseed()
     }
 }
 
