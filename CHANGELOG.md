@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Separated the reseeding functionality of the global generator as an
+  independent `reseeding_rng` crate.
 - Minor refactoring.
 
 ## v4.0.0 - 2026-03-20

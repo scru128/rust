@@ -61,70 +61,36 @@ impl GlobalGenInner {
     fn get_mut(&mut self) -> &mut Generator<GlobalGenRng> {
         if self.guard.detected_fork() {
             self.generator.reset_state();
-            if let Ok(rng) = GlobalGenRng::try_new() {
-                *self.generator.rand_source_mut() = rng;
-            }
+            let _ = self.generator.rand_source_mut().try_reseed();
         }
         &mut self.generator
     }
 }
 
 mod global_gen_rng {
-    use rand::{Rng as _, SeedableRng as _, rngs::StdRng, rngs::SysRng};
+    use rand::{Rng as _, rngs::StdRng, rngs::SysRng};
+    use reseeding_rng::ReseedingRng;
 
     use crate::generator::RandSource;
 
-    /// The new type for the random number generator of the global generator.
-    ///
-    /// The global generator currently employs [`StdRng`] and reseeds it after every 64KiB
-    /// consumption, emulating the strategy used by `ThreadRng`.
     #[derive(Debug)]
-    pub struct GlobalGenRng {
-        counter: usize,
-        inner: StdRng,
-    }
-
-    const RESEED_THRESHOLD: usize = 64 * 1024;
+    pub struct GlobalGenRng(ReseedingRng<StdRng, SysRng>);
 
     impl RandSource for GlobalGenRng {
         fn next_u32(&mut self) -> u32 {
-            self.counter += 32 / 8;
-            if self.counter > RESEED_THRESHOLD {
-                self.reset_after_reseed_attempt_at(32 / 8);
-            }
-            self.inner.next_u32()
+            self.0.next_u32()
         }
     }
 
     impl GlobalGenRng {
         pub fn try_new() -> Result<Self, impl std::error::Error> {
-            StdRng::try_from_rng(&mut SysRng).map(|inner| Self { counter: 0, inner })
+            ReseedingRng::try_new(1024 * 64, SysRng).map(Self)
         }
 
         #[cold]
-        fn reset_after_reseed_attempt_at(&mut self, pos: usize) {
-            if let Ok(inner) = StdRng::try_from_rng(&mut SysRng) {
-                self.inner = inner;
-            }
-            self.counter = pos;
+        pub fn try_reseed(&mut self) -> Result<(), impl std::error::Error> {
+            self.0.try_reseed()
         }
-    }
-
-    #[cfg(test)]
-    #[test]
-    fn reseeded_after_64kib() {
-        let seed = rand::TryRng::try_next_u64(&mut SysRng).unwrap();
-        let mut g1 = StdRng::seed_from_u64(seed);
-        let mut g2 = GlobalGenRng {
-            counter: 0,
-            inner: StdRng::seed_from_u64(seed),
-        };
-
-        for _ in 0..(64 * 1024 / (32 / 8)) {
-            assert_eq!(g1.next_u32(), g2.next_u32());
-        }
-
-        assert_ne!(g1.next_u32(), g2.next_u32());
     }
 }
 
