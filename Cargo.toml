@@ -10,6 +10,7 @@ repository = "https://github.com/scru128/rust"
 documentation = "https://docs.rs/scru128"
 keywords = ["identifier", "uuid", "guid", "ulid", "ksuid"]
 categories = ["algorithms"]
+exclude = ["/.github/"]
 
 [features]
 default = ["global_gen"]
