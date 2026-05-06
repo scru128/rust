@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Refactored the global generator using `reseeding_rng::StdReseedingRng`.
+- Updated dependencies.
+
 ## v4.1.0 - 2026-03-31
 
 - Separated the reseeding functionality of the global generator as an
