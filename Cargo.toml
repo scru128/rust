@@ -22,7 +22,7 @@ rand09 = ["dep:rand_core09"]
 serde = ["dep:serde"]
 
 [dependencies]
-fstr = { version = "0.2", default-features = false }
+fstr = { version = "0.2.20", default-features = false }
 
 forkguard = { version = "0.1", optional = true }
 reseeding_rng = { version = "0.10.5", features = ["std_rng"], optional = true }

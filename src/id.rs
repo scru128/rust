@@ -182,7 +182,7 @@ impl Id {
         }
 
         // SAFETY: ok because buffer consists of ASCII bytes
-        unsafe { FStr::from_inner_unchecked(buffer) }
+        unsafe { FStr::from_bytes_unchecked(buffer) }
     }
 }
 
