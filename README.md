@@ -1,6 +1,7 @@
 # SCRU128: Sortable, Clock and Random number-based Unique identifier
 
 [![Crates.io](https://img.shields.io/crates/v/scru128)](https://crates.io/crates/scru128)
+[![Docs.rs](https://img.shields.io/docsrs/scru128)](https://docs.rs/scru128)
 [![License](https://img.shields.io/crates/l/scru128)](https://github.com/scru128/rust/blob/main/LICENSE)
 
 SCRU128 ID is yet another attempt to supersede [UUID] for the users who need
@@ -50,7 +51,3 @@ Optional features:
 ## License
 
 Licensed under the Apache License, Version 2.0.
-
-## See also
-
-- [docs.rs/scru128](https://docs.rs/scru128)
